@@ -80,7 +80,7 @@ void MIDDLE_Langevin_INFORMATION::Initial(CONTROLLER *controller, const int atom
 	controller[0].printf("START INITIALIZING MIDDLE LANGEVIN DYNAMICS:\n");
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "middle_langevin");
+		strcpy(this->module_name, "langevin");
 	}
 	else
 	{

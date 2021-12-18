@@ -220,6 +220,8 @@ void NON_BOND_14::Initial(CONTROLLER *controller, char *module_name)
 	{
 		controller[0].printf("START INITIALIZING NB14 (amber_parm7):\n");
 		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0]);
+		if (nb14_numbers > 0)
+			is_initialized = 1;
 	}
 	else
 	{
@@ -442,11 +444,6 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 	controller.printf("        nb14_number is %d\n",nb14_numbers);
 	controller.printf("    End reading nb14 information from AMBER file\n");
 	Parameter_Host_To_Device();
-	is_initialized = 1;
-	if (nb14_numbers == 0)
-	{
-		Clear();
-	}
 }
 
 

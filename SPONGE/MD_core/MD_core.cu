@@ -47,18 +47,28 @@ static __global__ void MD_Iteration_Leap_Frog_With_Max_Velocity
 }
 
 static __global__ void MD_Iteration_Gradient_Descent
-(const int atom_numbers, VECTOR *crd, VECTOR *frc, const float *mass_inverse,const float learning_rate)
+(const int atom_numbers, VECTOR *crd, VECTOR *frc, const float *mass_inverse, const float dt, VECTOR *vel, const float momentum_keep)
 {
 	int i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (i < atom_numbers)
 	{
-		crd[i].x = crd[i].x + learning_rate * mass_inverse[i] * frc[i].x;
-		crd[i].y = crd[i].y + learning_rate * mass_inverse[i] * frc[i].y;
-		crd[i].z = crd[i].z + learning_rate * mass_inverse[i] * frc[i].z;
-
+		vel[i] = momentum_keep * vel[i] + dt * mass_inverse[i] * frc[i];
+		crd[i] = dt * vel[i];
 	}
 }
 
+static __global__ void MD_Iteration_Gradient_Descent_With_Max_Move
+(const int atom_numbers, VECTOR *crd, VECTOR *frc, const float *mass_inverse, const float dt, VECTOR *vel, const float momentum_keep, float max_move)
+{
+	int i = blockDim.x*blockIdx.x + threadIdx.x;
+	if (i < atom_numbers)
+	{
+		vel[i] = momentum_keep * vel[i] + dt * mass_inverse[i] * frc[i];
+		VECTOR move = dt * vel[i];
+		Make_Vector_Not_Exceed_Value(move, max_move);
+		crd[i] = crd[i] + move;
+	}
+}
 
 static __global__ void MD_Iteration_Speed_Verlet_1(const int atom_numbers, const float half_dt, const float dt, const VECTOR *acc, VECTOR *vel, VECTOR *crd, VECTOR *frc)
 {
@@ -503,9 +513,17 @@ void MD_INFORMATION::Read_dt(CONTROLLER *controller)
 	}
 	else
 	{
-		dt = 0.001 * CONSTANT_TIME_CONVERTION;
+		if (mode != MINIMIZATION)
+			dt = 0.001;
+		else
+			dt = 1e-8;
 		sys.dt_in_ps = 0.001;
-		controller->printf("    dt set to %f ps\n", 0.001);
+		controller->printf("    dt set to %f ps\n", dt);
+		dt *= CONSTANT_TIME_CONVERTION;
+	}
+	if (mode == MINIMIZATION)
+	{
+		sys.dt_in_ps = 0;
 	}
 }
 
@@ -664,7 +682,7 @@ void MD_INFORMATION::residue_information::Read_AMBER_Parm7(const char *file_name
 	cudaMemcpy(this->d_res_start, h_res_start, sizeof(int)*this->residue_numbers, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_res_end, h_res_end, sizeof(int)*this->residue_numbers, cudaMemcpyHostToDevice);
 
-	controller.printf("    End reading residue informataion from AMBER parm7\n");
+	controller.printf("    End reading residue informataion from AMBER parm7\n\n");
 
 	fclose(parm);
 }
@@ -1111,6 +1129,8 @@ void MD_INFORMATION::Initial(CONTROLLER *controller)
 
 	nve.Initial(controller, this);
 	
+	min.Initial(controller, this);
+
 	res.Initial(controller, this);
 
 	mol.Initial(controller, this);
@@ -1468,12 +1488,84 @@ void MD_INFORMATION::NVE_iteration::Leap_Frog()
 	}
 }
 
-void MD_INFORMATION::MD_Information_Gradient_Descent()
+void MD_INFORMATION::MINIMIZATION_iteration::Initial(CONTROLLER *controller, MD_INFORMATION *md_info)
 {
-	MD_Iteration_Gradient_Descent << <ceilf((float)this->atom_numbers / 128), 128 >> >
-		(this->atom_numbers, this->crd, this->frc, this->d_mass_inverse, dt * dt);
-	cudaMemset(vel, 0, sizeof(VECTOR)*atom_numbers);
+	this->md_info = md_info;
+	if (md_info->mode == MINIMIZATION)
+	{
+		controller->printf("    Start initializing minimization:\n");
+		max_move = 0.1;
+		if (controller[0].Command_Exist("minimization_max_move"))
+		{
+			max_move = atof(controller[0].Command("minimization_max_move"));
+		}
+		controller->printf("        minimization max move is %f A\n", max_move);
+
+		dynamic_dt = 0;
+		if (controller[0].Command_Exist("minimization_dynamic_dt"))
+		{
+			dynamic_dt = atoi(controller[0].Command("minimization_dynamic_dt"));
+		}
+		controller->printf("        minimization dynamic dt is %d\n", dynamic_dt);
+
+		dt_decreasing_rate = 0.01;
+		if (controller[0].Command_Exist("minimization_dt_decreasing_rate"))
+		{
+			dt_decreasing_rate = atof(controller[0].Command("minimization_dt_decreasing_rate"));
+		}
+		controller->printf("        minimization dt decreasing rate is %f\n", dt_decreasing_rate);
+
+		dt_increasing_rate = 1.01;
+		if (controller[0].Command_Exist("minimization_dt_increasing_rate"))
+		{
+			dt_increasing_rate = atof(controller[0].Command("minimization_dt_increasing_rate"));
+		}
+		controller->printf("        minimization dt increasing rate is %f\n", dt_increasing_rate);
+
+		momentum_keep = 0;
+		if (controller[0].Command_Exist("minimization_momentum_keep"))
+		{
+			momentum_keep = atof(controller[0].Command("minimization_momentum_keep"));
+		}
+		controller->printf("        minimization momentum keep is %f\n", momentum_keep);
+
+		controller->printf("    End initializing minimization\n\n");
+	}
 }
+
+void MD_INFORMATION::MINIMIZATION_iteration::Gradient_Descent()
+{
+	if (dynamic_dt)
+	{
+		if (md_info->sys.steps != 1)
+		{
+			if (last_potential > md_info->sys.h_potential)
+			{
+				md_info->dt *= dt_increasing_rate;
+			}
+			else
+			{
+				if (md_info->dt > 1e-8)
+				{
+					md_info->dt *= dt_decreasing_rate;
+				}
+			}
+		}
+		last_potential = md_info->sys.h_potential;
+	}
+	if (max_move <= 0)
+	{
+		MD_Iteration_Gradient_Descent << <ceilf((float)md_info->atom_numbers / 128), 128 >> >
+			(md_info->atom_numbers, md_info->crd, md_info->frc, md_info->d_mass_inverse, md_info->dt, md_info->vel, momentum_keep);
+	}
+	else
+	{
+		MD_Iteration_Gradient_Descent_With_Max_Move << <ceilf((float)md_info->atom_numbers / 128), 128 >> >
+			(md_info->atom_numbers, md_info->crd, md_info->frc, md_info->d_mass_inverse, md_info->dt, md_info->vel, momentum_keep, max_move);
+	}
+}
+
+
 
 void MD_INFORMATION::NVE_iteration::Velocity_Verlet_1()
 {
@@ -1785,7 +1877,7 @@ void MD_INFORMATION::molecule_information::Initial(CONTROLLER *controller, MD_IN
 	free(edges);
 	free(edge_next);
 	free(molecule_belongings);
-	controller->printf("    End initializing molecule list\n");
+	controller->printf("    End initializing molecule list\n\n");
 }
 
 void MD_INFORMATION::molecule_information::Molecule_Crd_Map(VECTOR *no_wrap_crd, float scaler)

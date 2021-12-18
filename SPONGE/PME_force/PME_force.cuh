@@ -102,8 +102,8 @@ struct Particle_Mesh_Ewald
 	float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 		const ATOM_GROUP *nl, const VECTOR scaler,
 		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int is_download = 1);
-	int update_volume_count = 0;
-	void Update_Volume(double factor, VECTOR boxlength);
+
+	void Update_Volume(VECTOR boxlength);
 	void Update_Box_Length(VECTOR boxlength);
 
 };

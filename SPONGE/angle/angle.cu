@@ -124,7 +124,8 @@ void ANGLE::Initial(CONTROLLER *controller, char *module_name)
 	{
 		controller[0].printf("START INITIALIZING ANGLE (amber_parm7):\n");
 		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0]);
-		is_initialized = 1;
+		if (angle_numbers > 0)
+			is_initialized = 1;
 	}
 	else
 	{

@@ -19,6 +19,7 @@ const CONSTRAIN_PAIR *constrain_pair,const VECTOR *pair_dr,
 		r_1=rnorm3df(dr.x, dr.y, dr.z);
 		frc_abs = (1. - cp.constant_r*r_1)*cp.constrain_k;
 
+
 		frc_lin.x = frc_abs*pair_dr[pair_i].x;
 		frc_lin.y = frc_abs*pair_dr[pair_i].y;
 		frc_lin.z = frc_abs*pair_dr[pair_i].z;
@@ -945,7 +946,7 @@ __global__ void settle_pair(int pair_numbers, CONSTRAIN_PAIR* pairs, const float
 		vel[pair.atom_i_serial] = vel[pair.atom_i_serial] + k * r1;
 		vel[pair.atom_j_serial] = vel[pair.atom_j_serial] + k * kr2;
 
-		r1 = k * mB / dt / dt / half_exp_gamma_plus_half * kr2;
+		r1 = k * mB / dt / exp_gamma * kr2;
 		virial_vector[pair_i].x = r1.x * r2.x;
 		virial_vector[pair_i].y = r1.y * r2.y;
 		virial_vector[pair_i].z = r1.z * r2.z;

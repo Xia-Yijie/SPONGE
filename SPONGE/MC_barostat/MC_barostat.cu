@@ -54,7 +54,7 @@ void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers,
 		update_interval = atoi(controller[0].Command(this->module_name, "update_interval"));
 	controller->printf("    The update_interval is %d\n", update_interval);
 
-	check_interval = 20;
+	check_interval = 10;
 	if (controller[0].Command_Exist(this->module_name, "check_interval"))
 		check_interval = atoi(controller[0].Command(this->module_name, "check_interval"));
 	controller->printf("    The check_interval is %d\n", check_interval);
@@ -66,12 +66,12 @@ void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers,
 	controller->printf("    The molecule_scale is %d\n", scale_coordinate_by_molecule);
 
 
-	accept_rate_low = 30.0;
+	accept_rate_low = 25;
 	if (controller[0].Command_Exist(this->module_name, "accept_rate_low"))
 		accept_rate_low = atoi(controller[0].Command(this->module_name, "accept_rate_low"));
 	controller->printf("    The lowest accept rate is %.2f%%\n", accept_rate_low);
 
-	accept_rate_high = 40.0;
+	accept_rate_high = 75;
 	if (controller[0].Command_Exist(this->module_name, "accept_rate_high"))
 		accept_rate_high = atoi(controller[0].Command(this->module_name, "accept_rate_high"));
 	controller->printf("    The highest accept rate is %.2f%%\n", accept_rate_high);

@@ -25,7 +25,7 @@
 struct MD_INFORMATION
 {
 	int is_initialized = 0;
-	int last_modify_date = 20210830;
+	int last_modify_date = 20211105;
 
 	//sponge输入初始化
 	void Initial(CONTROLLER *controller);
@@ -187,6 +187,19 @@ struct MD_INFORMATION
 		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
 	} nve; //nve迭代相关函数
 	
+	struct MINIMIZATION_iteration
+	{
+		MD_INFORMATION *md_info = NULL; //指向自己主结构体的指针，以方便调用主结构体的信息
+		float max_move = 0.02;
+		int dynamic_dt = 0;
+		float last_potential = 0;
+		float momentum_keep = 0;
+		float dt_increasing_rate = 1.01;
+		float dt_decreasing_rate = 0.01;
+		void Gradient_Descent();
+		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
+	} min;
+
 	struct residue_information
 	{
 		int is_initialized = 0;
@@ -251,9 +264,6 @@ struct MD_INFORMATION
 
 	//用来将原子的真实坐标转换为unsigned int坐标,注意factor需要乘以0.5（保证越界坐标自然映回box）
 	void MD_Information_Crd_To_Uint_Crd();
-	
-	//梯度下降法
-	void MD_Information_Gradient_Descent();
 
 	//将frc拷贝到cpu上
 	void MD_Information_Frc_Device_To_Host();

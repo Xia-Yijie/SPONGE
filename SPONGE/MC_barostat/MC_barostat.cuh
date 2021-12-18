@@ -29,7 +29,7 @@ struct MC_BAROSTAT_INFORMATION
 	int last_modify_date = 20210827;
 
 	int update_interval = 100;   //每多少步进行一次MC尝试
-	int check_interval = 20;  //每多少次MC尝试以后进行一次DeltaV_max取值的检查（使得MC接受概率在40%~50%
+	int check_interval = 10;  //每多少次MC尝试以后进行一次DeltaV_max取值的检查（使得MC接受概率在40%~50%
 	int reject = 1;  //接受与否
 	VECTOR *frc_backup;     //备份力，以便还原
 	VECTOR *crd_backup;     //备份坐标，以便还原

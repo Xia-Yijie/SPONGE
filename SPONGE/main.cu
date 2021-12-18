@@ -3,7 +3,9 @@
 CONTROLLER controller;
 MD_INFORMATION md_info;
 MIDDLE_Langevin_INFORMATION middle_langevin;
-Langevin_MD_INFORMATION lg_info;
+ANDERSEN_THERMOSTAT_INFORMATION ad_thermo;
+BERENDSEN_THERMOSTAT_INFORMATION bd_thermo;
+NOSE_HOOVER_CHAIN_INFORMATION nhc;
 BOND bond;
 ANGLE angle;
 DIHEDRAL dihedral;
@@ -39,14 +41,23 @@ void Main_Initial(int argc, char *argv[])
 	md_info.Initial(&controller);
 	controller.Command_Exist("end_pause");
 
-	if  (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "middle_langevin"))
+	if  (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "langevin"))
 	{
 		middle_langevin.Initial(&controller, md_info.atom_numbers, md_info.sys.target_temperature, md_info.h_mass);
 	}
-	if (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "langevin"))
+	if (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "berendsen_thermostat"))
 	{
-		lg_info.Initial(&controller, md_info.atom_numbers, md_info.sys.target_temperature, md_info.h_mass);
+		bd_thermo.Initial(&controller, md_info.sys.target_temperature);
 	}
+	if (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "andersen_thermostat"))
+	{
+		ad_thermo.Initial(&controller, md_info.sys.target_temperature, md_info.atom_numbers, md_info.h_mass);
+	}
+	if (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "nose_hoover_chain"))
+	{
+		nhc.Initial(&controller, md_info.sys.target_temperature);
+	}
+
 	neighbor_list.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff, md_info.nb.skin);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.FORCED_UPDATE);
 	lj.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length);
@@ -91,8 +102,16 @@ void Main_Clear()
 {
 	controller.core_time.Stop();
 	controller.printf("Core Run Wall Time: %f second(s)\n", controller.core_time.time);
-	controller.simulation_speed = md_info.sys.steps * md_info.dt / CONSTANT_TIME_CONVERTION / controller.core_time.time * 86.4;
-	controller.printf("Core Run Speed: %f ns/day\n", controller.simulation_speed);
+	if (md_info.mode != md_info.MINIMIZATION)
+	{
+		controller.simulation_speed = md_info.sys.steps * md_info.dt / CONSTANT_TIME_CONVERTION / controller.core_time.time * 86.4;
+		controller.printf("Core Run Speed: %f ns/day\n", controller.simulation_speed);
+	}
+	else
+	{
+		controller.simulation_speed = md_info.sys.steps / controller.core_time.time * 3600;
+		controller.printf("Core Run Speed: %f steps/hour\n", controller.simulation_speed);
+	}
 	fcloseall();
 
 	if (controller.Command_Exist("end_pause"))
@@ -109,7 +128,7 @@ void Main_Calculate_Force()
 {
 	md_info.MD_Information_Crd_To_Uint_Crd();
 	md_info.MD_Reset_Atom_Energy_And_Virial_And_Force();
-	if (md_info.sys.steps % md_info.output.write_trajectory_interval == 0)
+	if (md_info.sys.steps % md_info.output.write_trajectory_interval == 0 || (md_info.mode == md_info.MINIMIZATION && md_info.min.dynamic_dt))
 	{
 		md_info.need_potential = 1;
 	}
@@ -167,16 +186,15 @@ void Main_Iteration()
 		
 		//改变体积
 		Main_Volume_Change(mc_baro.crd_scale_factor);
-
 		//新能量
 		Main_Calculate_Force();
 		mc_baro.energy_new = md_info.sys.h_potential;
 
 		//计算接受概率
 		if (mc_baro.scale_coordinate_by_molecule)
-			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.mol.molecule_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
+			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - (md_info.mol.molecule_numbers - 1) * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
 		else
-			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.atom_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
+			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - (md_info.atom_numbers - 1) * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
 
 		mc_baro.accept_possibility = mc_baro.energy_new - mc_baro.energy_old + mc_baro.extra_term;
 		mc_baro.accept_possibility = expf(-mc_baro.accept_possibility / (CONSTANT_kB * md_info.sys.target_temperature));
@@ -210,16 +228,43 @@ void Main_Iteration()
 	}
 	else if (md_info.mode == md_info.MINIMIZATION)
 	{
-		md_info.MD_Information_Gradient_Descent();
+		md_info.min.Gradient_Descent();
 	}
 	else if (middle_langevin.is_initialized)
 	{
 		middle_langevin.MD_Iteration_Leap_Frog(md_info.frc, md_info.vel, md_info.acc, md_info.crd);
 	}
-	else if (lg_info.is_initialized)
+	else if (bd_thermo.is_initialized)
 	{
-		lg_info.MD_Iteration_Leap_Frog(md_info.frc, md_info.crd, md_info.vel, md_info.acc);
+		bd_thermo.Record_Temperature(md_info.sys.Get_Atom_Temperature(), md_info.sys.freedom);
+		md_info.nve.Leap_Frog();
+		bd_thermo.Scale_Velocity(md_info.atom_numbers, md_info.vel);
 	}
+	else if (ad_thermo.is_initialized)
+	{
+		if ((md_info.sys.steps - 1) % ad_thermo.update_interval == 0)
+		{
+			ad_thermo.MD_Iteration_Leap_Frog(md_info.atom_numbers, md_info.vel, md_info.crd, md_info.frc, md_info.acc, md_info.d_mass_inverse, md_info.dt);
+			simple_constrain.info.exp_gamma = 0;
+			simple_constrain.half_exp_gamma_plus_half = 0.5;
+			simple_constrain.settle.exp_gamma = 0;
+			simple_constrain.settle.half_exp_gamma_plus_half = 0.5;
+		}
+		else
+		{
+			md_info.nve.Leap_Frog();
+			simple_constrain.info.exp_gamma = 1;
+			simple_constrain.half_exp_gamma_plus_half = 1;
+			simple_constrain.settle.exp_gamma = 1;
+			simple_constrain.settle.half_exp_gamma_plus_half = 1;
+		}
+	}
+	else if (nhc.is_initialized)
+	{
+		nhc.MD_Iteration_Leap_Frog(md_info.atom_numbers, md_info.vel, md_info.crd, md_info.frc, md_info.acc, md_info.d_mass_inverse, md_info.dt, md_info.sys.Get_Total_Atom_Ek(), md_info.sys.freedom);
+	}
+
+
 	simple_constrain.Constrain(md_info.crd, md_info.vel, md_info.d_mass_inverse, md_info.d_mass, md_info.sys.box_length, md_info.need_pressure, md_info.sys.d_pressure);
 	
 	if (bd_baro.is_initialized && md_info.sys.steps % bd_baro.update_interval == 0)
@@ -282,10 +327,12 @@ void Main_Print()
 		{
 			md_info.output.Append_Frc_Traj_File();
 		}
+		nhc.Save_Trajectory_File();
 	}
 	if (md_info.sys.steps % md_info.output.write_restart_file_interval == 0)
 	{
 		md_info.output.Export_Restart_File();
+		nhc.Save_Restart_File();
 	}
 }
 
@@ -295,7 +342,7 @@ void Main_Volume_Change(double factor)
 	neighbor_list.Update_Volume(md_info.sys.box_length);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 	lj.Update_Volume(md_info.sys.box_length);
-	pme.Update_Volume(factor, md_info.sys.box_length);
+	pme.Update_Volume(md_info.sys.box_length);
 	simple_constrain.Update_Volume(md_info.sys.box_length);
 	mol_map.Update_Volume(md_info.sys.box_length);
 }

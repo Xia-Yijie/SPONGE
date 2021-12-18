@@ -4,11 +4,23 @@
 
 #分子模拟最基本相关设置
 mode = NPT #可选Minimization, NVE, NVT, NPT
+
 dt = 4e-3 #模拟步长，单位ps
-step_limit = 5000 #模拟总步数
+step_limit = 10000 #模拟总步数
 write_information_interval = 2500 #保存中间信息的间隔
 write_restart_file_interval = 5000  #保存重启坐标和速度的间隔
 molecule_map_output = 1 #保存的坐标按分子整体进行周期性映射
+
+#最小化设置相关
+##minimization
+{
+    max_move = 0.1 #每步最小化原子最远更新的距离，单位埃
+    dynamic_dt = 1 #使用自动更新步长策略
+    dt_increasing_rate = 1.01 #步长增加的比例
+    dt_decreasing_rate = 0.01 #步长减小的比例
+    momentum_keep = 0 #动量梯度下降法，可以保存部分速度，保存的速度比例
+}
+
 
 #nve相关设置
 nve_velocity_max = 20. #NVE迭代时速度的最大值，单位为埃每皮秒
@@ -25,13 +37,41 @@ neighbor_list
 }
 
 #热浴相关
-thermostat = middle_langevin #可选middle_langevin和langevin
 target_temperature = 300.0 #模拟的目标平衡温度，单位为开
-middle_langevin  #langevin与middle_langevin参数相同
+thermostat = langevin #可选热浴见下
+langevin #居中图示的langevin算法
 {
     seed = 1  #随机数种子，不填随机生成
     gamma = 10.0  #摩擦系数（碰撞频率），单位为ps^-1
     velocity_max = 20.0 #迭代时速度的最大值，单位为埃每皮秒
+}
+
+
+##nose_hoover_chain
+{
+    length = 10  #NH链的长度（为了增加遍历性，拓展的维度可以不止一维）
+    tauT = 1.0   #弛豫时间常数
+    #velocity_max = 20 #没测试过加最大速度
+    #restart_input = xxx.txt  #如果需要满足时间反演对称性，restart的时候需要坐标和速度连续，不给默认均为0
+    #restart_output = xxx.txt #如果需要满足时间反演对称性，restart的时候需要坐标和速度连续，不给不会打印
+    #crd = xxx.txt  #如果需要nose_hoover_chain的粒子坐标轨迹
+    #vel = xxx.txt   #如果需要nose_hoover_chain的粒子速度轨迹
+}
+
+##andersen_thermostat
+{
+    update_interval = 500 #更新间隔，update_interval * dt 就类似于其他热浴的时间常数
+    #注意，Andersen控温每隔update_interval进行一次控温，其他时候都是NVE迭代，还需要加NVE_velocity_max）
+    #velocity_max = 20 #Andersen更新步的最大速度
+    #seed = 0 #随机数种子
+}  
+
+##berendsen_thermostat
+{
+    tauT = 1.0 #弛豫时间常数
+    stochastic_term = 1 #选1加入随机修正（又叫bussi控温），使得最后的分布能满足正确的温度分布，选0就是原本的berendsen控温，只能保证温度控到平衡温度
+    #berendsen控温使用的是NVE迭代器，最大速度使用NVE_velocity_max控制
+    #seed = 0 #随机数种子
 }
 
 #压浴相关
@@ -54,10 +94,10 @@ monte_carlo_barostat
 }
 
 #限制参数
-restrain
+##restrain
 {
     atom_id = covid-tip4p/covid-tip4p_restrain.txt   #需要限制的原子编号表
-    #weight = 500 #限制势的力常数，单位为千卡每摩每埃  
+    #weight = 500 #限制势的力常数，单位为千卡每摩每埃，过大可能会导致体系崩溃
     #coordinate_in_file = covid-tip4p/npt_coordinate.txt  #SPONGE格式的参考坐标，不填默认初始坐标
     #amber_rst7 = temp.rst7 #AMBER格式的参考坐标，不填默认初始坐标
 }
@@ -67,7 +107,7 @@ simple_constrain
 {
     iteration_numbers = 30 #迭代次数
     step_length = 0.9 #迭代步长
-    mass = 3.3  #约束原子质量小于该值的原子的键
+    mass = 33  #约束原子质量小于该值的原子的键
     angle_constrain = 0 #是否约束键角
     #in_file = xxx.txt #用文件指定需要约束的键长
 }
@@ -113,5 +153,5 @@ LJ
         rst = restart               #记录重启坐标和速度的文件
 
 #其他参数
-end_pause = 0 #程序运行结束后是否需要输入任意键退出
+end_pause = 1 #程序运行结束后是否需要输入任意键退出
 device = 0 #使用的GPU设备

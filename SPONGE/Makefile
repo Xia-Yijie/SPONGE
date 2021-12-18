@@ -5,11 +5,11 @@ compiler=nvcc
 COMMON_COMMAND=-arch=sm_50 -rdc=true -lcudadevrt -lcufft --use_fast_math -O4 -std=c++11
 BIN_NAME=SPONGE
 
-install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o  thermostats/Middle_Langevin_MD.o thermostats/Andersen_thermostat.o thermostats/Berendsen_thermostat.o thermostats/nose_hoover_chain.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	$(compiler) -o $(BIN_NAME)  $^ $(COMMON_COMMAND)
 
 
-all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o thermostats/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	
 
 
@@ -57,11 +57,19 @@ PME_force/PME_force.o: PME_force/PME_force.cu PME_force/PME_force.cuh common.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-Langevin_MD/Langevin_MD.o: Langevin_MD/Langevin_MD.cu Langevin_MD/Langevin_MD.cuh common.cuh control.cuh
+thermostats/Middle_Langevin_MD.o: thermostats/Middle_Langevin_MD.cu thermostats/Middle_Langevin_MD.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-Langevin_MD/Middle_Langevin_MD.o: Langevin_MD/Middle_Langevin_MD.cu Langevin_MD/Middle_Langevin_MD.cuh common.cuh control.cuh
+thermostats/Andersen_thermostat.o: thermostats/Andersen_thermostat.cu thermostats/Andersen_thermostat.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
+
+
+thermostats/Berendsen_thermostat.o: thermostats/Berendsen_thermostat.cu thermostats/Berendsen_thermostat.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
+
+
+thermostats/nose_hoover_chain.o: thermostats/nose_hoover_chain.cu thermostats/nose_hoover_chain.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
@@ -69,7 +77,7 @@ MC_barostat/MC_barostat.o: MC_barostat/MC_barostat.cu MC_barostat/MC_barostat.cu
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-Berendsen_barostat/Berendsen_barostat.o: Berendsen_barostat/Berendsen_barostat.cu Berendsen_barostat/Berendsen_barostat.cuh common.cuh control.cuh main.cuh MD_core/MD_core.cuh
+Berendsen_barostat/Berendsen_barostat.o: Berendsen_barostat/Berendsen_barostat.cu Berendsen_barostat/Berendsen_barostat.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 

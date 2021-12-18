@@ -118,7 +118,6 @@ void Particle_Mesh_Ewald::Initial(CONTROLLER *controller, int atom_numbers, VECT
 
 	controller[0].printf("START INITIALIZING PME:\n");
 	this->cutoff = cutoff;
-	update_volume_count = 0;
 
 	tolerance = 0.00001;
 	if (controller[0].Command_Exist(this->module_name, "Direct_Tolerance"))
@@ -889,23 +888,11 @@ float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const
 	}
 }
 
-void Particle_Mesh_Ewald::Update_Volume(double factor, VECTOR box_length)
+void Particle_Mesh_Ewald::Update_Volume(VECTOR box_length)
 {
-	double factor_inverse = 1.0 / factor;
-	update_volume_count += 1;
 	//大约每10000步，重新更新BC系数，其他时候直接也同时对beta放缩，只用乘一个因子即可。后续这个步数可能可以让别人调节。
-	if (update_volume_count % 10000 == 0)
-	{
-		beta = Get_Beta(cutoff, tolerance);
-		Update_Box_Length(boxlength);
-	}
-	else
-	{
-		PME_inverse_box_vector = factor_inverse * PME_inverse_box_vector;
-		beta *= factor;
-		Scale_List << <ceilf((float)PME_Nfft / 32), 32 >> >(PME_Nfft, PME_BC, factor_inverse);
-		neutralizing_factor *= powf(factor, 5.0f);
-	}
+	beta = Get_Beta(cutoff, tolerance);
+	Update_Box_Length(boxlength);
 }
 
 __global__ void up_box_bc(int fftx, int ffty, int fftz, float *PME_BC, float *PME_BC0, float mprefactor, VECTOR boxlength, float volume)
