@@ -1,0 +1,48 @@
+SPONGE Module File
+:::Name:::
+    nb14
+:::Author:::
+    夏义杰
+:::Description:::
+    非键14相互作用
+:::Progress:::
+    100
+:::Category:::
+    成键
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+    LENNARD_JONES_INFORMATION LJ_info;
+:::Module File:::
+    nb14/nb14.cu
+:::Module Include:::
+    nb14/nb14.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "nb14/nb14.cuh"
+:::Main Declaration:::
+    NON_BOND_14 nb14;
+:::Main Initial:::
+    nb14.Initial(&controller);
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+    nb14.Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(md_info.uint_crd_with_LJ, md_info.uint_dr_to_dr_cof, LJ_info.d_LJ_A, LJ_info.d_LJ_B,
+        md_info.frc, md_info.d_atom_energy, md_info.d_atom_virial);
+:::Main Calculate Energy:::
+    nb14.Non_Bond_14_LJ_CF_Energy(md_info.uint_crd_with_LJ, md_info.uint_dr_to_dr_cof, LJ_info.d_LJ_A, LJ_info.d_LJ_B);
+:::Main After Calculate Energy:::
+    nb14.Energy_Device_To_Host();
+    md_info.h_potential += nb14.h_nb14_lj_energy_sum + nb14.h_nb14_cf_energy_sum;
+:::Main Before Iteration:::
+
+:::Main After Iteration:::
+
+:::Main Volume Change:::
+    
+:::Main Print:::
+    if (nb14.nb14_numbers > 0)
+        sprintf(controller.out_line, "%s %10.2f %10.2f", controller.out_line, nb14.h_nb14_lj_energy_sum, nb14.h_nb14_cf_energy_sum);
+:::HTML:::
+    input = 文件名; nickname = 非键14输入文件; name = nb14_in_file; tab = 力场; subtab = 成键;

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="夏义杰" />
+        <title>SPONGE参数生成器</title>
+        <link rel="stylesheet" href="GUI_helper/SPONGE.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="GUI_helper/jquery.min.js"></script>
+        <script type="text/javascript" src="GUI_helper/clipboard.min.js"></script>
+        <script type="text/javascript" src="GUI_helper/SPONGE.js"></script>
+        <script type="text/javascript">
+            enable_maps = new Array()
+            disable_maps = new Array()
+            enable_maps.push(new Array("thermostat","mode","1","2"))
+            enable_maps.push(new Array("target_temperature","mode","1","2"))
+            enable_maps.push(new Array("barostat","mode","2"))
+            enable_maps.push(new Array("target_pressure","mode","2"))
+            disable_maps.push(new Array("constrain_in_file","constrain_mode",""))
+            disable_maps.push(new Array("constrain_mass","constrain_mode",""))
+            enable_maps.push(new Array("langevin_gamma","thermostat","0"))
+            enable_maps.push(new Array("langevin_seed","thermostat","0"))
+            enable_maps.push(new Array("langevin_gamma_REDEFINE_1","thermostat","1"))
+            enable_maps.push(new Array("langevin_seed_REDEFINE_1","thermostat","1"))
+            enable_maps.push(new Array("velocity_max","thermostat","1"))
+            enable_maps.push(new Array("mc_baro_update_interval","barostat","0"))
+            enable_maps.push(new Array("mc_baro_initial_ratio","barostat","0"))
+            enable_maps.push(new Array("mc_baro_check_interval","barostat","0"))
+            enable_maps.push(new Array("mc_baro_accept_rate_low","barostat","0"))
+            enable_maps.push(new Array("mc_baro_accept_rate_high","barostat","0"))
+            enable_maps.push(new Array("bd_baro_tau","barostat","1"))
+            enable_maps.push(new Array("bd_baro_compressibility","barostat","1"))
+            enable_maps.push(new Array("bd_baro_update_interval","barostat","1"))
+            disable_maps.push(new Array("reference_mask","restrain_mode",""))
+            disable_maps.push(new Array("restrain_weight","restrain_mode",""))
+            disable_maps.push(new Array("ref","restrain_mode",""))
+            enable_maps.push(new Array("simple_constrain_step_length","constrain_mode","0"))
+            enable_maps.push(new Array("simple_constrain_iteration_numbers","constrain_mode","0"))
+        </script>
+    </head>
+    <body>
+        <div class="BACK_BOARD">
+            <h1 class="TITLE">  
+                <span>S</span><span>P</span><span>O</span><span>N</span><span>G</span><span>E</span>
+            </h1>
+            <div class="FRONT_BOARD">
+                <div class="TAB">
+                    <input id="TAB_1" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_1" class="TAB">主要</label>
+
+                    <input id="TAB_2" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_2" class="TAB">力场</label>
+
+                    <input id="TAB_3" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_3" class="TAB">约束限制</label>
+
+                    <input id="TAB_4" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_4" class="TAB">控温</label>
+
+                    <input id="TAB_5" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_5" class="TAB">控压</label>
+                </div>
+                <div class="SUB_TAB">
+                    <div class="TAB_DIV TAB_1">
+                        <input id="SUB_TAB_1" name="TAB_1" type="radio" class="SUB_TAB TAB_1" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_1" class="SUB_TAB">主要</label>
+
+                        <input id="SUB_TAB_2" name="TAB_1" type="radio" class="SUB_TAB TAB_1" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_2" class="SUB_TAB">基本参数</label>
+
+                        <input id="SUB_TAB_3" name="TAB_1" type="radio" class="SUB_TAB TAB_1" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_3" class="SUB_TAB">控制</label>
+
+                        <input id="SUB_TAB_4" name="TAB_1" type="radio" class="SUB_TAB TAB_1" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_4" class="SUB_TAB">坐标速度</label>
+                    </div>
+
+                    <div class="TAB_DIV TAB_2">
+                        <input id="SUB_TAB_5" name="TAB_2" type="radio" class="SUB_TAB TAB_2" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_5" class="SUB_TAB">成键</label>
+
+                        <input id="SUB_TAB_6" name="TAB_2" type="radio" class="SUB_TAB TAB_2" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_6" class="SUB_TAB">非键</label>
+                    </div>
+
+                    <div class="TAB_DIV TAB_3">
+                        <input id="SUB_TAB_7" name="TAB_3" type="radio" class="SUB_TAB TAB_3" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_7" class="SUB_TAB">约束</label>
+
+                        <input id="SUB_TAB_8" name="TAB_3" type="radio" class="SUB_TAB TAB_3" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_8" class="SUB_TAB">限制</label>
+                    </div>
+
+                    <div class="TAB_DIV TAB_4">
+                        <input id="SUB_TAB_9" name="TAB_4" type="radio" class="SUB_TAB TAB_4" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_9" class="SUB_TAB">朗之万</label>
+
+                        <input id="SUB_TAB_10" name="TAB_4" type="radio" class="SUB_TAB TAB_4" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_10" class="SUB_TAB">朗之万-刘</label>
+                    </div>
+
+                    <div class="TAB_DIV TAB_5">
+                        <input id="SUB_TAB_11" name="TAB_5" type="radio" class="SUB_TAB TAB_5" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_11" class="SUB_TAB">蒙特卡洛</label>
+
+                        <input id="SUB_TAB_12" name="TAB_5" type="radio" class="SUB_TAB TAB_5" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_12" class="SUB_TAB">贝伦德森</label>
+                    </div>
+                </div>
+                <div class="SUB_TAB_DIV TAB_1 SUB_TAB_1">
+                    <p id="UNNAME_22" PRIORITY=0 class="HINT">程序主要参数设置</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="mode">模式</label>
+                        <select id="mode" class="INPUTS">
+                        <option  value =""></option>
+                        <option  value ="-1">梯度下降最小化</option>
+                        <option selected="selected" value ="0">NVE</option>
+                        <option  value ="1">NVT</option>
+                        <option  value ="2">NPT</option>
+                        </select>
+                    </div>
+
+                    <p id="UNNAME_23" for="mode" PRIORITY=0 class="UP_HINT TOOLTIP">程序的运行模式。NVE、NVT、NPT为对应的动力学模拟系综</p>
+
+                    <p id="UNNAME_24" for="dt" PRIORITY=0 class="UP_HINT TOOLTIP">步长设置，单位为ps<sup>-1</sup>。最小化模式时，梯度下降的学习率为该处“步长”的平方</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=dt>步长</label>
+                        <input class="INPUTS" id=dt value="0.001" placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_25" for="step_limit" PRIORITY=0 class="UP_HINT TOOLTIP">进行分子模拟的总步数。步长*模拟步数为模拟时间</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=step_limit>模拟步数</label>
+                        <input class="INPUTS" id=step_limit value="1000" placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_26" for="write_information_interval" PRIORITY=0 class="UP_HINT TOOLTIP">程序每隔该设定的步数输出一次程序的信息</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=write_information_interval>输出间隔</label>
+                        <input class="INPUTS" id=write_information_interval value="1000" placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_27" for="thermostat" PRIORITY=0 class="UP_HINT TOOLTIP">控温方式。每种控温方式的详细设定见对应的选项页。默认为朗之万控温</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="thermostat">热浴</label>
+                        <select id="thermostat" class="INPUTS">
+                        <option  value =""></option>
+                        <option selected="selected" value ="0">朗之万</option>
+                        <option  value ="1">朗之万-刘</option>
+                        </select>
+                    </div>
+
+                    <p id="UNNAME_28" for="target_temperature" PRIORITY=0 class="UP_HINT TOOLTIP">外界热浴的温度，也即体系控温的目标温度。单位为开尔文</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=target_temperature>目标温度</label>
+                        <input class="INPUTS" id=target_temperature value="300.0" placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_29" for="barostat" PRIORITY=0 class="UP_HINT TOOLTIP">控压方式。每种控压方式的详细设定见对应的选项页。默认为蒙特卡洛控压</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="barostat">压浴</label>
+                        <select id="barostat" class="INPUTS">
+                        <option  value =""></option>
+                        <option selected="selected" value ="0">蒙特卡洛</option>
+                        <option  value ="1">贝伦德森</option>
+                        </select>
+                    </div>
+
+                    <p id="UNNAME_30" for="target_pressure" PRIORITY=0 class="UP_HINT TOOLTIP">外界压浴的压强，也即体系控压的目标压强。单位为bar</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=target_pressure>目标压强</label>
+                        <input class="INPUTS" id=target_pressure value="1.0" placeholder="请输入浮点数" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_1 SUB_TAB_2">
+                    <p id="UNNAME_31" PRIORITY=0 class="HINT">基本参数的输入命令<br/>对应的文件格式请参阅手册</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mass_in_file>质量文件</label>
+                        <input class="INPUTS" id=mass_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=charge_in_file>电荷文件</label>
+                        <input class="INPUTS" id=charge_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=residue_in_file>残基文件</label>
+                        <input class="INPUTS" id=residue_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_32" for="amber_parm" PRIORITY=0 class="UP_HINT TOOLTIP">用以兼容AMBER的参数输入输出命令<br/>模拟需要读取的AMBER格式的参数文件名。<br/>如果同时设定了SPONGE本身格式的参数文件，将会优先以SPONGE本身格式的参数文件初始化<br/>如果没有被设定，则不会读取<br/>注意：AMBER的parm文件中不含有虚原子的信息</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=amber_parm>amber_parm</label>
+                        <input class="INPUTS" id=amber_parm placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=virtual_atom_in_file>虚原子文件</label>
+                        <input class="INPUTS" id=virtual_atom_in_file placeholder="请输入文件名" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_1 SUB_TAB_3">
+                    <p id="UNNAME_33" PRIORITY=0 class="HINT">程序控制相关命令</p>
+
+                    <p id="UNNAME_34" for="dont_check_input" PRIORITY=0 class="UP_HINT TOOLTIP">通常来说，SPONGE会检查每个命令是否都被使用，以免输入错误或其他不希望发生的情况。可以修改此设置使得SPONGE不对此进行检查</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="dont_check_input">输入检查</label>
+                        <select id="dont_check_input" class="INPUTS">
+                        <option selected="selected" value ="">检查</option>
+                        <option  value ="1">不检查</option>
+                        </select>
+                    </div>
+
+                    <p id="UNNAME_35" for="device" PRIORITY=0 class="UP_HINT TOOLTIP">当一台电脑有多台GPU的时候，可以指定其中的一个GPU进行计算<br/>编号从0开始</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=device>使用GPU编号</label>
+                        <input class="INPUTS" id=device placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_36" for="dont_check_input" PRIORITY=0 class="UP_HINT TOOLTIP">通常来说，SPONGE会检查每个命令是否都被使用，以免输入错误或其他不希望发生的情况。可以修改此设置使得SPONGE不对此进行检查</p>
+
+                    <p id="UNNAME_37" for="amber_irest" PRIORITY=0 class="UP_HINT TOOLTIP">用以兼容AMBER的坐标/速度输入输出命令<br/>未设定时坐标速度的输入和输出均会以SPONGE格式读取<br/>为0时按AMBER程序的无速度RST7格式读取初始坐标文件，输出有速度的RST7文件<br/>为1时按AMBER程序的有速度RST7格式读取初始坐标文件，输出有速度的RST7文件</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="amber_irest">amber_irest</label>
+                        <select id="amber_irest" class="INPUTS">
+                        <option  value =""></option>
+                        <option  value ="0">0</option>
+                        <option  value ="1">1</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_1 SUB_TAB_4">
+                    <p id="UNNAME_38" PRIORITY=0 class="HINT">坐标与速度输入输出相关命令</p>
+
+                    <p id="UNNAME_39" for="c" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-c"来指定，因为初始文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果"amber_irest"参数未设定，会以SPONGE格式读取；当"amber_irest"参数设定为0或1时，将以对应的AMBER格式读取<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;无默认值</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=c>初始坐标文件</label>
+                        <input class="INPUTS" id=c placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_40" for="v0" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-v0"来指定，因为初始文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果"amber_irest"参数未设定，会以SPONGE格式读取；当"amber_irest"参数设定为0或1时，此参数无效<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;无默认值</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=v0>初始速度文件</label>
+                        <input class="INPUTS" id=v0 placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_41" for="r" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-r"来指定，因为再开始文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果"amber_irest"参数未设定，会以该参数为前缀，分别以"_coordinate.txt"和"_velocity.txt"为后缀名，保存SPONGE格式的坐标和速度；当"amber_irest"参数设定为0或1时，将会以该参数为名保存AMBER格式的再开始文件<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认值为"restrt"</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=r>再开始文件</label>
+                        <input class="INPUTS" id=r placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_42" for="o" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-o"来指定，因为输出文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认值为"mdout"</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=o>输出文件</label>
+                        <input class="INPUTS" id=o placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_43" for="x" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-x"来指定，因为轨迹文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认值为"mdcrd"</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=x>轨迹文件</label>
+                        <input class="INPUTS" id=x placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_44" for="vx" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-vx"来指定，因为轨迹文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果没有被设定，则不会输出速度轨迹</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=vx>速度轨迹文件</label>
+                        <input class="INPUTS" id=vx placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_45" for="box" PRIORITY=0 class="UP_HINT TOOLTIP">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不推荐直接在此处设定文件，而是在终端里使用"-box"来指定，因为轨迹文件经常改变<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;默认值为"mdbox"</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=box>盒子轨迹文件</label>
+                        <input class="INPUTS" id=box placeholder="请输入文件名" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_2 SUB_TAB_5">
+                    <p id="UNNAME_46" PRIORITY=0 class="HINT">固定原子之间的作用势</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=bond_in_file>键长输入文件</label>
+                        <input class="INPUTS" id=bond_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=angle_in_file>键角输入文件</label>
+                        <input class="INPUTS" id=angle_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=dihedral_in_file>二面角输入文件</label>
+                        <input class="INPUTS" id=dihedral_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=nb14_in_file>非键14输入文件</label>
+                        <input class="INPUTS" id=nb14_in_file placeholder="请输入文件名" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_2 SUB_TAB_6">
+                    <p id="UNNAME_47" PRIORITY=0 class="HINT">近邻表及任意原子之间的作用势</p>
+
+                    <p id="UNNAME_15" for="exclude_in_file" PRIORITY=0 class="UP_HINT TOOLTIP">指定不计算非键作用的原子对</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=exclude_in_file>排除表输入文件</label>
+                        <input class="INPUTS" id=exclude_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_16" for="cut" PRIORITY=0 class="UP_HINT TOOLTIP">单位Å。超过截断距离的原子之间将不会受到短程非键作用势</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=cut>近邻截断</label>
+                        <input class="INPUTS" id=cut value="10.0" placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_17" PRIORITY=-0.5 class="UP_HINT">下面的参数较为不常用，通常留空</p>
+
+                    <p id="UNNAME_18" for="skin" PRIORITY=0 class="UP_HINT TOOLTIP">单位Å。原子两次更新近邻表之间移动不会超过的距离<br/>近邻表会囊括距离在(截断+外皮)之内的原子<br/>设置太大会造成模拟速度变慢，设置太小使得近邻表不能总包括截断之内的原子<br/>默认值2.0</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=skin>近邻外皮</label>
+                        <input class="INPUTS" id=skin placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_19" for="neighbor_list_refresh_interval" PRIORITY=0 class="UP_HINT TOOLTIP">该处未设置或值不大于0则每当原子移动超过外皮长度后更新近邻表，大于0则近邻表每隔该处设定值的步数更新一次</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=neighbor_list_refresh_interval>近邻表更新间隔</label>
+                        <input class="INPUTS" id=neighbor_list_refresh_interval placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_20" for="max_atom_in_grid_numbers" PRIORITY=0 class="UP_HINT TOOLTIP">近邻表通过划格点进行计算<br/>该值指定每个格子内最多有的原子数目，用于分配内(显)存<br/>太小会造成内(显)存溢出，太大会造成内(显)存浪费<br/>默认值为64</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=max_atom_in_grid_numbers>格点最多原子数</label>
+                        <input class="INPUTS" id=max_atom_in_grid_numbers placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_21" for="max_neighbor_numbers" PRIORITY=0 class="UP_HINT TOOLTIP">该值指定每个原子最多有的近邻原子数目，用于分配内(显)存<br/>太小会造成内(显)存溢出，太大会造成内(显)存浪费<br/>默认值为800</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=max_neighbor_numbers>最大近邻数</label>
+                        <input class="INPUTS" id=max_neighbor_numbers placeholder="请输入整数" type="text">
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=lj_in_file>LJ输入文件</label>
+                        <input class="INPUTS" id=lj_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=PME_Direct_Tolerance>PME直接容差</label>
+                        <input class="INPUTS" id=PME_Direct_Tolerance placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_11" for="PME_Direct_Tolerance" PRIORITY=0 class="UP_HINT TOOLTIP">PME静电处理直接部分的误差容忍度。默认值为0.00001。该值主要用于计算高斯电荷的β值</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=fftx>PME傅里叶变换x格点数</label>
+                        <input class="INPUTS" id=fftx placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_12" for="fftx" PRIORITY=0 class="UP_HINT TOOLTIP">PME静电处理倒空间部分的傅里叶变换x方向的格点数。留空时该值通过盒子x方向长度计算得出</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=ffty>PME傅里叶变换y格点数</label>
+                        <input class="INPUTS" id=ffty placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_13" for="ffty" PRIORITY=0 class="UP_HINT TOOLTIP">PME静电处理倒空间部分的傅里叶变换y方向的格点数。留空时该值通过盒子y方向长度计算得出</p>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=fftz>PME傅里叶变换z格点数</label>
+                        <input class="INPUTS" id=fftz placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_14" for="fftz" PRIORITY=0 class="UP_HINT TOOLTIP">PME静电处理倒空间部分的傅里叶变换z方向的格点数。留空时该值通过盒子z方向长度计算得出</p>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_3 SUB_TAB_7">
+                    <p id="UNNAME_48" PRIORITY=0 class="HINT">约束(constrain)通过将约束条件纳入动力学积分的整体考虑中，对约束条件迭代，使得每步均严格符合约束条件</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="constrain_mode">约束模式</label>
+                        <select id="constrain_mode" class="INPUTS">
+                        <option  value ="">不约束</option>
+                        <option  value ="0">简单约束</option>
+                        </select>
+                    </div>
+
+                    <p id="UNNAME_49" for="constrain_in_file" PRIORITY=0 class="UP_HINT TOOLTIP">描述哪些键需要进行约束的文件</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=constrain_in_file>约束文件</label>
+                        <input class="INPUTS" id=constrain_in_file placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_50" for="constrain_mass" PRIORITY=0 class="UP_HINT TOOLTIP">将对质量大于0小于该值的原子的键长和键角进行约束<br/>当未设定"约束文件"参数时，该未设定默认值为3.0<br/>当设定"约束文件"参数时，该未设定默认值为0.0</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=constrain_mass>约束原子最大质量</label>
+                        <input class="INPUTS" id=constrain_mass placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_80" for="simple_constrain_step_length" PRIORITY=0 class="UP_HINT TOOLTIP">简单约束算法的迭代步长的系数<i>k</i>。留空默认值为1.0</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=simple_constrain_step_length>迭代步长系数</label>
+                        <input class="INPUTS" id=simple_constrain_step_length placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_81" for="simple_constrain_iteration_numbers" PRIORITY=0 class="UP_HINT TOOLTIP">简单约束算法的迭代次数。留空默认值为50</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=simple_constrain_iteration_numbers>迭代次数</label>
+                        <input class="INPUTS" id=simple_constrain_iteration_numbers placeholder="请输入整数" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_3 SUB_TAB_8">
+                    <p id="UNNAME_82" PRIORITY=0 class="HINT">限制(restrain)对需要限制的原子增加一个谐振子限制势</p>
+
+                    <p id="UNNAME_83" for="restrain_mode" PRIORITY=0 class="UP_HINT TOOLTIP">限制势的作用形式，其中"面限制"基于z坐标</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for="restrain_mode">限制模式</label>
+                        <select id="restrain_mode" class="INPUTS">
+                        <option selected="selected" value ="">不限制</option>
+                        <option  value ="0">点限制</option>
+                        <option  value ="1">面限制</option>
+                        </select>
+                    </div>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=reference_mask>限制原子文件</label>
+                        <input class="INPUTS" id=reference_mask placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_84" for="reference_mask" PRIORITY=0 class="UP_HINT TOOLTIP">被限制的原子的文件名。文件中是所有被限制的原子的原子序号。注意：原子序号是从0开始计数的</p>
+
+                    <p id="UNNAME_85" for="restrain_weight" PRIORITY=0 class="UP_HINT TOOLTIP">限制回复力的力常数<i>k</i>的大小。单位为kcal·mol<sup>-1</sup>·Å<sup>-2</sup>。默认值为100.0</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=restrain_weight>限制力常数</label>
+                        <input class="INPUTS" id=restrain_weight placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <div PRIORITY=-1.0 class="INPUTS">
+                        <label for=ref>参考坐标</label>
+                        <input class="INPUTS" id=ref placeholder="请输入文件名" type="text">
+                    </div>
+
+                    <p id="UNNAME_86" for="ref" PRIORITY=0 class="UP_HINT TOOLTIP">不推荐直接在此处设定文件，而是在终端里使用"-ref"来指定，因为参考坐标文件可能经常改变</p>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_4 SUB_TAB_9">
+                    <p id="UNNAME_4" PRIORITY=0 class="HINT">朗之万动力学。对每个原子添加摩擦力和随机力，控制整体动能，进而控制温度</p>
+
+                    <p id="UNNAME_5" for="langevin_gamma" PRIORITY=0 class="UP_HINT TOOLTIP">朗之万动力学中的摩擦因子，又称为碰撞频率，单位ps<sup>-1</sup>。该值越大和外界热浴耦合越强</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=langevin_gamma>摩擦因子</label>
+                        <input class="INPUTS" id=langevin_gamma placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_6" for="langevin_seed" PRIORITY=0 class="UP_HINT TOOLTIP">朗之万动力学中使用的伪随机数种子。留白时，以时间为种子伪随机选取一个整数</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=langevin_seed>随机数种子</label>
+                        <input class="INPUTS" id=langevin_seed placeholder="请输入整数" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_4 SUB_TAB_10">
+                    <p id="UNNAME_0" PRIORITY=0 class="HINT">在朗之万动力学的基础上，使用刘剑的居中图式进行积分迭代，拥有更高的积分稳定性但部分算法(如约束)的公式可能需要另推</p>
+
+                    <p id="UNNAME_1" for="langevin_gamma_REDEFINE_1" PRIORITY=0 class="UP_HINT TOOLTIP">朗之万动力学中的摩擦因子，又称为碰撞频率，单位ps<sup>-1</sup>。该值越大和外界热浴耦合越强</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=langevin_gamma_REDEFINE_1>摩擦因子</label>
+                        <input class="INPUTS" id=langevin_gamma_REDEFINE_1 placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_2" for="langevin_seed_REDEFINE_1" PRIORITY=0 class="UP_HINT TOOLTIP">朗之万动力学中使用的伪随机数种子。留白时，以时间为种子伪随机选取一个整数</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=langevin_seed_REDEFINE_1>随机数种子</label>
+                        <input class="INPUTS" id=langevin_seed_REDEFINE_1 placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_3" for="velocity_max" PRIORITY=0 class="UP_HINT TOOLTIP">迭代中允许出现的最大速度。默认值无。未设定时不会有影响，设定后每次使用迭代的速度超过该值将会强行使得速度等于该值</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=velocity_max>最大速度</label>
+                        <input class="INPUTS" id=velocity_max placeholder="请输入浮点数" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_5 SUB_TAB_11">
+                    <p id="UNNAME_52" PRIORITY=0 class="HINT">蒙特卡洛控压。一定步骤后对体积进行变化尝试，通过细致平衡判断接受与否，进而控制压强</p>
+
+                    <p id="UNNAME_53" for="mc_baro_update_interval" PRIORITY=0 class="UP_HINT TOOLTIP">进行一次蒙特卡洛体积变换尝试所隔的步数。<br/>默认值为100。如果模拟中体积变化不明显，可以将该值调低，但会减慢模拟速度</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mc_baro_update_interval>尝试间隔</label>
+                        <input class="INPUTS" id=mc_baro_update_interval placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_54" for="mc_baro_initial_ratio" PRIORITY=0 class="UP_HINT TOOLTIP">初始的最大变化体积占总体积的比例。默认值为0.01，也即每次变化最大可能变化体积的1%</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mc_baro_initial_ratio>初始尝试最大比例</label>
+                        <input class="INPUTS" id=mc_baro_initial_ratio placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_55" for="mc_baro_check_interval" PRIORITY=0 class="UP_HINT TOOLTIP">每隔若干次体积变化尝试后对最大变化体积进行迭代<br/>收敛的最大变化体积应使得蒙特卡洛接受率在一个合理的区间，该区间由下面两个参数确定<br/>默认值为20</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mc_baro_check_interval>最大变化体积检查间隔</label>
+                        <input class="INPUTS" id=mc_baro_check_interval placeholder="请输入整数" type="text">
+                    </div>
+
+                    <p id="UNNAME_56" for="mc_baro_accept_rate_low" PRIORITY=0 class="UP_HINT TOOLTIP">使得收敛的最大变化体积应使得蒙特卡洛接受百分数的低值，默认值为30.0</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mc_baro_accept_rate_low>收敛接受百分数低值</label>
+                        <input class="INPUTS" id=mc_baro_accept_rate_low placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_57" for="mc_baro_accept_rate_high" PRIORITY=0 class="UP_HINT TOOLTIP">使得收敛的最大变化体积应使得蒙特卡洛接受百分数的高值，默认值为40.0</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=mc_baro_accept_rate_high>收敛接受百分数低值</label>
+                        <input class="INPUTS" id=mc_baro_accept_rate_high placeholder="请输入浮点数" type="text">
+                    </div>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_5 SUB_TAB_12">
+                    <p id="UNNAME_7" PRIORITY=0 class="HINT">贝伦德森控压。以当前压强和目标压强之差，按一定的时间弛豫系数直接对体积进行规度</p>
+
+                    <p id="UNNAME_8" for="bd_baro_tau" PRIORITY=0 class="UP_HINT TOOLTIP">单位为皮秒。默认值为1.0。该值不会影响平衡，会影响体积变化速度。过大可能会导致较大的体积振荡，过小可能会影响控压效率</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=bd_baro_tau>弛豫时间</label>
+                        <input class="INPUTS" id=bd_baro_tau placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_9" for="bd_baro_compressibility" PRIORITY=0 class="UP_HINT TOOLTIP">单位为bar<sup>-1</sup>。默认值为水的0.000045。该值不会影响平衡，会影响体积变化速度</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=bd_baro_compressibility>压缩系数</label>
+                        <input class="INPUTS" id=bd_baro_compressibility placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="UNNAME_10" for="bd_baro_update_interval" PRIORITY=0 class="UP_HINT TOOLTIP">每隔一定步数才进行的压力耦合，可以加快计算并避免与键长振动的耦合造成体系升温</p>
+
+                    <div PRIORITY=0 class="INPUTS">
+                        <label for=bd_baro_update_interval>更新间隔</label>
+                        <input class="INPUTS" id=bd_baro_update_interval placeholder="请输入整数" type="text">
+                    </div>
+                </div>
+                
+            </div>
+            <a class="BUTTON" id="NEW_IN_FILE">生成in文件</a>
+        </div>
+        <div class="OUTPUT">
+            <div>
+            <a class="BUTTON" id="COPY_BUTTON">复制</a><a class="BUTTON" id="CLOSE_NEW_IN_FILE">关闭</a>
+            <br/>
+            <pre></pre>
+            </div>
+        </div>
+    </body>
+</html>
+

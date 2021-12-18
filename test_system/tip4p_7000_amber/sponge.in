@@ -1,0 +1,38 @@
+test NPT
+
+  virtual_atom_in_file =infiles/tip4p_vatom.txt
+  bond_in_file = infiles/tip4p_bond.txt
+  exclude_in_file = infiles/tip4p_exclude.txt
+  charge_in_file = infiles/tip4p_charge.txt
+  mass_in_file = infiles/tip4p_mass.txt
+  residue_in_file = infiles/tip4p_residue.txt
+  lj_in_file = infiles/tip4p_lj.txt
+  neighbor_list
+  { 
+                max_neighbor_numbers = 1024
+	max_atom_in_grid_numbers = 64
+  }
+  amber
+  {
+    #parm7 =  infiles/tip4p.parm7
+    #irest = 1
+    #rst7 = infiles/start.rst7
+  }
+  coordinate_in_file =  infiles/tip4p_coordinate.txt
+  velocity_in_file =  infiles/tip4p_velocity.txt
+  skin = 2
+  cut = 10
+  mode = NVT
+  step_limit = 100000
+  dt = 0.001
+  thermostat = langevin_liu
+  langevin_liu 
+  { 
+      gamma = 3.0, 
+      target_temperature = 300
+  }
+
+  barostat = 1
+  write_information_interval = 1000
+  constrain_mode = Simple_constrain
+  bd_baro_update_interval = 2

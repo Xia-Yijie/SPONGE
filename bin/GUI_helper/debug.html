@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="夏义杰" />
+        <title>SPONGE参数生成器</title>
+        <link rel="stylesheet" href="SPONGE.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="jquery.min.js"></script>
+        <script type="text/javascript" src="clipboard.min.js"></script>
+        <script type="text/javascript" src="SPONGE.js"></script>
+        <script type="text/javascript">
+            enable_maps = new Array()
+            disable_maps = new Array()
+            enable_maps.push(new Array("thermostat","mode","1","2"))
+            enable_maps.push(new Array("barostat","mode","2"))
+        </script>
+    </head>
+    <body>
+        <div class="BACK_BOARD">
+            <h1 class="TITLE">  
+                <span>S</span><span>P</span><span>O</span><span>N</span><span>G</span><span>E</span>
+            </h1>
+            <div class="FRONT_BOARD">
+                <div class="TAB">
+                    <input id="TAB_1" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_1" class="TAB">主要</label>
+
+                    <input id="TAB_2" name="TAB" type="radio" class="TAB" onclick="tabshow()"/>
+                    <label for="TAB_2" class="TAB">控温</label>
+                </div>
+                <div class="SUB_TAB">
+                    <div class="TAB_DIV TAB_1">
+                        <input id="SUB_TAB_1" name="TAB_1" type="radio" class="SUB_TAB TAB_1" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_1" class="SUB_TAB">主要</label>
+                    </div>
+
+                    <div class="TAB_DIV TAB_2">
+                        <input id="SUB_TAB_2" name="TAB_2" type="radio" class="SUB_TAB TAB_2" onclick="subtabshow()"/>
+                        <label for="SUB_TAB_2" class="SUB_TAB">朗之万</label>
+                    </div>
+                </div>
+                <div class="SUB_TAB_DIV TAB_1 SUB_TAB_1">
+                    <p id="MAIN_MAIN_HINT" class="HINT">程序主要参数设置</p>
+
+                    <div class="INPUTS">
+                        <label for="mode">模式</label>
+                        <select id="mode" class="INPUTS">
+                        <option  value =""></option>
+                        <option  value ="-1">梯度下降最小化</option>
+                        <option  value ="0">NVE</option>
+                        <option  value ="1">NVT</option>
+                        <option  value ="2">NPT</option>
+                        </select>
+                    </div>
+
+                    <p id="mode_HINT" for="mode" class="DOWN_HINT TOOLTIP">程序的运行模式。NVE、NVT、NPT为对应的动力学模拟系综</p>
+
+                    <p id="dt_HINT" for="dt" class="UP_HINT TOOLTIP">步长设置，单位为ps<sup>-1</sup>。留空为0.001。最小化模式时，梯度下降的学习率为该处“步长”的平方。</p>
+
+                    <div class="INPUTS">
+                        <label for=dt>步长</label>
+                        <input class="INPUTS" id=dt placeholder="请输入浮点数" type="text">
+                    </div>
+
+                    <p id="step_limit_HINT" for="step_limit" class="HINT TOOLTIP">进行分子模拟的总步数</p>
+
+                    <div class="INPUTS">
+                        <label for=step_limit>模拟步数</label>
+                        <input class="INPUTS" id=step_limit placeholder="请输入整数" type="text">
+                    </div>
+
+                    <div class="INPUTS">
+                        <label for=write_information_interval>输出间隔</label>
+                        <input class="INPUTS" id=write_information_interval placeholder="请输入整数" type="text">
+                    </div>
+
+                    <div class="INPUTS">
+                        <label for="thermostat">热浴</label>
+                        <select id="thermostat" class="INPUTS">
+                        <option  value =""></option>
+                        <option selected="selected" value ="0">朗之万</option>
+                        </select>
+                    </div>
+
+                    <div class="INPUTS">
+                        <label for="barostat">压浴</label>
+                        <select id="barostat" class="INPUTS">
+                        <option  value =""></option>
+                        </select>
+                    </div>
+
+                    <p id="MAIN" class="HINT">程序相关信息设置</p>
+                </div>
+
+                <div class="SUB_TAB_DIV TAB_2 SUB_TAB_2">
+                    <p id="None" class="HINT">Langevin热浴。对每个原子添加摩擦和随机力</p>
+                </div>
+                
+            </div>
+            <a class="BUTTON" id="NEW_IN_FILE">生成in文件</a>
+        </div>
+        <div class="OUTPUT">
+            <div>
+            <a class="BUTTON" id="COPY_BUTTON">复制</a><a class="BUTTON" id="CLOSE_NEW_IN_FILE">关闭</a>
+            <br/>
+            <pre></pre>
+            </div>
+        </div>
+    </body>
+</html>
+

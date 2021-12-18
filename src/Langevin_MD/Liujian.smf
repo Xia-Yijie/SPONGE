@@ -1,0 +1,67 @@
+SPONGE Module File
+:::Name:::
+    Langevin_Liu_thermostat
+:::Author:::
+    夏义杰
+:::Description:::
+    朗之万-刘剑热浴，在朗之万的基础上迭代使用了刘剑提出的居中图式。
+    该迭代过程特殊，涉及迭代的部分算法可能需要额外考虑以兼容该算法。
+:::Progress:::
+    100
+:::Category:::
+    环境
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+:::Module File:::
+    Langevin_MD/LiuJian_MD.cu
+:::Module Include:::
+    Langevin_MD/LiuJian_MD.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "Langevin_MD/LiuJian_MD.cuh"
+:::Main Declaration:::
+    LIUJIAN_MD_INFORMATION liujian_info;
+:::Main Initial:::
+    if (md_info.mode > 0 && atoi(controller.Command("thermostat")) == 1)
+        liujian_info.Initial(&controller);
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main Iteration 1:::
+
+:::Main Iteration 2:::
+    if (md_info.mode > 0 && atoi(controller.Command("thermostat")) == 1)
+    {
+        Main_Before_Iteration();
+        liujian_info.MD_Iteration_Leap_Frog(md_info.d_mass_inverse, md_info.frc, md_info.vel, md_info.acc, md_info.crd);
+        Main_After_Iteration();
+    }
+:::Main Before Iteration:::
+
+:::Main After Iteration:::
+
+:::Main Volume Change:::
+
+:::Main Print:::
+
+:::Main Destroy:::
+
+:::HTML:::
+    hint = 在朗之万动力学的基础上，使用刘剑的居中图式进行积分迭代，拥有更高的积分稳定性但部分算法(如约束)的公式可能需要另推; tab = 控温; subtab = 朗之万-刘;
+    add_choice = thermostat; nickname = 朗之万-刘; name = 1; 
+    
+    up_hint = 朗之万动力学中的摩擦因子，又称为碰撞频率，单位ps<sup>-1</sup>。该值越大和外界热浴耦合越强; default = langevin_gamma_REDEFINE_1;
+    input = 浮点数; name = langevin_gamma_REDEFINE_1; nickname = 摩擦因子; enable = thermostat {1};
+    
+    up_hint = 朗之万动力学中使用的伪随机数种子。留白时，以时间为种子伪随机选取一个整数 ; default = langevin_seed_REDEFINE_1;
+    input = 整数; name = langevin_seed_REDEFINE_1; nickname = 随机数种子; enable = thermostat {1};
+    
+    up_hint = 迭代中允许出现的最大速度。默认值无。未设定时不会有影响，设定后每次使用迭代的速度超过该值将会强行使得速度等于该值 ; default = velocity_max;
+    input = 浮点数; name = velocity_max; nickname = 最大速度; enable = thermostat {1};

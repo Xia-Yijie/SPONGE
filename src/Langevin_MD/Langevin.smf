@@ -1,0 +1,54 @@
+SPONGE Module File
+:::Name:::
+    Langevin_thermostat
+:::Author:::
+    夏义杰
+:::Description:::
+    朗之万动力学。注意使用的是速度Verlet算法。
+:::Progress:::
+    100
+:::Category:::
+    环境
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+:::Module File:::
+    Langevin_MD/Langevin_MD.cu
+:::Module Include:::
+    Langevin_MD/Langevin_MD.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "Langevin_MD/Langevin_MD.cuh"
+:::Main Declaration:::
+    Langevin_MD_INFORMATION lg_info;
+:::Main Initial:::
+    if (md_info.mode > 0 && atoi(controller.Command("thermostat")) == 0)
+        lg_info.Initial(&controller);
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main Iteration 1:::
+    if (md_info.mode > 0 && atoi(controller.Command("thermostat")) == 0)
+    {
+        Main_Before_Iteration();
+        md_info.MD_Information_Iteration_Speed_Verlet_1();
+        Main_After_Iteration();
+    }
+:::Main Iteration 2:::
+    if (md_info.mode > 0 && atoi(controller.Command("thermostat")) == 0)
+        lg_info.MD_Iteration_Speed_Verlet_2(md_info.d_mass_inverse, md_info.frc, md_info.vel, md_info.acc);
+:::HTML:::
+    hint = 朗之万动力学。对每个原子添加摩擦力和随机力，控制整体动能，进而控制温度; tab = 控温; subtab = 朗之万;
+    add_choice = thermostat; nickname = 朗之万; name = 0; 
+    
+    up_hint = 朗之万动力学中的摩擦因子，又称为碰撞频率，单位ps<sup>-1</sup>。该值越大和外界热浴耦合越强; default = langevin_gamma;
+    input = 浮点数; name = langevin_gamma; nickname = 摩擦因子; enable = thermostat {0};
+    
+    up_hint =朗之万动力学中使用的伪随机数种子。留白时，以时间为种子伪随机选取一个整数 ; default = langevin_seed;
+    input = 整数; name = langevin_seed; nickname = 随机数种子; enable = thermostat {0};

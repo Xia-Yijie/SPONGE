@@ -1,0 +1,65 @@
+SPONGE Module File
+:::Name:::
+    Berendsen_barostat
+:::Author:::
+    夏义杰
+:::Description:::
+    Berendsen控压方法
+:::Progress:::
+    50
+:::Category:::
+    环境
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+:::Module File:::
+    Berendsen_barostat/Berendsen_barostat.cu
+:::Module Include:::
+    Berendsen_barostat/Berendsen_barostat.cuh
+    common.cuh
+    control.cuh
+    main.cuh
+    MD_core/MD_core.cuh
+:::Main Include:::
+    #include "Berendsen_barostat/Berendsen_barostat.cuh"
+:::Main Declaration:::
+    BERENDSEN_BAROSTAT_INFORMATION berendsen_baro_info;
+:::Main Initial:::
+    if (md_info.mode == 2 && atoi(controller.Command("barostat")) == 1)
+        berendsen_baro_info.Initial(&md_info, &controller);
+        
+:::Main Before Calculate Force:::
+    berendsen_baro_info.Ask_For_Calculate_Potential(md_info.steps, &md_info.need_pressure);
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main After Iteration Priority:::
+    1
+:::Main After Iteration:::
+    berendsen_baro_info.Pressure_Regulation(&md_info);
+:::Main Volume Change:::
+
+:::Main Print:::
+    if (md_info.mode == 2 && atoi(controller.Command("barostat")) == 1)
+    {
+        sprintf(controller.out_line, "%s %9.4f", controller.out_line, md_info.density);
+        sprintf(controller.out_line, "%s %10.2f", controller.out_line, md_info.h_pressure * CONSTANT_PRES_CONVERTION);
+    }
+:::Main Destroy:::
+
+:::HTML:::
+    hint = 贝伦德森控压。以当前压强和目标压强之差，按一定的时间弛豫系数直接对体积进行规度; tab = 控压; subtab = 贝伦德森;
+    add_choice = barostat; nickname = 贝伦德森; name = 1;
+    
+    up_hint = 单位为皮秒。默认值为1.0。该值不会影响平衡，会影响体积变化速度。过大可能会导致较大的体积振荡，过小可能会影响控压效率;
+        default = bd_baro_tau;
+    input = 浮点数; nickname = 弛豫时间; name = bd_baro_tau; enable = barostat {1};
+    
+    up_hint = 单位为bar<sup>-1</sup>。默认值为水的0.000045。该值不会影响平衡，会影响体积变化速度;
+        default = bd_baro_compressibility;
+    input = 浮点数; nickname = 压缩系数; name = bd_baro_compressibility;  enable = barostat {1};
+    
+    up_hint = 每隔一定步数才进行的压力耦合，可以加快计算并避免与键长振动的耦合造成体系升温;
+        default = bd_baro_update_interval;
+    input = 整数; nickname = 更新间隔; name = bd_baro_update_interval; enable = barostat {1};

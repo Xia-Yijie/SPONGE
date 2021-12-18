@@ -1,0 +1,63 @@
+SPONGE Module File
+:::Name:::
+    restrain
+:::Author:::
+    夏义杰
+:::Description:::
+    将原子固定在某个位置的限制
+:::Progress:::
+    100
+:::Category:::
+    环境
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+:::Module File:::
+    restrain/restrain.cu
+:::Module Include:::
+    restrain/restrain.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "restrain/restrain.cuh"
+:::Main Declaration:::
+    RESTRAIN_INFORMATION restrain_info;
+:::Main Initial:::
+    if (controller.Command_Exist("restrain_mode"))
+    {
+        restrain_info.Restrain_Initialize(md_info.atom_numbers, md_info.crd_to_uint_crd_cof, md_info.trans_vec, &controller);
+    }
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+    restrain_info.Restraint(md_info.uint_crd, md_info.uint_dr_to_dr_cof, md_info.d_atom_energy, md_info.d_atom_virial, md_info.frc);
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main Before Iteration:::
+
+:::Main After Iteration:::
+
+:::Main Volume Change:::
+
+:::Main Print:::
+
+:::Main Destroy:::
+
+:::HTML:::
+    hint = 限制(restrain)对需要限制的原子增加一个谐振子限制势; tab = 约束限制; subtab = 限制;
+    
+    up_hint = 限制势的作用形式，其中"面限制"基于z坐标; default = restrain_mode;
+    select = {不限制:} {点限制:0} {面限制:1}; nickname = 限制模式; name = restrain_mode; default = 不限制;
+    
+    
+    input = 文件名; nickname = 限制原子文件; name = reference_mask; disable = restrain_mode {}; 
+    up_hint = 被限制的原子的文件名。文件中是所有被限制的原子的原子序号。注意：原子序号是从0开始计数的; default = reference_mask; 
+    
+    up_hint =限制回复力的力常数<i>k</i>的大小。单位为kcal·mol<sup>-1</sup>·Å<sup>-2</sup>。默认值为100.0;
+        default = restrain_weight;
+    input = 文件名; nickname = 限制力常数; name = restrain_weight; disable = restrain_mode {}; 
+    
+    input = 文件名; nickname = 参考坐标; name = ref; priority = -1; disable = restrain_mode {}; 
+    up_hint = 不推荐直接在此处设定文件，而是在终端里使用"-ref"来指定，因为参考坐标文件可能经常改变; default = ref; 

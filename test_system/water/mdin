@@ -1,0 +1,17 @@
+spce test
+
+mode = 2
+
+c = C:\dev_xyj\test_system\water\water_coordinate.txt
+v0 = C:\dev_xyj\test_system\water\water_velocity.txt
+residue_in_file = C:\dev_xyj\test_system\water\water_residue.txt
+mass_in_file = C:\dev_xyj\test_system\water\water_mass.txt
+charge_in_file = C:\dev_xyj\test_system\water\water_charge.txt
+bond_in_file = C:\dev_xyj\test_system\water\water_bond.txt
+lj_in_file = C:\dev_xyj\test_system\water\water_lj.txt
+exclude_in_file = C:\dev_xyj\test_system\water\water_exclude.txt
+#constrain_in_file = C:\dev_xyj\test_system\water\water_constrain.txt
+step_limit = 100000
+write_information_interval = 1000
+
+constrain_mode = 0

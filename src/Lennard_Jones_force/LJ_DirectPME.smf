@@ -1,0 +1,65 @@
+SPONGE Module File
+:::Name:::
+    LJ_DirectPME
+:::Author:::
+    夏义杰
+:::Description:::
+    包含PME的直接部分的Lennard-Jones势
+:::Progress:::
+    100
+:::Category:::
+    非键-范德华
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+    NON_BOND_INFORMATION nb_info;
+    Particle_Mesh_Ewald pme_method;
+:::Module File:::
+    Lennard_Jones_force/Lennard_Jones_force.cu
+:::Module Include:::
+    Lennard_Jones_force/Lennard_Jones_force.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "Lennard_Jones_force/Lennard_Jones_force.cuh"
+:::Main Declaration:::
+    LENNARD_JONES_INFORMATION LJ_info;
+:::Main Initial Priority:::
+    0
+    0
+    -1
+:::Main Initial:::
+    LJ_info.Initial(&controller);
+    md_info.MD_Information_Copy_Crd_To_New_Crd_Start(LJ_info.d_atom_LJ_type);
+    nb_info.Neighbor_List_Update(md_info.crd, md_info.old_crd, md_info.uint_crd,
+        md_info.crd_to_uint_crd_cof, md_info.uint_dr_to_dr_cof,
+        md_info.box_length, 0);
+:::Main Before Calculate Fore:::
+    
+:::Main Calculate Force:::
+	LJ_info.LJ_PME_Direct_Force_With_Atom_Energy_And_Virial(md_info.atom_numbers, md_info.uint_crd_with_LJ, md_info.uint_dr_to_dr_cof, md_info.frc,
+        nb_info.d_nl, nb_info.cutoff, pme_method.beta, md_info.need_potential, md_info.d_atom_energy, 
+        md_info.need_pressure, md_info.d_atom_virial, pme_method.d_direct_atom_energy);
+	LJ_info.Long_Range_Correction(md_info.box_length.x * md_info.box_length.y * md_info.box_length.z, md_info.need_pressure, md_info.d_virial,
+		md_info.need_potential, md_info.d_potential);
+:::Main Calculate Energy:::
+    LJ_info.LJ_Energy(md_info.uint_crd_with_LJ, md_info.uint_dr_to_dr_cof,
+        nb_info.d_nl, nb_info.cutoff_square);
+	LJ_info.Long_Range_Correction(md_info.box_length.x * md_info.box_length.y * md_info.box_length.z);
+:::Main After Calculate Energy:::
+    LJ_info.Energy_Device_To_Host();
+    md_info.h_potential += LJ_info.h_LJ_energy_sum;
+:::Main Before Iteration:::
+
+:::Main After Iteration:::
+    nb_info.Neighbor_List_Update(md_info.crd, md_info.old_crd, md_info.uint_crd,
+        md_info.crd_to_uint_crd_cof, md_info.uint_dr_to_dr_cof,
+        md_info.box_length);
+:::Main Volume Change:::
+
+:::Main Print:::
+    sprintf(controller.out_line, "%s %7.2f", controller.out_line, LJ_info.h_LJ_energy_sum);
+:::Main Destroy:::
+
+:::HTML:::
+    input = 文件名; nickname = LJ输入文件; name = lj_in_file; tab = 力场; subtab = 非键;

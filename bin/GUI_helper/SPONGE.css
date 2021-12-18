@@ -1,0 +1,407 @@
+/*
+设计：夏义杰
+*/
+body {
+    background: #dfe7ef;
+}
+
+.BACK_BOARD {
+    background: #dde2e6;
+    display:block;
+	margin: 80px auto 40px;
+    text-align:center;
+
+    width: 1000px;
+    padding: 40px;
+  
+    box-sizing: border-box;
+    box-shadow: 0 15px 25px rgba(0,0,0,.6);
+    border-radius: 50px;
+}
+
+.FRONT_BOARD {
+    background: #eef3f7;
+    display:block;
+    margin: 80px auto 40px;
+    text-align:left;
+
+    width: 800px;
+    padding: 0 0 40px 0;
+
+    box-sizing: border-box;
+    box-shadow: 0 5px 15px rgba(0,0,0,.3);
+    border-radius: 5px;
+}
+
+
+.FRONT_BOARD input.TAB {
+    display: none;
+}
+
+.FRONT_BOARD label.TAB {
+    color: #fff;
+    height: 30px;
+    line-height: 30px;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.6);
+    position: relative;
+    display: inline-block;
+    transform:translateY(-32px);
+    background-color:  #55acee;
+    padding: 0 2px;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+}
+
+.FRONT_BOARD label.TAB:hover {
+    background: #6FC6FF;
+}
+
+.FRONT_BOARD input.TAB:checked + label.TAB {
+    line-height: 40px;
+    height: 40px;
+    transform:translateY(-40px);
+    background-color: #a0a0ff;
+
+}
+.FRONT_BOARD input.SUB_TAB {
+    display: none;
+}
+.SUB_TAB {
+    border-radius: 5px ;
+    box-shadow: 0 5px 15px rgba(0,0,0,.2);
+    position: relative;
+    left: 0;
+    top: -20px;
+    margin-left: 20px;
+    margin-right: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+
+}
+
+.FRONT_BOARD label.SUB_TAB {
+    color: #fff;
+    height: 30px;
+    line-height: 30px;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.6);
+    position: relative;
+    left: 0;
+    top: -0;
+    display: inline-block;
+    background-color: #55acee;
+    padding: 0 2px;
+    margin-left: 10px;
+    margin-right: 0;
+    cursor: pointer;
+    border-radius: 5px ;
+}
+
+.FRONT_BOARD label.SUB_TAB:hover {
+    background: #6FC6FF;
+}
+
+.FRONT_BOARD input.SUB_TAB:checked + label.SUB_TAB {
+    line-height: 40px;
+    height: 40px;
+    background-color: #a0a0ff;
+}
+
+/*
+标题部分样式
+span本身是字，before是底部阴影，after是背后的折纸
+奇数和偶数个数情况不一样
+通过鼠标滑过调用js，使得添加flag的class，进而发生改变
+*/
+.TITLE span {
+    position: relative;
+    display: inline-block;
+    width: 80px;
+    height: 100px;
+    margin: auto;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 70px;
+    line-height: 100px;
+    -webkit-transform: skewY(-10deg);
+    transform: skewY(-10deg);
+    -webkit-transform-origin: 0 100%;
+    transform-origin: 0 100%;
+    cursor: default;
+    transition: all 0.3s;
+}
+.TITLE span:after,
+.TITLE span:before {
+    display: block;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: 100px;
+    position: absolute;
+    background: #185a81;
+    content: ' ';
+    z-index: -1;
+    transition: all 0.3s;
+}
+.TITLE span:before {
+    background: rgba(0,0,0,0.1);
+    -webkit-transform: skewY(10deg);
+    transform: skewY(10deg);
+    -webkit-transform-origin: 0 0;
+    transform-origin: 0 0;
+}
+.TITLE span:nth-child(even) {
+    background-color: #144c6e;
+    -webkit-transform: skewY(10deg);
+    transform: skewY(10deg);
+    -webkit-transform-origin: 100% 100%;
+    transform-origin: 100% 100%;
+    color: #d9d9d9;
+}
+.TITLE span:nth-child(even):after {
+    background-color: #144c6e;
+}
+.TITLE span:nth-child(even):before {
+    -webkit-transform-origin: 100% 0;
+    transform-origin: 100% 0;
+    -webkit-transform: skewY(-10deg);
+    transform: skewY(-10deg);
+}
+.TITLE span.FLAT {
+    -webkit-transform: skewY(0);
+    transform: skewY(0);
+    color: #fff;
+}
+.TITLE span.FLAT:before {
+    -webkit-transform: skewY(0);
+     transform: skewY(0);
+}
+.TITLE span.FLAT:nth-child(even):after {
+    background-color: #185a81;
+}
+
+/*
+按钮部分
+*/
+.BUTTON {
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 15px 25px;
+    font-size: 22px;
+    text-decoration: none;
+    margin: 20px;
+    color: #fff;
+    position: relative;
+    display: inline-block;
+    background-color: #55acee;
+    box-shadow: 0px 5px 0px 0px #3C93D5;
+}
+
+.BUTTON:hover {
+  background-color: #6FC6FF;
+}
+
+.BUTTON:active {
+    transform: translate(0px, 5px);
+    -webkit-transform: translate(0px, 5px);
+    box-shadow: 0px 1px 0px 0px;
+}
+
+/*
+提示部分
+*/
+p.HINT,
+p.UP_HINT,
+p.DOWN_HINT {
+    display: block;
+	width: calc(90%-50px);
+	position: relative;
+	text-align: left;
+	cursor: default;
+    line-height: 40px;
+    min-height: 40px;
+    color: #377a90;
+	font-weight: bold;
+	font-size: 16px;
+	margin: 0 20px 20px 30px;
+	padding: 0 10px 0 60px;
+	text-shadow: 0 1px 1px rgba(255,255,255,0.6);
+    border-radius: 5px;
+    background: #94cde0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6);  
+	border: 1px solid #4991a9;
+}
+
+p.HINT:before{
+	text-align: center;
+	border: 3px solid rgba(255, 255, 255, 1);
+	margin-top: -17px;
+	top: 50%;
+	left: 20px;
+	width: 30px;
+	content: 'i';
+	font-size: 30px;
+	color: rgba(255, 255, 255, 1);
+	position: absolute;
+	height: 30px;
+	line-height: 30px;
+	border-radius: 50%;
+	text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+	box-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+}
+
+p.UP_HINT:before{
+	text-align: center;
+	margin-top: -17px;
+	top: 100%;
+	left: 20px;
+	width: 30px;
+	content: '👇';
+	font-size: 30px;
+	color:  #377a90;
+	position: absolute;
+	height: 30px;
+	line-height: 30px;
+}
+
+p.DOWN_HINT:before{
+	text-align: center;
+	margin-top: -17px;
+	top: 0%;
+	left: 20px;
+	width: 30px;
+	content: '👆';
+	font-size: 30px;
+	color:  #377a90;
+	position: absolute;
+	height: 30px;
+	line-height: 30px;
+}
+
+p.TOOLTIP:before{
+    color: #00298F;
+}
+
+p.TOOLTIP{
+    position: absolute;
+    z-index: 1;
+    background: #EBF6FF;
+    color: #00298F;
+    border-color: #BBD4E8;
+}
+
+P.HINT.TOOLTIP:before{
+    border-color: #00298F;
+}
+
+/*输入部分*/
+div.INPUTS {
+    display: block;
+	width: calc(90%-50px);
+	position: relative;
+	text-align: left;
+	cursor: default;
+    line-height: 40px;
+    min-height: 40px;
+    color: #377a90;
+	font-weight: bold;
+	font-size: 16px;
+	margin: 0 20px 20px 30px;
+	padding: 0 10px 0 20px;
+	text-shadow: 0 1px 1px rgba(255,255,255,0.6);
+    border-radius: 5px;
+    background: #94cde0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6);  
+	border: 1px solid #4991a9;
+}
+
+input.INPUTS,
+select.INPUTS {
+    display: inline-block;
+    width: 50%;
+    padding: 10px 0 10px 15px;
+    font-family: "Open Sans", sans;
+    font-weight: 400;
+    color: #377D6A;
+    background: #efefef;
+    margin: 10px;
+    border-radius: 3px;
+    outline: 0;
+    text-indent: 20px;
+    transition: all 0.2s;
+}
+
+input.INPUTS::-webkit-input-placeholder {
+    color: #efefef;
+    text-indent: 0;
+    font-weight: 300;
+    transition: all 0.2s;
+}
+
+input.INPUTS:focus,
+input.INPUTS:active {
+    color: #377D6A;
+    text-indent: 0;
+    background: #fff;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+input.INPUTS:focus::-webkit-input-placeholder,
+input.INPUTS:active::-webkit-input-placeholder {
+    color: #aaa;
+}
+
+/*
+输出部分
+*/
+.OUTPUT {
+    position: fixed;
+    background-color: rgba(255, 255, 255, 0.25);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 999;
+}
+
+.OUTPUT > div {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    background: #ddd2e6;
+    display:block;
+    margin: 0 auto 40px;
+    text-align:center;
+
+    width: 1000px;
+    padding: 40px;
+
+    box-sizing: border-box;
+    box-shadow: 0 15px 25px rgba(0,0,0,.6);
+    border-radius: 50px;
+}
+
+.OUTPUT .BUTTON {
+    display: line-block;
+    position: relative;
+    text-align: center;
+    width: 60px;
+    margin: 10px 100px 50px;
+    text-decoration: none;
+}
+
+.OUTPUT pre {
+    display: block;
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 90%;
+    margin: 10px;
+    font-size:20px;
+    text-align: left;
+}

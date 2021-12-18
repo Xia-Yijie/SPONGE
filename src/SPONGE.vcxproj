@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}</ProjectGuid>
+    <RootNamespace>SPONGE</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudadevrt.lib;cufft.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <FastMath>true</FastMath>
+      <Optimization>O3</Optimization>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CudaCompile Include="angle\angle.cu" />
+    <CudaCompile Include="Berendsen_barostat\Berendsen_barostat.cu" />
+    <CudaCompile Include="bond\bond.cu" />
+    <CudaCompile Include="common.cu" />
+    <CudaCompile Include="control.cu" />
+    <CudaCompile Include="crd_molecular_map\crd_molecular_map.cu" />
+    <CudaCompile Include="dihedral\dihedral.cu" />
+    <CudaCompile Include="Langevin_MD\Langevin_MD.cu" />
+    <CudaCompile Include="Langevin_MD\LiuJian_MD.cu" />
+    <CudaCompile Include="Lennard_Jones_force\Lennard_Jones_force.cu" />
+    <CudaCompile Include="MC_barostat\MC_barostat.cu" />
+    <CudaCompile Include="MD_core\MD_core.cu" />
+    <CudaCompile Include="nb14\nb14.cu" />
+    <CudaCompile Include="neighbor_list\neighbor_list.cu" />
+    <CudaCompile Include="main.cu" />
+    <CudaCompile Include="PME_force\PME_force.cu" />
+    <CudaCompile Include="restrain\restrain.cu" />
+    <CudaCompile Include="simple_constrain\simple_constrain.cu" />
+    <CudaCompile Include="virtual_atoms\virtual_atoms.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="angle\angle.cuh" />
+    <ClInclude Include="Berendsen_barostat\Berendsen_barostat.cuh" />
+    <ClInclude Include="bond\bond.cuh" />
+    <ClInclude Include="common.cuh" />
+    <ClInclude Include="control.cuh" />
+    <ClInclude Include="crd_molecular_map\crd_molecular_map.cuh" />
+    <ClInclude Include="dihedral\dihedral.cuh" />
+    <ClInclude Include="Langevin_MD\Langevin_MD.cuh" />
+    <ClInclude Include="Langevin_MD\LiuJian_MD.cuh" />
+    <ClInclude Include="Lennard_Jones_force\Lennard_Jones_force.cuh" />
+    <ClInclude Include="MC_barostat\MC_barostat.cuh" />
+    <ClInclude Include="MD_core\MD_core.cuh" />
+    <ClInclude Include="nb14\nb14.cuh" />
+    <ClInclude Include="neighbor_list\neighbor_list.cuh" />
+    <ClInclude Include="main.cuh" />
+    <ClInclude Include="PME_force\PME_force.cuh" />
+    <ClInclude Include="restrain\restrain.cuh" />
+    <ClInclude Include="simple_constrain\simple_constrain.cuh" />
+    <ClInclude Include="virtual_atoms\virtual_atoms.cuh" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
+  </ImportGroup>
+</Project>

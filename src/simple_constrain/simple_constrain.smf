@@ -1,0 +1,67 @@
+SPONGE Module File
+:::Name:::
+    simple_constrain
+:::Author:::
+    夏义杰
+:::Description:::
+    对质量低于4以下的原子的键长和键角进行约束
+:::Progress:::
+    100
+:::Category:::
+    环境
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+    LIUJIAN_MD_INFORMATION liujian_info;
+:::Module File:::
+    simple_constrain/simple_constrain.cu
+:::Module Include:::
+    simple_constrain/simple_constrain.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "simple_constrain/simple_constrain.cuh"
+:::Main Declaration:::
+    SIMPLE_CONSTARIN simple_constrain;
+:::Main Initial:::
+    if (controller.Command_Exist("constrain_mode") && atoi(controller.Command("constrain_mode")) == 0)
+    {
+        simple_constrain.Add_HBond_To_Constrain_Pair(bond.bond_numbers, bond.h_atom_a, bond.h_atom_b, bond.h_r0, md_info.h_mass, &controller);
+        simple_constrain.Add_HAngle_To_Constrain_Pair(angle.angle_numbers, angle.h_atom_a, angle.h_atom_b, angle.h_atom_c, angle.h_angle_theta0, md_info.h_mass);
+		simple_constrain.Initial_Simple_Constrain(md_info.atom_numbers, md_info.dt, md_info.uint_dr_to_dr_cof, 0.5*md_info.crd_to_uint_crd_cof, 
+			liujian_info.exp_gamma, md_info.h_mass, &controller, md_info.box_length.x * md_info.box_length.y * md_info.box_length.z);
+    }
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main Before Iteration Priority:::
+    -2
+:::Main Before Iteration:::
+	simple_constrain.Remember_Last_Coordinates(md_info.crd);
+:::Main After Iteration Priority:::
+    2
+:::Main After Iteration:::
+    simple_constrain.Constrain(md_info.crd, md_info.vel, md_info.d_mass_inverse, md_info.need_pressure, md_info.d_pressure);
+:::Main Volume Change:::
+	simple_constrain.Update_Volume(0.5*md_info.crd_to_uint_crd_cof,
+md_info.uint_dr_to_dr_cof,md_info.box_length.x * md_info.box_length.y * md_info.box_length.z);	
+:::Main Print:::
+
+:::Main Destroy:::
+
+:::HTML:::
+    add_choice = constrain_mode; nickname = 简单约束; name = 0; tab = 约束限制; subtab = 约束;
+	
+    up_hint = 简单约束算法的迭代步长的系数<i>k</i>。留空默认值为1.0; default = simple_constrain_step_length;
+    input = 浮点数; name = simple_constrain_step_length; nickname = 迭代步长系数; enable = constrain_mode {0};
+    
+    up_hint = 简单约束算法的迭代次数。留空默认值为50; default = simple_constrain_iteration_numbers;
+    input = 整数; name = simple_constrain_iteration_numbers; nickname = 迭代次数; enable = constrain_mode {0};
+    
+
+

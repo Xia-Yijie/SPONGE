@@ -1,0 +1,84 @@
+SPONGE Module File
+:::Name:::
+    neighbor_list
+:::Author:::
+    夏义杰
+:::Description:::
+    传统的针对原子的近邻表系统
+:::Progress:::
+    100
+:::Category:::
+    其他
+:::Module Dependency:::
+    CONTROLLER controller;
+    MD_INFORMATION md_info;
+:::Module File:::
+    neighbor_list/neighbor_list.cu
+:::Module Include:::
+    neighbor_list/neighbor_list.cuh
+    common.cuh
+    control.cuh
+:::Main Include:::
+    #include "neighbor_list/neighbor_list.cuh"
+:::Main Declaration:::
+    NON_BOND_INFORMATION nb_info;
+:::Main Initial:::
+    nb_info.Initial(md_info.atom_numbers, md_info.box_length, &controller);
+:::Main Before Calculate Force:::
+    
+:::Main Calculate Force:::
+
+:::Main Calculate Energy:::
+
+:::Main After Calculate Energy:::
+
+:::Main Before Iteration:::
+
+:::Main After Iteration:::
+
+:::Main Volume Change:::
+    nb_info.Update_Volume(md_info.box_length);
+    nb_info.Neighbor_List_Update(md_info.crd, md_info.old_crd, md_info.uint_crd,
+        md_info.crd_to_uint_crd_cof, md_info.uint_dr_to_dr_cof,
+        md_info.box_length, 1, 1);
+:::Main Print:::
+
+:::Main Destroy:::
+
+:::HTML:::
+    up_hint = 指定不计算非键作用的原子对;
+        default = exclude_in_file; tab = 力场; subtab = 非键;
+    input = 文件名; nickname = 排除表输入文件; name = exclude_in_file;
+    
+    up_hint = 单位Å。超过截断距离的原子之间将不会受到短程非键作用势;
+        default = cut;
+    input = 浮点数; nickname = 近邻截断; name = cut; default = 10.0;
+    
+    up_hint = 下面的参数较为不常用，通常留空; priority = -0.5;
+    
+    up_hint = 单位Å。原子两次更新近邻表之间移动不会超过的距离
+近邻表会囊括距离在(截断+外皮)之内的原子
+设置太大会造成模拟速度变慢，设置太小使得近邻表不能总包括截断之内的原子
+默认值2.0;
+        default = skin;
+    input = 浮点数; nickname = 近邻外皮; name = skin; priority = -1;
+    
+    up_hint = 该处未设置或值不大于0则每当原子移动超过外皮长度后更新近邻表，大于0则近邻表每隔该处设定值的步数更新一次;
+        default = neighbor_list_refresh_interval;
+    input = 整数; nickname = 近邻表更新间隔; name = neighbor_list_refresh_interval; priority = -1;
+    
+    up_hint = 近邻表通过划格点进行计算
+该值指定每个格子内最多有的原子数目，用于分配内(显)存
+太小会造成内(显)存溢出，太大会造成内(显)存浪费
+默认值为64;
+        default = max_atom_in_grid_numbers;
+    input = 整数; nickname = 格点最多原子数; name = max_atom_in_grid_numbers; priority = -1;
+
+    up_hint = 该值指定每个原子最多有的近邻原子数目，用于分配内(显)存
+太小会造成内(显)存溢出，太大会造成内(显)存浪费
+默认值为800;
+        default = max_neighbor_numbers;    
+    input = 整数; nickname = 最大近邻数; name = max_neighbor_numbers; priority = -1;
+    
+    
+    
