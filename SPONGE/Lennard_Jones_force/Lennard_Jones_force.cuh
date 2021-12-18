@@ -43,7 +43,7 @@ struct LENNARD_JONES_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//a = LJ_A between atom[i] and atom[j]
 	//b = LJ_B between atom[i] and atom[j]
@@ -67,7 +67,7 @@ struct LENNARD_JONES_INFORMATION
 	float *d_LJ_energy_atom = NULL;    //每个原子的LJ的能量
 	float *d_LJ_energy_sum = NULL;     //所有原子的LJ能量和
 
-	dim3 thread_LJ = { 8, 32 }; // cuda参数
+	dim3 thread_LJ = { 32, 32 }; // cuda参数
 	//初始化
 	void Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, char *module_name = NULL);
 	//从amber的parm文件里读取
@@ -122,11 +122,6 @@ struct LENNARD_JONES_INFORMATION
 		const ATOM_GROUP *nl, const float cutoff, const float pme_beta);//实际是LJ_Force_With_PME_Direct_Force的一个重载，将atom_numbers暴露出来
 
 	void LJ_Force_With_PME_Direct_Force(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, VECTOR *frc, const ATOM_GROUP *nl, const float pme_beta);
-
-
-	//LJ加上与FMG结合的计算力的方式
-	void LJ_Force_With_FGM_Direct_Force(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, VECTOR *frc,
-		const ATOM_GROUP *nl, const float cutoff, const float CUBIC_R_INVERSE);
 
 
 	//这里的atom_numbers参数可以小于等于体系真正的原子数，这样可以只计算部分的LJ作用，在SITS和表面加速的方法中会用到

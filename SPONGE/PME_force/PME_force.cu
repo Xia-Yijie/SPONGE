@@ -18,7 +18,7 @@ __constant__ float PME_dMc[4] = { 0, 0.5, 0, -0.5 };
 
 
 //local functions
-float M_(float u, int n)
+static float M_(float u, int n)
 {
 	if (n == 2)
 	{
@@ -32,7 +32,7 @@ float M_(float u, int n)
 
 
 
-cufftComplex expc(cufftComplex z)
+static cufftComplex expc(cufftComplex z)
 {
 	cufftComplex res;
 	float t = expf(z.x);
@@ -42,7 +42,7 @@ cufftComplex expc(cufftComplex z)
 	return res;
 }
 
-float getb(int k, int NFFT, int B_order)
+static float getb(int k, int NFFT, int B_order)
 {
     cufftComplex tempc,tempc2,res;
 	float tempf;
@@ -68,7 +68,7 @@ float getb(int k, int NFFT, int B_order)
 
 
 
-float Get_Beta(float cutoff, float tolerance)
+static float Get_Beta(float cutoff, float tolerance)
 {
     float beta, low, high, tempf;
     int ilow, ihigh;
@@ -115,199 +115,195 @@ void Particle_Mesh_Ewald::Initial(CONTROLLER *controller, int atom_numbers, VECT
 	{
 		strcpy(this->module_name, module_name);
 	}
-	if (controller[0].Command_Exist(this->module_name, "no_initial") && !is_str_equal(controller[0].Command(this->module_name, "no_initial"),"0"))
+
+	controller[0].printf("START INITIALIZING PME:\n");
+	this->cutoff = cutoff;
+	update_volume_count = 0;
+
+	tolerance = 0.00001;
+	if (controller[0].Command_Exist(this->module_name, "Direct_Tolerance"))
+		tolerance = atof(controller[0].Command(this->module_name, "Direct_Tolerance"));
+
+	fftx = -1;
+	ffty = -1;
+	fftz = -1;
+	if (controller[0].Command_Exist(this->module_name, "fftx"))
+		fftx = atoi(controller[0].Command(this->module_name, "fftx"));
+	if (controller[0].Command_Exist(this->module_name, "ffty"))
+		ffty = atoi(controller[0].Command(this->module_name, "ffty"));
+	if (controller[0].Command_Exist(this->module_name, "fftz"))
+		fftz = atoi(controller[0].Command(this->module_name, "fftz"));
+
+	this->atom_numbers = atom_numbers;
+	this->boxlength = boxlength;
+
+	float volume = boxlength.x * boxlength.y * boxlength.z;
+
+
+	if (fftx < 0)
+		fftx = Get_Fft_Patameter(boxlength.x);
+
+	if (ffty < 0)
+		ffty = Get_Fft_Patameter(boxlength.y);
+
+	if (fftz < 0)
+		fftz = Get_Fft_Patameter(boxlength.z);
+
+
+
+	controller[0].printf("    fftx: %d\n", fftx);
+	controller[0].printf("    ffty: %d\n", ffty);
+	controller[0].printf("    fftz: %d\n", fftz);
+
+	PME_Nall = fftx * ffty * fftz;
+	PME_Nin = ffty * fftz;
+	PME_Nfft = fftx * ffty * (fftz / 2 + 1);
+	PME_inverse_box_vector.x = (float)fftx / boxlength.x;
+	PME_inverse_box_vector.y = (float)ffty / boxlength.y;
+	PME_inverse_box_vector.z = (float)fftz / boxlength.z;
+
+
+
+	beta = Get_Beta(cutoff, tolerance);
+	controller[0].printf("    beta: %f\n", beta);
+
+	neutralizing_factor = -0.5 * CONSTANT_Pi / (beta * beta * volume);
+	Cuda_Malloc_Safely((void**)&charge_sum, sizeof(float));
+
+	int i, kx, ky, kz, kxrp, kyrp, kzrp, index;
+	cufftResult errP1, errP2;
+
+	Cuda_Malloc_Safely((void**)&PME_uxyz, sizeof(UNSIGNED_INT_VECTOR)* atom_numbers);
+	Cuda_Malloc_Safely((void**)&PME_frxyz, sizeof(VECTOR)* atom_numbers);
+	Reset_List << <3 * atom_numbers / 32 + 1, 32 >> >(3 * atom_numbers, (int*)PME_uxyz, 1 << 30);
+
+	Cuda_Malloc_Safely((void**)&PME_Q, sizeof(float)* PME_Nall);
+	Cuda_Malloc_Safely((void**)&PME_FQ, sizeof(cufftComplex)* PME_Nfft);
+	Cuda_Malloc_Safely((void**)&PME_FBCFQ, sizeof(float)* PME_Nall);
+
+	int **atom_near_cpu = NULL;
+	Malloc_Safely((void**)&atom_near_cpu, sizeof(int*)* atom_numbers);
+	Cuda_Malloc_Safely((void**)&PME_atom_near, sizeof(int*)* atom_numbers);
+	for (i = 0; i < atom_numbers; i++)
 	{
-		return;
+		Cuda_Malloc_Safely((void**)&atom_near_cpu[i], sizeof(int)* 64);
 	}
-	else
+	cudaMemcpy(PME_atom_near, atom_near_cpu, sizeof(int*)* atom_numbers, cudaMemcpyHostToDevice);
+	free(atom_near_cpu);
+
+
+	errP1 = cufftPlan3d(&PME_plan_r2c, fftx, ffty, fftz, CUFFT_R2C);
+	errP2 = cufftPlan3d(&PME_plan_c2r, fftx, ffty, fftz, CUFFT_C2R);
+	if (errP1 != CUFFT_SUCCESS || errP2 != CUFFT_SUCCESS)
 	{
-		controller[0].printf("START INITIALIZING PME:\n");
-		this->cutoff = cutoff;
+		controller[0].printf("    Error occurs when create fft plan of PME");
+		getchar();
+	}
 
-		tolerance = 0.00001;
-		if (controller[0].Command_Exist(this->module_name, "Direct_Tolerance"))
-			tolerance = atof(controller[0].Command(this->module_name, "Direct_Tolerance"));
-
-		fftx = -1;
-		ffty = -1;
-		fftz = -1;
-		if (controller[0].Command_Exist(this->module_name, "fftx"))
-			fftx = atoi(controller[0].Command(this->module_name, "fftx"));
-		if (controller[0].Command_Exist(this->module_name, "ffty"))
-			ffty = atoi(controller[0].Command(this->module_name, "ffty"));
-		if (controller[0].Command_Exist(this->module_name, "fftz"))
-			fftz = atoi(controller[0].Command(this->module_name, "fftz"));
-
-		this->atom_numbers = atom_numbers;
-		this->boxlength = boxlength;
-
-		float volume = boxlength.x * boxlength.y * boxlength.z;
+	Cuda_Malloc_Safely((void**)&d_reciprocal_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_self_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_direct_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_direct_atom_energy, sizeof(float)* atom_numbers);
+	Cuda_Malloc_Safely((void**)&d_correction_atom_energy, sizeof(float)* atom_numbers);
+	Cuda_Malloc_Safely((void**)&d_correction_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_ee_ene, sizeof(float));
 
 
-		if (fftx < 0)
-			fftx = Get_Fft_Patameter(boxlength.x);
+	UNSIGNED_INT_VECTOR *PME_kxyz_cpu = NULL;
+	Cuda_Malloc_Safely((void**)&PME_kxyz, sizeof(UNSIGNED_INT_VECTOR)* 64);
+	Malloc_Safely((void**)&PME_kxyz_cpu, sizeof(UNSIGNED_INT_VECTOR)* 64);
 
-		if (ffty < 0)
-			ffty = Get_Fft_Patameter(boxlength.y);
+	for (kx = 0; kx < 4; kx++)
+	for (ky = 0; ky < 4; ky++)
+	for (kz = 0; kz < 4; kz++)
+	{
+		index = kx * 16 + ky * 4 + kz;
+		PME_kxyz_cpu[index].uint_x = kx;
+		PME_kxyz_cpu[index].uint_y = ky;
+		PME_kxyz_cpu[index].uint_z = kz;
+	}
+	cudaMemcpy(PME_kxyz, PME_kxyz_cpu, sizeof(UNSIGNED_INT_VECTOR)* 64, cudaMemcpyHostToDevice);
+	free(PME_kxyz_cpu);
 
-		if (fftz < 0)
-			fftz = Get_Fft_Patameter(boxlength.z);
+	float *B1 = NULL, *B2 = NULL, *B3 = NULL, *h_PME_BC = NULL, *h_PME_BC0 = NULL;
+	B1 = (float*)malloc(sizeof(float)* fftx);;
+	B2 = (float*)malloc(sizeof(float)* ffty);
+	B3 = (float*)malloc(sizeof(float)* fftz);
+	h_PME_BC0 = (float*)malloc(sizeof(float)* PME_Nfft);
+	h_PME_BC = (float*)malloc(sizeof(float)* PME_Nfft);
+	if (B1 == NULL || B2 == NULL || B3 == NULL || h_PME_BC0 == NULL || h_PME_BC == NULL)
+	{
+		controller[0].printf("    Error occurs when malloc PME_BC of PME");
+		getchar();
+	}
+	for (kx = 0; kx < fftx; kx++)
+	{
+		B1[kx] = getb(kx, fftx, 4);
+	}
 
+	for (ky = 0; ky < ffty; ky++)
+	{
+		B2[ky] = getb(ky, ffty, 4);
+	}
 
+	for (kz = 0; kz < fftz; kz++)
+	{
+		B3[kz] = getb(kz, fftz, 4);
+	}
 
-		controller[0].printf("    fftx: %d\n", fftx);
-		controller[0].printf("    ffty: %d\n", ffty);
-		controller[0].printf("    fftz: %d\n", fftz);
-
-		PME_Nall = fftx * ffty * fftz;
-		PME_Nin = ffty * fftz;
-		PME_Nfft = fftx * ffty * (fftz / 2 + 1);
-		PME_inverse_box_vector.x = (float)fftx / boxlength.x;
-		PME_inverse_box_vector.y = (float)ffty / boxlength.y;
-		PME_inverse_box_vector.z = (float)fftz / boxlength.z;
-
-
-
-		beta = Get_Beta(cutoff, tolerance);
-		controller[0].printf("    beta: %f\n", beta);
-
-		neutralizing_factor = -0.5 * CONSTANT_Pi / (beta * beta * volume);
-		Cuda_Malloc_Safely((void**)&charge_sum, sizeof(float));
-
-		int i, kx, ky, kz, kxrp, kyrp, kzrp, index;
-		cufftResult errP1, errP2;
-
-		Cuda_Malloc_Safely((void**)&PME_uxyz, sizeof(UNSIGNED_INT_VECTOR)* atom_numbers);
-		Cuda_Malloc_Safely((void**)&PME_frxyz, sizeof(VECTOR)* atom_numbers);
-		Reset_List << <3 * atom_numbers / 32 + 1, 32 >> >(3 * atom_numbers, (int*)PME_uxyz, 1 << 30);
-
-		Cuda_Malloc_Safely((void**)&PME_Q, sizeof(float)* PME_Nall);
-		Cuda_Malloc_Safely((void**)&PME_FQ, sizeof(cufftComplex)* PME_Nfft);
-		Cuda_Malloc_Safely((void**)&PME_FBCFQ, sizeof(float)* PME_Nall);
-
-		int **atom_near_cpu = NULL;
-		Malloc_Safely((void**)&atom_near_cpu, sizeof(int*)* atom_numbers);
-		Cuda_Malloc_Safely((void**)&PME_atom_near, sizeof(int*)* atom_numbers);
-		for (i = 0; i < atom_numbers; i++)
-		{
-			Cuda_Malloc_Safely((void**)&atom_near_cpu[i], sizeof(int)* 64);
-		}
-		cudaMemcpy(PME_atom_near, atom_near_cpu, sizeof(int*)* atom_numbers, cudaMemcpyHostToDevice);
-		free(atom_near_cpu);
-
-
-		errP1 = cufftPlan3d(&PME_plan_r2c, fftx, ffty, fftz, CUFFT_R2C);
-		errP2 = cufftPlan3d(&PME_plan_c2r, fftx, ffty, fftz, CUFFT_C2R);
-		if (errP1 != CUFFT_SUCCESS || errP2 != CUFFT_SUCCESS)
-		{
-			controller[0].printf("    Error occurs when create fft plan of PME");
-			getchar();
-		}
-
-		Cuda_Malloc_Safely((void**)&d_reciprocal_ene, sizeof(float));
-		Cuda_Malloc_Safely((void**)&d_self_ene, sizeof(float));
-		Cuda_Malloc_Safely((void**)&d_direct_ene, sizeof(float));
-		Cuda_Malloc_Safely((void**)&d_direct_atom_energy, sizeof(float)* atom_numbers);
-		Cuda_Malloc_Safely((void**)&d_correction_atom_energy, sizeof(float)* atom_numbers);
-		Cuda_Malloc_Safely((void**)&d_correction_ene, sizeof(float));
-		Cuda_Malloc_Safely((void**)&d_ee_ene, sizeof(float));
-
-
-		UNSIGNED_INT_VECTOR *PME_kxyz_cpu = NULL;
-		Cuda_Malloc_Safely((void**)&PME_kxyz, sizeof(UNSIGNED_INT_VECTOR)* 64);
-		Malloc_Safely((void**)&PME_kxyz_cpu, sizeof(UNSIGNED_INT_VECTOR)* 64);
-
-		for (kx = 0; kx < 4; kx++)
-		for (ky = 0; ky < 4; ky++)
-		for (kz = 0; kz < 4; kz++)
-		{
-			index = kx * 16 + ky * 4 + kz;
-			PME_kxyz_cpu[index].uint_x = kx;
-			PME_kxyz_cpu[index].uint_y = ky;
-			PME_kxyz_cpu[index].uint_z = kz;
-		}
-		cudaMemcpy(PME_kxyz, PME_kxyz_cpu, sizeof(UNSIGNED_INT_VECTOR)* 64, cudaMemcpyHostToDevice);
-		free(PME_kxyz_cpu);
-
-
-
-
-
-		//initialize volume*PME_BC(mx,my,mz)
-		float *B1 = NULL, *B2 = NULL, *B3 = NULL;
-		B1 = (float*)malloc(sizeof(float)* fftx);;
-		B2 = (float*)malloc(sizeof(float)* ffty);
-		B3 = (float*)malloc(sizeof(float)* fftz);
-		PME_BC0 = (float*)malloc(sizeof(float)* PME_Nfft);
-		if (B1 == NULL || B2 == NULL || B3 == NULL || PME_BC0 == NULL)
-		{
-			controller[0].printf("    Error occurs when malloc PME_BC of PME");
-			getchar();
-		}
-		for (kx = 0; kx < fftx; kx++)
-		{
-			B1[kx] = getb(kx, fftx, 4);
-		}
-
+	float mprefactor = PI * PI / -beta / beta;
+	float msq;
+	for (kx = 0; kx < fftx; kx++)
+	{
+		kxrp = kx;
+		if (kx > fftx / 2)
+			kxrp = fftx - kx;
 		for (ky = 0; ky < ffty; ky++)
 		{
-			B2[ky] = getb(ky, ffty, 4);
-		}
-
-		for (kz = 0; kz < fftz; kz++)
-		{
-			B3[kz] = getb(kz, fftz, 4);
-		}
-
-		float mprefactor = PI * PI / -beta / beta;
-		float msq;
-		for (kx = 0; kx < fftx; kx++)
-		{
-			kxrp = kx;
-			if (kx > fftx / 2)
-				kxrp = fftx - kx;
-			for (ky = 0; ky < ffty; ky++)
+			kyrp = ky;
+			if (ky > ffty / 2)
+				kyrp = ffty - ky;
+			for (kz = 0; kz <= fftz / 2; kz++)
 			{
-				kyrp = ky;
-				if (ky > ffty / 2)
-					kyrp = ffty - ky;
-				for (kz = 0; kz <= fftz / 2; kz++)
-				{
-					kzrp = kz;
+				kzrp = kz;
 
-					msq = kxrp * kxrp / boxlength.x / boxlength.x
-						+ kyrp * kyrp / boxlength.y / boxlength.y
-						+ kzrp * kzrp / boxlength.z / boxlength.z;
+				msq = kxrp * kxrp / boxlength.x / boxlength.x
+					+ kyrp * kyrp / boxlength.y / boxlength.y
+					+ kzrp * kzrp / boxlength.z / boxlength.z;
 
-					index = kx * ffty * (fftz / 2 + 1) + ky * (fftz / 2 + 1) + kz;
+				index = kx * ffty * (fftz / 2 + 1) + ky * (fftz / 2 + 1) + kz;
 
-					if (kx + ky + kz == 0)
-						PME_BC0[index] = 0;
-					else
-						PME_BC0[index] = (float)1.0 / PI / msq * exp(mprefactor * msq) / volume;
+				if (kx + ky + kz == 0)
+					h_PME_BC[index] = 0;
+				else
+					h_PME_BC[index] = (float)1.0 / PI / msq * exp(mprefactor * msq) / volume;
 
-					PME_BC0[index] *= B1[kx] * B2[ky] * B3[kz];
+				h_PME_BC0[index] = B1[kx] * B2[ky] * B3[kz];
+				h_PME_BC[index] *= h_PME_BC0[index];
 
 
-				}
 			}
 		}
-
-		Cuda_Malloc_Safely((void**)&PME_BC, sizeof(float)* PME_Nfft);
-		cudaMemcpy(PME_BC, PME_BC0, sizeof(float)* PME_Nfft, cudaMemcpyHostToDevice);
-		free(B1);
-		free(B2);
-		free(B3);
-
-		is_initialized = 1;
-		if (is_initialized && !is_controller_printf_initialized)
-		{
-			controller[0].Step_Print_Initial(this->module_name, "%.2f");
-			is_controller_printf_initialized = 1;
-			controller[0].printf("    structure last modify date is %d\n", last_modify_date);
-		}
-		controller[0].printf("END INITIALIZING PME\n\n");
 	}
+
+	Cuda_Malloc_Safely((void**)&PME_BC, sizeof(float)* PME_Nfft);
+	Cuda_Malloc_Safely((void**)&PME_BC0, sizeof(float)* PME_Nfft);
+	cudaMemcpy(PME_BC, h_PME_BC, sizeof(float)* PME_Nfft, cudaMemcpyHostToDevice);
+	cudaMemcpy(PME_BC0, h_PME_BC0, sizeof(float)* PME_Nfft, cudaMemcpyHostToDevice);
+	free(B1);
+	free(B2);
+	free(B3);
+	free(h_PME_BC0);
+	free(h_PME_BC);
+
+	is_initialized = 1;
+	if (is_initialized && !is_controller_printf_initialized)
+	{
+		controller[0].Step_Print_Initial(this->module_name, "%.2f");
+		is_controller_printf_initialized = 1;
+		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
+	}
+	controller[0].printf("END INITIALIZING PME\n\n");
 }
 
 void Particle_Mesh_Ewald::Clear()
@@ -322,7 +318,7 @@ void Particle_Mesh_Ewald::Clear()
 		cudaFree(PME_FQ);
 		cudaFree(PME_FBCFQ);
 		cudaFree(PME_BC);
-		free(PME_BC0);
+		cudaFree(PME_BC0);
 		cudaFree(charge_sum);
 
 		PME_uxyz = NULL;
@@ -407,26 +403,18 @@ static __global__ void PME_Atom_Near(const UNSIGNED_INT_VECTOR *uint_crd, int **
 				
 				if (kx < 0)
 					kx += fftx;
-				if (kx > fftx)
+				if (kx >= fftx)
 					kx -= fftx;
 				ky = tempuy - temp_kxyz.uint_y;
 				if (ky < 0)
 					ky += ffty;
-				if (ky > ffty)
+				if (ky >= ffty)
 					ky -= ffty;
 				kz = tempuz - temp_kxyz.uint_z;
 				if (kz < 0)
 					kz += fftz;
-				if (kz > fftz)
+				if (kz >= fftz)
 					kz -= fftz;
-				/*
-				kx = (int)tempux - temp_kxyz.uint_x;
-				kx = kx % fftx;
-				ky = (int)tempuy - temp_kxyz.uint_y;
-				ky = ky % ffty;
-				kz = (int)tempuz - temp_kxyz.uint_z;
-				kz = kz % fftz;
-				*/
 				temp_near[k] = kx * PME_Nin + ky * fftz + kz;
 			}
 		}
@@ -498,18 +486,21 @@ static __global__ void PME_BCFQ(cufftComplex *PME_FQ, float *PME_BC, int PME_Nff
 static __global__ void PME_Final(int **PME_atom_near, const float *charge, const float *PME_Q, VECTOR *force,
 	const VECTOR *PME_frxyz, const UNSIGNED_INT_VECTOR *PME_kxyz, const VECTOR PME_inverse_box_vector, const int atom_numbers)
 {
-	int atom = blockDim.x * blockIdx.x + threadIdx.x;
-    if (atom < atom_numbers)
-    {
+	int atom = blockDim.y * blockIdx.y + threadIdx.y;
+	if (atom < atom_numbers)
+	{
 
 		int k, kx;
 		float tempdQx, tempdQy, tempdQz, tempdx, tempdy, tempdz, tempx, tempy, tempz, tempdQf;
 		float tempf, tempf2;
+		float tempnvdx = 0.0f;
+		float tempnvdy = 0.0f;
+		float tempnvdz = 0.0f;
 		float temp_charge = charge[atom];
 		int *temp_near = PME_atom_near[atom];
 		UNSIGNED_INT_VECTOR temp_kxyz;
 		VECTOR temp_frxyz = PME_frxyz[atom];
-		for (k = threadIdx.y; k < 64; k = k + blockDim.y)
+		for (k = threadIdx.x; k < 64; k = k + blockDim.x)
 		{
 			temp_kxyz = PME_kxyz[k];
 			tempdQf = -PME_Q[temp_near[k]] * temp_charge;
@@ -537,122 +528,25 @@ static __global__ void PME_Final(int **PME_atom_near, const float *charge, const
 			tempdQy = tempdy * tempx * tempz * PME_inverse_box_vector.y;
 			tempdQz = tempdz * tempx * tempy * PME_inverse_box_vector.z;
 
-			atomicAdd(&force[atom].x, tempdQf * tempdQx);
-			atomicAdd(&force[atom].y, tempdQf * tempdQy);
-			atomicAdd(&force[atom].z, tempdQf * tempdQz);
+			tempnvdx += tempdQf * tempdQx;
+			tempnvdy += tempdQf * tempdQy;
+			tempnvdz += tempdQf * tempdQz;
+
+
 		}
-					
-        
-    }
-}
-
-void Particle_Mesh_Ewald::PME_Reciprocal_Force(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, VECTOR* force)
-{
-	if (is_initialized)
-	{
-		PME_Atom_Near << <atom_numbers / 32 + 1, 32 >> >
-			(uint_crd, PME_atom_near, PME_Nin,
-			CONSTANT_UINT_MAX_INVERSED * fftx, CONSTANT_UINT_MAX_INVERSED * ffty, CONSTANT_UINT_MAX_INVERSED * fftz,
-			atom_numbers, fftx, ffty, fftz,
-			PME_kxyz, PME_uxyz, PME_frxyz);
-
-
-		Reset_List << < PME_Nall / 1024 + 1, 1024 >> >(PME_Nall, PME_Q, 0);
-
-    
-		PME_Q_Spread << < atom_numbers / thread_PME.x + 1, thread_PME >> >
-			(PME_atom_near, charge, PME_frxyz,
-			PME_Q,	PME_kxyz, atom_numbers);
-
-		cufftExecR2C(PME_plan_r2c, (float*)PME_Q, (cufftComplex*)PME_FQ);
-
-
-		PME_BCFQ << < PME_Nfft/ 1024 + 1, 1024 >> > (PME_FQ, PME_BC, PME_Nfft);
-
-
-		cufftExecC2R(PME_plan_c2r, (cufftComplex*)PME_FQ, (float*)PME_FBCFQ);
-
-
-
-    
-		PME_Final << < atom_numbers / thread_PME.x + 1, thread_PME >> >
-			(PME_atom_near, charge, PME_FBCFQ, force,
-			PME_frxyz, 	PME_kxyz, PME_inverse_box_vector, atom_numbers);
-	}
-}
-
-
-static __global__ void PME_Excluded_Force_Correction
-(const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sacler,
-const float *charge, const float pme_beta, const float sqrt_pi,
-const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
-VECTOR* frc)
-{
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (atom_i < atom_numbers)
-	{
-		int excluded_numbers = excluded_atom_numbers[atom_i];
-		if (excluded_numbers > 0)
+		for (int offset = 4; offset > 0; offset /= 2)
 		{
+			tempnvdx += __shfl_xor_sync(0xFFFFFFFF, tempnvdx, offset, 8);
+			tempnvdy += __shfl_xor_sync(0xFFFFFFFF, tempnvdy, offset, 8);
+			tempnvdz += __shfl_xor_sync(0xFFFFFFFF, tempnvdz, offset, 8);
+		}
 
-			int list_start = excluded_list_start[atom_i];
-			int list_end = list_start + excluded_numbers;
-			int atom_j;
-			int int_x;
-			int int_y;
-			int int_z;
-
-			float charge_i = charge[atom_i];
-			float charge_j;
-			float dr_abs;
-			float beta_dr;
-
-			UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i], r2;
-			VECTOR dr;
-			float dr2;
-
-			float frc_abs = 0.;
-			VECTOR frc_lin;
-			VECTOR frc_record = { 0., 0., 0. };
-
-			for (int i = list_start; i < list_end; i = i + 1)
-			{
-				atom_j = excluded_list[i];
-				r2 = uint_crd[atom_j];
-				charge_j = charge[atom_j];
-
-				int_x = r2.uint_x - r1.uint_x;
-				int_y = r2.uint_y - r1.uint_y;
-				int_z = r2.uint_z - r1.uint_z;
-				dr.x = sacler.x*int_x;
-				dr.y = sacler.y*int_y;
-				dr.z = sacler.z*int_z;
-				dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
-				//假设剔除表中的原子对距离总是小于cutoff的，正常体系
-
-
-				dr_abs = sqrtf(dr2);
-				beta_dr = pme_beta*dr_abs;
-				//sqrt_pi= 2/sqrt(3.141592654);
-				frc_abs = beta_dr *sqrt_pi * expf(-beta_dr*beta_dr) + erfcf(beta_dr);
-				frc_abs = (frc_abs - 1.) / dr2 / dr_abs;
-				frc_abs = -charge_i * charge_j*frc_abs;
-				frc_lin.x = frc_abs*dr.x;
-				frc_lin.y = frc_abs*dr.y;
-				frc_lin.z = frc_abs*dr.z;
-
-				frc_record.x = frc_record.x + frc_lin.x;
-				frc_record.y = frc_record.y + frc_lin.y;
-				frc_record.z = frc_record.z + frc_lin.z;
-
-				atomicAdd(&frc[atom_j].x, -frc_lin.x);
-				atomicAdd(&frc[atom_j].y, -frc_lin.y);
-				atomicAdd(&frc[atom_j].z, -frc_lin.z);
-			}//atom_j cycle
-			atomicAdd(&frc[atom_i].x, frc_record.x);
-			atomicAdd(&frc[atom_i].y, frc_record.y);
-			atomicAdd(&frc[atom_i].z, frc_record.z);
-		}//if need excluded
+		if (threadIdx.x == 0)
+		{
+			force[atom].x = force[atom].x + tempnvdx;
+			force[atom].y = force[atom].y + tempnvdy;
+			force[atom].z = force[atom].z + tempnvdz;
+		}
 	}
 }
 
@@ -673,75 +567,7 @@ static __global__ void PME_Energy_Product(const int element_number, const float*
 }
 
 
-//弃用，未经仔细检验，可能有问题
-static __global__ void PME_Energy_Reciprocal(const int element_number, const cufftComplex* FQ, const float* BC, float *sum)
-{
-	if (threadIdx.x == 0)
-	{
-		sum[0] = 0.;
-	}
-	__syncthreads();
-	float lin = 0.0;
-	cufftComplex FQ_i;
-	for (int i = threadIdx.x; i < element_number; i = i + blockDim.x)
-	{
-		FQ_i = FQ[i];
-		lin = lin + (FQ_i.x * FQ_i.x + FQ_i.y * FQ_i.y) * BC[i];
-	}
-	atomicAdd(sum, lin);
-}
 
-
-
-static __global__ void PME_Direct_Energy(
-	const int atom_numbers, const ATOM_GROUP *nl,
-	const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength, const float *charge,
-    const float beta, const float cutoff_square, float *direct_ene)
-{
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (atom_i < atom_numbers)
-	{
-		ATOM_GROUP nl_i = nl[atom_i];
-		int N = nl_i.atom_numbers;
-		int atom_j;
-		int int_x;
-		int int_y;
-		int int_z;
-		UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i], r2;
-		VECTOR dr;
-		float dr2;
-		float dr_abs;
-		float ene_temp;
-		float charge_i = charge[atom_i];
-		float ene_lin = 0.;
-
-
-		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
-		{
-
-			atom_j = nl_i.atom_serial[j];
-			r2 = uint_crd[atom_j];
-
-			int_x = r2.uint_x - r1.uint_x;
-			int_y = r2.uint_y - r1.uint_y;
-			int_z = r2.uint_z - r1.uint_z;
-			dr.x = boxlength.x*int_x;
-			dr.y = boxlength.y*int_y;
-			dr.z = boxlength.z*int_z;
-
-			dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
-			if (dr2 < cutoff_square)
-			{
-				
-				dr_abs = norm3df(dr.x,dr.y,dr.z);
-				ene_temp = charge_i * charge[atom_j] * erfcf(beta * dr_abs) / dr_abs;
-				ene_lin = ene_lin + ene_temp;
-			}
-
-		}//atom_j cycle
-		atomicAdd(direct_ene, ene_lin);
-	}
-}
 static __global__ void PME_Direct_Atom_Energy(
 	const int atom_numbers, const ATOM_GROUP *nl,
 	const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength, const float *charge,
@@ -791,19 +617,6 @@ static __global__ void PME_Direct_Atom_Energy(
 	}
 }
 
-void Particle_Mesh_Ewald::PME_Excluded_Force(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sacler, const float *charge,
-	const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
-	VECTOR* frc)
-{
-	if (is_initialized)
-	{
-		PME_Excluded_Force_Correction << <ceilf((float)atom_numbers / 128), 128 >> >
-			(atom_numbers, uint_crd, sacler,
-			charge, beta, TWO_DIVIDED_BY_SQRT_PI,
-			excluded_list_start, excluded_list, excluded_atom_numbers,
-			frc);
-	}
-}
 
 static __global__ void PME_Excluded_Force_With_Atom_Energy_Correction
 (const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sacler,
@@ -934,7 +747,7 @@ void Particle_Mesh_Ewald::PME_Reciprocal_Force_With_Energy_And_Virial(const UNSI
 
 		cufftExecC2R(PME_plan_c2r, (cufftComplex*)PME_FQ, (float*)PME_FBCFQ);
 
-		PME_Final << < atom_numbers / thread_PME.x + 1, thread_PME >> >
+		PME_Final << < {1, atom_numbers / thread_PME.x + 1}, thread_PME >> >
 			(PME_atom_near, charge, PME_FBCFQ, force,
 			PME_frxyz, PME_kxyz, PME_inverse_box_vector, atom_numbers);
 
@@ -1014,18 +827,7 @@ float *ene)
 		}//if need excluded
 	}
 }
-void Particle_Mesh_Ewald::Direct_Atom_Energy(const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
-	const ATOM_GROUP *nl, const VECTOR scaler, float *atom_energy)
-{
-	if (is_initialized)
-	{
-		PME_Direct_Atom_Energy << < atom_numbers / thread_PME.x + 1, thread_PME >> >
-			(atom_numbers, nl,
-			uint_crd, scaler, charge,
-			beta, cutoff*cutoff, atom_energy);
-	}
 
-}
 
 float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 	const ATOM_GROUP *nl, const VECTOR scaler,
@@ -1087,72 +889,64 @@ float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const
 	}
 }
 
-void Particle_Mesh_Ewald::PME_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
-	const ATOM_GROUP *nl, const VECTOR scaler,
-	const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers)
-{
-	PME_Atom_Near << <atom_numbers / 32 + 1, 32 >> >
-		(uint_crd, PME_atom_near, PME_Nin,
-		CONSTANT_UINT_MAX_INVERSED * fftx, CONSTANT_UINT_MAX_INVERSED * ffty, CONSTANT_UINT_MAX_INVERSED * fftz,
-		atom_numbers, fftx, ffty, fftz,
-		PME_kxyz, PME_uxyz, PME_frxyz);
-
-
-	Reset_List << < PME_Nall / 1024 + 1, 1024 >> >(PME_Nall, PME_Q, 0);
-
-
-	PME_Q_Spread << < atom_numbers / thread_PME.x + 1, thread_PME >> >
-		(PME_atom_near, charge, PME_frxyz,
-		PME_Q, 	PME_kxyz, atom_numbers);
-
-	cufftExecR2C(PME_plan_r2c, (float*)PME_Q, (cufftComplex*)PME_FQ);
-	
-
-
-	PME_BCFQ << < PME_Nfft / 1024 + 1, 1024 >> > (PME_FQ, PME_BC, PME_Nfft);
-
-	cufftExecC2R(PME_plan_c2r, (cufftComplex*)PME_FQ, (float*)PME_FBCFQ);
-
-	PME_Energy_Product << < 1, 1024 >> >(PME_Nall, PME_Q, PME_FBCFQ, d_reciprocal_ene);
-	Scale_List << <1, 1 >> >(1, d_reciprocal_ene, 0.5);
-	
-
-	PME_Energy_Product << < 1, 1024 >> >(atom_numbers, charge, charge, d_self_ene);
-	Scale_List << <1, 1 >> >(1, d_self_ene, -beta / sqrtf(PI));
-
-	Sum_Of_List << <1, 1024 >> >(atom_numbers, charge, charge_sum);
-	device_add << <1, 1 >> >(d_self_ene, neutralizing_factor, charge_sum);
-
-
-	Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_direct_atom_energy, 0.0f);
-	Direct_Atom_Energy(atom_numbers, uint_crd, charge, nl, scaler, d_direct_atom_energy);
-	Sum_Of_List << <1, 1024 >> >(atom_numbers, d_direct_atom_energy, d_direct_ene);
-
-
-	Reset_List << <ceilf( (float)atom_numbers/1024.0f), 1024 >> >(atom_numbers, d_correction_atom_energy, 0.0f);
-	PME_Excluded_Energy_Correction << < atom_numbers / 32 + 1, 32 >> >
-		(atom_numbers, uint_crd, scaler,
-		charge, beta, sqrtf(PI), excluded_list_start, excluded_list, excluded_atom_numbers, d_correction_atom_energy);
-	Sum_Of_List << <1, 1024 >> >(atom_numbers, d_correction_atom_energy, d_correction_ene);
-
-}
-
-void Particle_Mesh_Ewald::Energy_Device_To_Host()
-{
-	cudaMemcpy(&reciprocal_ene, d_reciprocal_ene, sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&self_ene, d_self_ene, sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&direct_ene, d_direct_ene, sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&correction_ene, d_correction_ene, sizeof(float), cudaMemcpyDeviceToHost);
-	ee_ene = reciprocal_ene + self_ene + direct_ene + correction_ene;
-}
-
-void Particle_Mesh_Ewald::Update_Volume(double factor)
+void Particle_Mesh_Ewald::Update_Volume(double factor, VECTOR box_length)
 {
 	double factor_inverse = 1.0 / factor;
+	update_volume_count += 1;
+	//大约每10000步，重新更新BC系数，其他时候直接也同时对beta放缩，只用乘一个因子即可。后续这个步数可能可以让别人调节。
+	if (update_volume_count % 10000 == 0)
+	{
+		beta = Get_Beta(cutoff, tolerance);
+		Update_Box_Length(boxlength);
+	}
+	else
+	{
+		PME_inverse_box_vector = factor_inverse * PME_inverse_box_vector;
+		beta *= factor;
+		Scale_List << <ceilf((float)PME_Nfft / 32), 32 >> >(PME_Nfft, PME_BC, factor_inverse);
+		neutralizing_factor *= powf(factor, 5.0f);
+	}
+}
 
-	PME_inverse_box_vector = factor_inverse * PME_inverse_box_vector;
-	beta *= factor;
-	Scale_List << <ceilf((float)PME_Nfft / 32), 32 >> >(PME_Nfft, PME_BC, factor_inverse);
-	neutralizing_factor *= powf(factor, 5.0f);
+__global__ void up_box_bc(int fftx, int ffty, int fftz, float *PME_BC, float *PME_BC0, float mprefactor, VECTOR boxlength, float volume)
+{
+	int kx, ky, kz, kxrp, kyrp, kzrp, index;
+	float msq;
+	for (kx = blockIdx.x * blockDim.x + threadIdx.x; kx < fftx; kx += blockDim.x * gridDim.x)
+	{
+		kxrp = kx;
+		if (kx > fftx / 2)
+			kxrp = fftx - kx;
+		for (ky = blockIdx.y * blockDim.y + threadIdx.y; ky < ffty; ky += blockDim.y * gridDim.y)
+		{
+			kyrp = ky;
+			if (ky > fftx / 2)
+				kyrp = ffty - ky;
+			for (kz = threadIdx.z; kz <= fftz / 2; kz += blockDim.z)
+			{
+				kzrp = kz;
+				msq = kxrp * kxrp / boxlength.x / boxlength.x
+					+ kyrp * kyrp / boxlength.y / boxlength.y
+					+ kzrp * kzrp / boxlength.z / boxlength.z;
 
+				index = kx * ffty * (fftz / 2 + 1) + ky * (fftz / 2 + 1) + kz;
+
+				if (kx + ky + kz == 0)
+					PME_BC[index] = 0;
+				else
+					PME_BC[index] = (float)1.0 / PI / msq * exp(mprefactor * msq) / volume * PME_BC0[index];
+			}
+		}
+	}
+}
+
+void Particle_Mesh_Ewald::Update_Box_Length(VECTOR boxlength)
+{
+	float volume = boxlength.x * boxlength.y * boxlength.z;
+	PME_inverse_box_vector.x = (float)fftx / boxlength.x;
+	PME_inverse_box_vector.y = (float)ffty / boxlength.y;
+	PME_inverse_box_vector.z = (float)fftz / boxlength.z;
+	neutralizing_factor = -0.5 * CONSTANT_Pi / (beta * beta * volume);
+	float mprefactor = PI * PI / -beta / beta;
+	up_box_bc << <{20, 20}, { 8, 8, 16 } >> >(fftx, ffty, fftz, PME_BC, PME_BC0, mprefactor, boxlength, volume);
 }

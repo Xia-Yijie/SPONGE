@@ -25,9 +25,9 @@ struct Langevin_MD_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210825;
 
-	int threads_per_block = 32;
+	int threads_per_block = 128;
 
 
 	float max_velocity = 0;
@@ -44,14 +44,11 @@ struct Langevin_MD_INFORMATION
 	float *h_sigma_mass = NULL;//用于朗之万热浴过程中随机力的原子等效质量
 	float *d_sigma_mass = NULL;//用于朗之万热浴过程中随机力的原子等效质量
 	float *d_mass_inverse = NULL; //质量的倒数
-	//初始化（质量直接读取文件）
-	void Initial(CONTROLLER *controller, float target_temperature, const char *module_name = NULL);
-	//从AMBER中读取质量
-	void Initial_From_AMBER(float **h_mass, const char *file, CONTROLLER controller);
-	//清除内存
+	//初始化（质量信息从某个MD_CORE的已初始化质量数组中获得）
+	void Initial(CONTROLLER *controller, const int atom_numbers, const float target_temperature, const float *h_mass, const char *module_name = NULL);
+//清除内存
 	void Clear();
 	//迭代算法
-	void MD_Iteration_Speed_Verlet_2(VECTOR *frc, VECTOR *vel, VECTOR *acc);
 	void MD_Iteration_Leap_Frog(VECTOR *frc, VECTOR *crd, VECTOR *vel, VECTOR *acc);
 };
 

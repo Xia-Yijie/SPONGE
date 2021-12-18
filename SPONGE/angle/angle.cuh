@@ -14,6 +14,7 @@
 * limitations under the License.
 */
 
+//更加详细的类似备注请见bond模块
 
 #ifndef ANGLE_CUH
 #define ANGLE_CUH
@@ -25,7 +26,7 @@ struct ANGLE
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//E_angle = k (∠abc - theta0) ^ 2
 	int angle_numbers = 0;
@@ -59,32 +60,10 @@ struct ANGLE
 	//拷贝cpu中的数据到gpu中
 	void Parameter_Host_To_Device();
 
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是普通md的需求
-	------------------------------------------------------------------------------------------*/
-
 	//计算angle force并同时计算能量并将其加到原子能量列表上
 	void Angle_Force_With_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float *atom_energy);
 	//获得能量
 	float Get_Energy(const UNSIGNED_INT_VECTOR *unit_crd, const VECTOR scaler, int is_download = 1);
-
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是其他需求的排列组合，但是接口没有特地优化，如果自己需要，可能需要修改接口或写一个重载函数
-	------------------------------------------------------------------------------------------*/
-
-	//将能量从gpu转移到cpu上
-	void Energy_Device_To_Host();
-
-	//计算angle force（整数坐标，缩放系数，力）
-	void Angle_Force(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc);
-
-	//计算angle energy（整数坐标，缩放系数）
-	void Angle_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler);
-
-	//计算angle energy,将能量数组暴露出来，并将其加到每个原子的头上（用于SITS之类的分能过程）
-	void Angle_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, float *atom_ene);
-
-
 };
 
 #endif //ANGLE(angle.cuh)

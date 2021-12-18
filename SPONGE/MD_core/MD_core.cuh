@@ -19,12 +19,13 @@
 #define MD_CORE_CUH
 #include "../common.cuh"
 #include "../control.cuh"
+#include <deque>
 
 //普通分子模拟所涉及的大部分信息
 struct MD_INFORMATION
 {
 	int is_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//sponge输入初始化
 	void Initial(CONTROLLER *controller);
@@ -83,8 +84,8 @@ struct MD_INFORMATION
 	float *d_atom_ek = NULL;
 	//为结构体中的数组变量分配存储空间
 	void Atom_Information_Initial();
-	//计算力前将原子能量和维里归零（如果需要计算时）
-	void MD_Reset_Atom_Energy_And_Virial();
+	//计算力前将原子能量和维里和力归零（如果需要计算时）
+	void MD_Reset_Atom_Energy_And_Virial_And_Force();
 	//通过原子势能、原子维里、原子动能计算压强和总势能到GPU上（如果需要）
 	void Calculate_Pressure_And_Potential_If_Needed(int is_download = 1);
 
@@ -169,6 +170,12 @@ struct MD_INFORMATION
 		void Export_Restart_File(const char *rst7_name = NULL);
 		void Append_Crd_Traj_File(FILE *fp = NULL);
 		void Append_Box_Traj_File(FILE *fp = NULL);
+		//20210827用于输出速度和力
+		int is_frc_traj = 0, is_vel_traj = 0;
+		FILE *frc_traj = NULL;
+		FILE *vel_traj = NULL;
+		void Append_Frc_Traj_File(FILE *fp = NULL);
+		void Append_Vel_Traj_File(FILE *fp = NULL);
 	} output; //轨迹输出信息
 	struct NVE_iteration
 	{
@@ -182,7 +189,7 @@ struct MD_INFORMATION
 	
 	struct residue_information
 	{
-		int is_initialzed = 0;
+		int is_initialized = 0;
 		MD_INFORMATION *md_info = NULL; //指向自己主结构体的指针，以方便调用主结构体的信息
 		int residue_numbers = 0;//模拟的总残基数目
 
@@ -211,6 +218,33 @@ struct MD_INFORMATION
 		float h_temperature;//残基平动温度 K
 		float Get_Residue_Temperature();
 	} res;  //残基信息
+
+	struct molecule_information
+	{
+		int is_initialized = 0;
+		MD_INFORMATION *md_info = NULL; //指向自己主结构体的指针，以方便调用主结构体的信息
+		int molecule_numbers = 0;//模拟的总分子数目
+
+		float *h_mass = NULL; //分子质量
+		float *h_mass_inverse = NULL; //分子质量的倒数
+		int *h_atom_start = NULL;//分子起始的原子编号
+		int *h_atom_end = NULL;//分子终止的原子编号（实际为终止编号+1）
+		int *h_residue_start = NULL; //分子起始的残基编号
+		int *h_residue_end = NULL; //分子终止的残基编号（实际为终止编号+1）
+		VECTOR *h_center_of_mass = NULL;//分子质心
+
+		int *d_atom_start = NULL;//分子起始的原子编号
+		int *d_atom_end = NULL;//分子终止的原子编号（实际为终止编号+1）
+		int *d_residue_start = NULL; //分子起始的残基编号
+		int *d_residue_end = NULL; //分子终止的残基编号（实际为终止编号+1）
+		float *d_mass = NULL; //分子质量
+		float *d_mass_inverse = NULL; //分子质量的倒数
+		VECTOR *d_center_of_mass = NULL;//分子质心
+
+		void Molecule_Crd_Map(VECTOR *no_wrap_crd, float scaler = 1.0f); //将坐标质心映射到盒子中，且如果scaler>0则乘上scaler
+
+		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
+	} mol;  //分子信息
 
 	//体积变化一个因子
 	void Update_Volume(double factor);

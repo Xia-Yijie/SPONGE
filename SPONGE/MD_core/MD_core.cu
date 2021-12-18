@@ -6,6 +6,9 @@
 #define TRAJ_DEFAULT_FILENAME "mdcrd.dat"
 #define RESTART_COMMAND "rst"
 #define RESTART_DEFAULT_FILENAME "restart"
+//20210827用于输出速度和力
+#define FRC_TRAJ_COMMAND "frc"
+#define VEL_TRAJ_COMMAND "vel"
 
 static __global__ void MD_Iteration_Leap_Frog
 (const int atom_numbers, VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, const float *inverse_mass, const float dt)
@@ -25,9 +28,6 @@ static __global__ void MD_Iteration_Leap_Frog
 		crd[i].y = crd[i].y + dt*vel[i].y;
 		crd[i].z = crd[i].z + dt*vel[i].z;
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 	}
 }
 
@@ -42,23 +42,20 @@ static __global__ void MD_Iteration_Leap_Frog_With_Max_Velocity
 		vel_i = Make_Vector_Not_Exceed_Value(vel_i, max_velocity);
 		vel[i] = vel_i;
 		crd[i] = crd[i] + dt * vel_i;
-		frc[i] = { 0.0f, 0.0f, 0.0f };
+
 	}
 }
 
 static __global__ void MD_Iteration_Gradient_Descent
-(const int atom_numbers, VECTOR *crd, VECTOR *frc, const float learning_rate)
+(const int atom_numbers, VECTOR *crd, VECTOR *frc, const float *mass_inverse,const float learning_rate)
 {
 	int i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (i < atom_numbers)
 	{
-		crd[i].x = crd[i].x + learning_rate * frc[i].x;
-		crd[i].y = crd[i].y + learning_rate * frc[i].y;
-		crd[i].z = crd[i].z + learning_rate * frc[i].z;
+		crd[i].x = crd[i].x + learning_rate * mass_inverse[i] * frc[i].x;
+		crd[i].y = crd[i].y + learning_rate * mass_inverse[i] * frc[i].y;
+		crd[i].z = crd[i].z + learning_rate * mass_inverse[i] * frc[i].z;
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 	}
 }
 
@@ -74,9 +71,6 @@ static __global__ void MD_Iteration_Speed_Verlet_1(const int atom_numbers, const
 		crd[i].x = crd[i].x + dt*vel[i].x;
 		crd[i].y = crd[i].y + dt*vel[i].y;
 		crd[i].z = crd[i].z + dt*vel[i].z;
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 	}
 }
 
@@ -160,7 +154,7 @@ static __global__ void Calculate_Pressure_Cuda(const float V_inverse, const floa
 
 
 
-
+/*
 static __global__ void MD_Temperature
 (const int residue_numbers, const int *start, const int *end, float *ek,
 const VECTOR *atom_vel, const float *atom_mass)
@@ -185,7 +179,7 @@ const VECTOR *atom_vel, const float *atom_mass)
 		ek[residue_i] = 0.5*(momentum.x*momentum.x + momentum.y*momentum.y + momentum.z*momentum.z) / res_mass * 2. / 3. / CONSTANT_kB / residue_numbers;
 	}
 }
-
+*/
 static __global__ void MD_Residue_Ek
 (const int residue_numbers,const int *start,const int *end,float *ek,
 const VECTOR *atom_vel,const float *atom_mass)
@@ -285,7 +279,7 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 		Open_File_Safely(&fp, controller[0].Command("exclude_in_file"), "r");
 		
 		int atom_numbers = 0;
-		fscanf(fp, "%d %d", &atom_numbers, &excluded_atom_numbers);
+		int scanf_ret = fscanf(fp, "%d %d", &atom_numbers, &excluded_atom_numbers);
 		if (md_info->atom_numbers > 0 && md_info->atom_numbers != atom_numbers)
 		{
 			controller->printf("        Error: atom_numbers is not equal: %d %d\n", md_info->atom_numbers, atom_numbers);
@@ -308,11 +302,11 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 		int count = 0;
 		for (int i = 0; i < atom_numbers; i++)
 		{
-			fscanf(fp, "%d", &h_excluded_numbers[i]);
+			scanf_ret = fscanf(fp, "%d", &h_excluded_numbers[i]);
 			h_excluded_list_start[i] = count;
 			for (int j = 0; j < h_excluded_numbers[i]; j++)
 			{
-				fscanf(fp, "%d", &h_excluded_list[count]);
+				scanf_ret = fscanf(fp, "%d", &h_excluded_list[count]);
 				count++;
 			}
 		}
@@ -346,10 +340,10 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "POINTERS") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 				int atom_numbers = 0;
-				fscanf(parm, "%d\n", &atom_numbers);
+				int scanf_ret = fscanf(parm, "%d\n", &atom_numbers);
 				if (md_info->atom_numbers > 0 && md_info->atom_numbers != atom_numbers)
 				{
 					controller->printf("        Error: atom_numbers is not equal: %d %d\n", md_info->atom_numbers, atom_numbers);
@@ -367,9 +361,9 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 				Malloc_Safely((void**)&h_excluded_numbers, sizeof(int)*atom_numbers);
 				for (int i = 0; i < 9; i = i + 1)
 				{
-					fscanf(parm, "%d\n", &excluded_atom_numbers);
+					scanf_ret = fscanf(parm, "%d\n", &excluded_atom_numbers);
 				}
-				fscanf(parm, "%d\n", &excluded_atom_numbers);
+				scanf_ret = fscanf(parm, "%d\n", &excluded_atom_numbers);
 				controller->printf("        excluded list total length is %d\n", excluded_atom_numbers);
 
 				Cuda_Malloc_Safely((void**)&d_excluded_list, sizeof(int)*excluded_atom_numbers);
@@ -380,10 +374,10 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "NUMBER_EXCLUDED_ATOMS") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 				for (int i = 0; i<md_info->atom_numbers; i = i + 1)
 				{
-					fscanf(parm, "%d\n", &h_excluded_numbers[i]);
+					int scanf_ret = fscanf(parm, "%d\n", &h_excluded_numbers[i]);
 				}
 			}
 			//read every atom's excluded atom list
@@ -391,15 +385,14 @@ void MD_INFORMATION::non_bond_information::Initial(CONTROLLER *controller, MD_IN
 				&& strcmp(temp_second_str, "EXCLUDED_ATOMS_LIST") == 0)
 			{
 				int count = 0;
-				int none_count = 0;
 				int lin = 0;
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 				for (int i = 0; i<md_info->atom_numbers; i = i + 1)
 				{
 					h_excluded_list_start[i] = count;
 					for (int j = 0; j<h_excluded_numbers[i]; j = j + 1)
 					{
-						fscanf(parm, "%d\n", &lin);
+						int scanf_ret = fscanf(parm, "%d\n", &lin);
 						if (lin == 0)
 						{
 							h_excluded_numbers[i] = 0;
@@ -559,6 +552,17 @@ void MD_INFORMATION::trajectory_output::Initial(CONTROLLER *controller, MD_INFOR
 	{
 		strcpy(restart_name, RESTART_DEFAULT_FILENAME);
 	}
+	//20210827用于输出速度和力
+	if (controller->Command_Exist(FRC_TRAJ_COMMAND))
+	{
+		is_frc_traj = 1;
+		Open_File_Safely(&frc_traj, controller->Command(FRC_TRAJ_COMMAND), "wb");
+	}
+	if (controller->Command_Exist(VEL_TRAJ_COMMAND))
+	{
+		is_vel_traj = 1;
+		Open_File_Safely(&vel_traj, controller->Command(VEL_TRAJ_COMMAND), "wb");
+	}
 }
 
 void MD_INFORMATION::NVE_iteration::Initial(CONTROLLER *controller, MD_INFORMATION *md_info)
@@ -593,10 +597,10 @@ void MD_INFORMATION::residue_information::Read_AMBER_Parm7(const char *file_name
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "POINTERS") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 			int atom_numbers = 0;
-			fscanf(parm, "%d", &atom_numbers);
+			int scanf_ret = fscanf(parm, "%d", &atom_numbers);
 			if (md_info->atom_numbers > 0 && md_info->atom_numbers != atom_numbers)
 			{
 				controller.printf("        Error: atom_numbers is not equal: %d %d\n", md_info->atom_numbers, atom_numbers);
@@ -610,9 +614,9 @@ void MD_INFORMATION::residue_information::Read_AMBER_Parm7(const char *file_name
 			for (int i = 0; i < 10; i = i + 1)
 			{
 				int lin;
-				fscanf(parm, "%d\n", &lin);
+				scanf_ret = fscanf(parm, "%d\n", &lin);
 			}
-			fscanf(parm, "%d\n", &this->residue_numbers);//NRES
+			scanf_ret = fscanf(parm, "%d\n", &this->residue_numbers);//NRES
 			controller.printf("        residue_numbers is %d\n", this->residue_numbers);
 
 			Malloc_Safely((void**)&h_mass, sizeof(float)*this->residue_numbers);
@@ -637,13 +641,13 @@ void MD_INFORMATION::residue_information::Read_AMBER_Parm7(const char *file_name
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "RESIDUE_POINTER") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			//注意读进来的数的编号要减1
 			int *lin_serial;
 			Malloc_Safely((void**)&lin_serial, sizeof(int)* this->residue_numbers);
 			for (int i = 0; i<this->residue_numbers; i = i + 1)
 			{
-				fscanf(parm, "%d\n", &lin_serial[i]);
+				int scanf_ret = fscanf(parm, "%d\n", &lin_serial[i]);
 			}
 			for (int i = 0; i<this->residue_numbers - 1; i = i + 1)
 			{
@@ -673,7 +677,7 @@ void MD_INFORMATION::residue_information::Initial(CONTROLLER *controller, MD_INF
 		if (controller[0].Command_Exist("amber_parm7"))
 		{
 			Read_AMBER_Parm7(controller[0].Command("amber_parm7"), controller[0]);
-			is_initialzed = 1;
+			is_initialized = 1;
 		}
 		//对于没有residue输入的模拟，默认每个粒子作为一个residue
 		else
@@ -708,7 +712,7 @@ void MD_INFORMATION::residue_information::Initial(CONTROLLER *controller, MD_INF
 			cudaMemcpy(d_res_start, h_res_start, sizeof(int)* residue_numbers, cudaMemcpyHostToDevice);
 			cudaMemcpy(d_res_end, h_res_end, sizeof(int)* residue_numbers, cudaMemcpyHostToDevice);
 			controller->printf("    End reading residue list\n\n");
-			is_initialzed = 1;
+			is_initialized = 1;
 		}
 	}
 	else
@@ -717,7 +721,7 @@ void MD_INFORMATION::residue_information::Initial(CONTROLLER *controller, MD_INF
 		controller->printf("    Start reading residue list:\n");
 		Open_File_Safely(&fp, controller[0].Command("residue_in_file"), "r");
 		int atom_numbers = 0;
-		fscanf(fp, "%d %d", &atom_numbers, &residue_numbers);
+		int scanf_ret = fscanf(fp, "%d %d", &atom_numbers, &residue_numbers);
 		if (md_info->atom_numbers > 0 && md_info->atom_numbers != atom_numbers)
 		{
 			controller->printf("        Error: atom_numbers is not equal: %d %d\n", md_info->atom_numbers, atom_numbers);
@@ -751,7 +755,7 @@ void MD_INFORMATION::residue_information::Initial(CONTROLLER *controller, MD_INF
 		for (int i = 0; i < residue_numbers; i++)
 		{
 			h_res_start[i] = count;
-			fscanf(fp, "%d", &temp);
+			scanf_ret = fscanf(fp, "%d", &temp);
 			count += temp;
 			h_res_end[i] = count;
 		}
@@ -759,9 +763,9 @@ void MD_INFORMATION::residue_information::Initial(CONTROLLER *controller, MD_INF
 		cudaMemcpy(d_res_end, h_res_end, sizeof(int)* residue_numbers, cudaMemcpyHostToDevice);
 		controller->printf("    End reading residue list\n\n");
 		fclose(fp);
-		is_initialzed = 1;
+		is_initialized = 1;
 	}
-	if (is_initialzed)
+	if (is_initialized)
 	{
 		if (md_info->h_mass != NULL)
 		{
@@ -804,7 +808,7 @@ void MD_INFORMATION::Read_Coordinate_And_Velocity(CONTROLLER *controller)
 			
 			int atom_numbers = 0;
 			char lin[CHAR_LENGTH_MAX];
-			fgets(lin, CHAR_LENGTH_MAX, fp);
+			char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fp);
 			int scanf_ret = sscanf(lin, "%d", &atom_numbers);
 			if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
 			{
@@ -816,7 +820,7 @@ void MD_INFORMATION::Read_Coordinate_And_Velocity(CONTROLLER *controller)
 			Cuda_Malloc_Safely((void**)&vel, sizeof(VECTOR)*this->atom_numbers);
 			for (int i = 0; i < atom_numbers; i++)
 			{
-				fscanf(fp, "%f %f %f", &velocity[i].x, &velocity[i].y, &velocity[i].z);
+				scanf_ret = fscanf(fp, "%f %f %f", &velocity[i].x, &velocity[i].y, &velocity[i].z);
 			}
 			cudaMemcpy(vel, velocity, sizeof(VECTOR)* atom_numbers, cudaMemcpyHostToDevice);
 			controller->printf("    End reading velocity_in_file\n\n");
@@ -860,7 +864,7 @@ void MD_INFORMATION::Read_Mass(CONTROLLER *controller)
 		Open_File_Safely(&fp, controller[0].Command("mass_in_file"), "r");
 		int atom_numbers = 0;
 		char lin[CHAR_LENGTH_MAX];
-		fgets(lin, CHAR_LENGTH_MAX, fp);
+		char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fp);
 		int scanf_ret = sscanf(lin, "%d", &atom_numbers);
 		if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
 		{
@@ -879,7 +883,7 @@ void MD_INFORMATION::Read_Mass(CONTROLLER *controller)
 		sys.total_mass = 0;
 		for (int i = 0; i < atom_numbers; i++)
 		{
-			fscanf(fp, "%f", &h_mass[i]);
+			scanf_ret = fscanf(fp, "%f", &h_mass[i]);
 			sys.total_mass += h_mass[i];
 			if (h_mass[i] == 0)
 				h_mass_inverse[i] = 0;
@@ -912,10 +916,10 @@ void MD_INFORMATION::Read_Mass(CONTROLLER *controller)
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "POINTERS") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 				int atom_numbers = 0;
-				fscanf(parm, "%d", &atom_numbers);
+				int scanf_ret = fscanf(parm, "%d", &atom_numbers);
 				if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
 				{
 					controller->printf("        Error: atom_numbers is not equal: %d %d\n", this->atom_numbers, atom_numbers);
@@ -934,12 +938,12 @@ void MD_INFORMATION::Read_Mass(CONTROLLER *controller)
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "MASS") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 				double lin;
 				sys.total_mass = 0;
 				for (int i = 0; i < this->atom_numbers; i = i + 1)
 				{
-					fscanf(parm, "%lf\n", &lin);
+					int scanf_ret = fscanf(parm, "%lf\n", &lin);
 					this->h_mass[i] = (float)lin;
 					if (h_mass[i] == 0)
 						h_mass_inverse[i] = 0;
@@ -989,7 +993,7 @@ void MD_INFORMATION::Read_Charge(CONTROLLER *controller)
 		Open_File_Safely(&fp, controller[0].Command("charge_in_file"), "r");
 		int atom_numbers = 0;
 		char lin[CHAR_LENGTH_MAX];
-		fgets(lin, CHAR_LENGTH_MAX, fp);
+		char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fp);
 		int scanf_ret = sscanf(lin, "%d", &atom_numbers);
 		if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
 		{
@@ -1005,7 +1009,7 @@ void MD_INFORMATION::Read_Charge(CONTROLLER *controller)
 		Cuda_Malloc_Safely((void**)&d_charge, sizeof(float)* atom_numbers);
 		for (int i = 0; i < atom_numbers; i++)
 		{
-			fscanf(fp, "%f", &h_charge[i]);
+			scanf_ret = fscanf(fp, "%f", &h_charge[i]);
 		}
 		controller->printf("    End reading charge\n\n");
 		fclose(fp);
@@ -1032,10 +1036,10 @@ void MD_INFORMATION::Read_Charge(CONTROLLER *controller)
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "POINTERS") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 				int atom_numbers = 0;
-				fscanf(parm, "%d", &atom_numbers);
+				int scanf_ret = fscanf(parm, "%d", &atom_numbers);
 				if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
 				{
 					controller->printf("        Error: atom_numbers is not equal: %d %d\n", this->atom_numbers, atom_numbers);
@@ -1052,11 +1056,10 @@ void MD_INFORMATION::Read_Charge(CONTROLLER *controller)
 			if (strcmp(temp_first_str, "%FLAG") == 0
 				&& strcmp(temp_second_str, "CHARGE") == 0)
 			{
-				fgets(temps, CHAR_LENGTH_MAX, parm);
-				double lin;
+				char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 				for (int i = 0; i < this->atom_numbers; i = i + 1)
 				{
-					fscanf(parm, "%f", &h_charge[i]);
+					int scanf_ret = fscanf(parm, "%f", &h_charge[i]);
 				}
 			}
 		}
@@ -1110,6 +1113,8 @@ void MD_INFORMATION::Initial(CONTROLLER *controller)
 	
 	res.Initial(controller, this);
 
+	mol.Initial(controller, this);
+
 	pbc.Initial(controller, sys.box_length);
 	
 	Atom_Information_Initial();
@@ -1143,7 +1148,7 @@ void MD_INFORMATION::Read_Coordinate_In_File(const char* file_name, CONTROLLER c
 	controller.printf("    Start reading coordinate_in_file:\n");
 	Open_File_Safely(&fp, file_name, "r");
 	char lin[CHAR_LENGTH_MAX];
-	fgets(lin, CHAR_LENGTH_MAX, fp);
+	char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fp);
 	int atom_numbers = 0;
 	int scanf_ret = sscanf(lin, "%d %lf", &atom_numbers, &sys.start_time);
 	if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
@@ -1174,9 +1179,9 @@ void MD_INFORMATION::Read_Coordinate_In_File(const char* file_name, CONTROLLER c
 
 	for (int i = 0; i < atom_numbers; i++)
 	{
-		fscanf(fp, "%f %f %f", &coordinate[i].x, &coordinate[i].y, &coordinate[i].z);
+		scanf_ret = fscanf(fp, "%f %f %f", &coordinate[i].x, &coordinate[i].y, &coordinate[i].z);
 	}
-	fscanf(fp, "%f %f %f", &sys.box_length.x, &sys.box_length.y, &sys.box_length.z);
+	scanf_ret = fscanf(fp, "%f %f %f", &sys.box_length.x, &sys.box_length.y, &sys.box_length.z);
 	controller.printf("        box_length is\n            x: %f\n            y: %f\n            z: %f\n", sys.box_length.x, sys.box_length.y, sys.box_length.z);
 	cudaMemcpy(crd, coordinate, sizeof(VECTOR)* atom_numbers, cudaMemcpyHostToDevice);
 	controller.printf("    End reading coordinate_in_file\n\n");
@@ -1189,8 +1194,8 @@ void MD_INFORMATION::Read_Rst7(const char* file_name, int irest, CONTROLLER cont
 	controller.printf("    Start reading AMBER rst7:\n");
 	char lin[CHAR_LENGTH_MAX];
 	int atom_numbers = 0;
-	fgets(lin, CHAR_LENGTH_MAX, fin);
-	fgets(lin, CHAR_LENGTH_MAX, fin);
+	char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fin);
+	get_ret = fgets(lin, CHAR_LENGTH_MAX, fin);
 	int has_vel = 0;
 	int scanf_ret = sscanf(lin, "%d %lf", &atom_numbers, &sys.start_time);
 	if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
@@ -1234,7 +1239,7 @@ void MD_INFORMATION::Read_Rst7(const char* file_name, int irest, CONTROLLER cont
 
 	for (int i = 0; i < this->atom_numbers; i = i + 1)
 	{
-		fscanf(fin, "%f %f %f",
+		scanf_ret = fscanf(fin, "%f %f %f",
 			&this->coordinate[i].x,
 			&this->coordinate[i].y,
 			&this->coordinate[i].z);
@@ -1243,7 +1248,7 @@ void MD_INFORMATION::Read_Rst7(const char* file_name, int irest, CONTROLLER cont
 	{
 		for (int i = 0; i < this->atom_numbers; i = i + 1)
 		{
-			fscanf(fin, "%f %f %f",
+			scanf_ret = fscanf(fin, "%f %f %f",
 				&this->velocity[i].x,
 				&this->velocity[i].y,
 				&this->velocity[i].z);
@@ -1258,7 +1263,7 @@ void MD_INFORMATION::Read_Rst7(const char* file_name, int irest, CONTROLLER cont
 			this->velocity[i].z = 0.0;
 		}
 	}
-	fscanf(fin, "%f %f %f", &this->sys.box_length.x, &this->sys.box_length.y, &this->sys.box_length.z);
+	scanf_ret = fscanf(fin, "%f %f %f", &this->sys.box_length.x, &this->sys.box_length.y, &this->sys.box_length.z);
 	controller.printf("        system size is %f %f %f\n", this->sys.box_length.x, this->sys.box_length.y, this->sys.box_length.z);
 	cudaMemcpy(this->crd, this->coordinate, sizeof(VECTOR)*this->atom_numbers, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->vel, this->velocity, sizeof(VECTOR)*this->atom_numbers, cudaMemcpyHostToDevice);
@@ -1283,6 +1288,46 @@ void MD_INFORMATION::trajectory_output::Append_Crd_Traj_File(FILE *fp)
 			fp = crd_traj;
 		}
 		fwrite(&md_info->coordinate[0].x, sizeof(VECTOR), md_info->atom_numbers, fp);
+	}
+}
+
+// 20210827用于输出速度和力
+void MD_INFORMATION::trajectory_output::Append_Frc_Traj_File(FILE *fp)
+{
+	if (md_info->is_initialized)
+	{
+		cudaMemcpy(md_info->force, md_info->frc, sizeof(VECTOR)*md_info->atom_numbers, cudaMemcpyDeviceToHost);
+		if (fp == NULL)//默认的frc输出位置
+		{
+			fp = frc_traj;
+			if (fp != NULL)
+			{
+				fwrite(&md_info->force[0].x, sizeof(VECTOR), md_info->atom_numbers, fp);
+			}
+		}
+		else
+		{
+			fwrite(&md_info->force[0].x, sizeof(VECTOR), md_info->atom_numbers, fp);
+		}
+	}
+}
+void MD_INFORMATION::trajectory_output::Append_Vel_Traj_File(FILE *fp)
+{
+	if (md_info->is_initialized)
+	{
+		cudaMemcpy(md_info->velocity, md_info->vel, sizeof(VECTOR)*md_info->atom_numbers, cudaMemcpyDeviceToHost);
+		if (fp == NULL)//默认的vel输出位置
+		{
+			fp = vel_traj;
+			if (fp != NULL)
+			{
+				fwrite(&md_info->velocity[0].x, sizeof(VECTOR), md_info->atom_numbers, fp);
+			}
+		}
+		else
+		{
+			fwrite(&md_info->velocity[0].x, sizeof(VECTOR), md_info->atom_numbers, fp);
+		}
 	}
 }
 
@@ -1376,8 +1421,6 @@ void MD_INFORMATION::trajectory_output::Export_Restart_File(const char *rst7_nam
 
 void MD_INFORMATION::Update_Volume(double factor)
 {
-	double f_inv = 1.0 / factor;
-
 	sys.box_length = factor * sys.box_length;
 	pbc.crd_to_uint_crd_cof = CONSTANT_UINT_MAX_FLOAT / sys.box_length;
 	pbc.quarter_crd_to_uint_crd_cof = 0.25 * pbc.crd_to_uint_crd_cof;
@@ -1428,8 +1471,8 @@ void MD_INFORMATION::NVE_iteration::Leap_Frog()
 void MD_INFORMATION::MD_Information_Gradient_Descent()
 {
 	MD_Iteration_Gradient_Descent << <ceilf((float)this->atom_numbers / 128), 128 >> >
-		(this->atom_numbers, this->crd, this->frc, dt * dt);
-	Reset_List << <ceilf((float)this->atom_numbers * 3 / 128), 128 >> > (atom_numbers * 3, (float*)vel, 0);
+		(this->atom_numbers, this->crd, this->frc, this->d_mass_inverse, dt * dt);
+	cudaMemset(vel, 0, sizeof(VECTOR)*atom_numbers);
 }
 
 void MD_INFORMATION::NVE_iteration::Velocity_Verlet_1()
@@ -1504,17 +1547,17 @@ void MD_INFORMATION::residue_information::Residue_Crd_Map(VECTOR *no_wrap_crd, f
 }
 
 
-void MD_INFORMATION::MD_Reset_Atom_Energy_And_Virial()
+void MD_INFORMATION::MD_Reset_Atom_Energy_And_Virial_And_Force()
 {
 	need_potential = 0;
-	Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_atom_energy, 0.0f);
-	Reset_List << <1, 1 >> >(1, sys.d_potential, 0.0f);
+	cudaMemset(d_atom_energy, 0, sizeof(float)* atom_numbers);
+	cudaMemset(sys.d_potential, 0, sizeof(float));
 
 	need_pressure = 0;
-	Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_atom_virial, 0.0f);
-	Reset_List << <1, 1 >> >(1, sys.d_virial, 0.0f);
+	cudaMemset(d_atom_virial, 0, sizeof(float)* atom_numbers);
+	cudaMemset(sys.d_virial, 0, sizeof(float));
 
-	Reset_List << <ceilf((float)3 * atom_numbers / 1024.0f), 1024 >> >(3 * atom_numbers, (float*)frc, 0.0f);
+	cudaMemset(frc, 0, sizeof(VECTOR)* atom_numbers);
 }
 
 
@@ -1599,4 +1642,158 @@ void MD_INFORMATION::Crd_Vel_Device_To_Host(int Do_Translation, int forced)
 void MD_INFORMATION::Clear()
 {
 
+}
+
+
+void MD_INFORMATION::molecule_information::Initial(CONTROLLER *controller, MD_INFORMATION *md_info)
+{
+	controller->printf("    Start initializing molecule list:\n");
+	this->md_info = md_info;
+	//分子拓扑是一个无向图，邻接表进行描述，通过排除表形成
+	int edge_numbers = 2 * md_info->nb.excluded_atom_numbers;
+	int *visited = NULL; //每个原子是否拜访过
+	int *first_edge = NULL; //每个原子的第一个边（链表的头）
+	int *edges = NULL;  //每个边的序号
+	int *edge_next = NULL; //每个原子的边（链表结构）
+	int *molecule_belongings = NULL; //每个原子属于的分子编号
+	Malloc_Safely((void**)&visited, sizeof(int)*md_info->atom_numbers);
+	Malloc_Safely((void**)&visited, sizeof(int)*md_info->atom_numbers);
+	Malloc_Safely((void**)&first_edge, sizeof(int)*md_info->atom_numbers);
+	Malloc_Safely((void**)&edges, sizeof(int)*edge_numbers);
+	Malloc_Safely((void**)&edge_next, sizeof(int)*edge_numbers);
+	Malloc_Safely((void**)&molecule_belongings, sizeof(int)*md_info->atom_numbers);
+	//初始化链表
+	for (int i = 0; i < md_info->atom_numbers; i++)
+	{
+		visited[i] = 0;
+		first_edge[i] = -1;
+	}
+	int atom_i, atom_j, edge_count = 0;
+	for (int i = 0; i < md_info->atom_numbers; i++)
+	{
+		atom_i = i;
+		for (int j = md_info->nb.h_excluded_list_start[i] + md_info->nb.h_excluded_numbers[i] - 1; j >= md_info->nb.h_excluded_list_start[i]; j--) //这里使用倒序是因为链表构建是用的头插法
+		{
+			atom_j = md_info->nb.h_excluded_list[j];
+			edge_next[edge_count] = first_edge[atom_i];
+			first_edge[atom_i] = edge_count;
+			edges[edge_count] = atom_j;
+			edge_count++;
+			edge_next[edge_count] = first_edge[atom_j];
+			first_edge[atom_j] = edge_count;
+			edges[edge_count] = atom_i;
+			edge_count++;
+		}
+	}
+
+	std::deque<int> queue;
+	int atom;
+	molecule_numbers = 0;
+	for (int i = 0; i < md_info->atom_numbers; i++)
+	{
+		if (!visited[i])
+		{
+			visited[i] = 1;
+			queue.push_back(i);
+			while (!queue.empty())
+			{
+				atom = queue[0];
+				queue.pop_front();
+				molecule_belongings[atom] = molecule_numbers;
+				edge_count = first_edge[atom];
+
+				while (edge_count != -1)
+				{
+					atom = edges[edge_count];
+					if (!visited[atom])
+					{
+						queue.push_back(atom);
+						visited[atom] = 1;
+					}
+					edge_count = edge_next[edge_count];
+				}
+			}
+			molecule_numbers += 1;
+		}
+	}
+	printf("        molecule numbers is %d\n", molecule_numbers);
+	Malloc_Safely((void**)&h_mass, sizeof(float)*molecule_numbers);
+	Malloc_Safely((void**)&h_mass_inverse, sizeof(float)*molecule_numbers);
+	Malloc_Safely((void**)&h_atom_start, sizeof(int)*molecule_numbers);
+	Malloc_Safely((void**)&h_atom_end, sizeof(int)*molecule_numbers);
+	Malloc_Safely((void**)&h_residue_start, sizeof(int)*molecule_numbers);
+	Malloc_Safely((void**)&h_residue_end, sizeof(int)*molecule_numbers);
+	Malloc_Safely((void**)&h_center_of_mass, sizeof(VECTOR)*molecule_numbers);
+
+	Cuda_Malloc_Safely((void**)&d_mass, sizeof(float)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_mass_inverse, sizeof(float)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_atom_start, sizeof(int)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_atom_end, sizeof(int)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_residue_start, sizeof(int)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_residue_end, sizeof(int)*molecule_numbers);
+	Cuda_Malloc_Safely((void**)&d_center_of_mass, sizeof(VECTOR)*molecule_numbers);
+
+	int molecule_j = 0;
+	h_atom_start[0] = 0;
+	//该判断基于一个分子的所有原子一定在列表里是连续的
+	for (int i = 0; i < md_info->atom_numbers; i++)
+	{
+		if (molecule_belongings[i] != molecule_j)
+		{
+			h_atom_end[molecule_j] = i;
+			molecule_j += 1;
+			if (molecule_j < molecule_numbers)
+				h_atom_start[molecule_j] = i;
+		}
+	}
+	h_atom_end[molecule_numbers - 1] = md_info->atom_numbers;
+	
+	molecule_j = 0;
+	h_residue_start[0] = 0;
+	//该判断基于一个分子的所有残基一定在列表里是连续的，且原子在残基里也是连续的
+	for (int i = 0; i < md_info->res.residue_numbers; i++)
+	{
+		if (md_info->res.h_res_start[i] == h_atom_end[molecule_j])
+		{
+			h_residue_end[molecule_j] = i;
+			molecule_j += 1;
+			if (molecule_j < molecule_numbers)
+				h_residue_start[molecule_j] = i;
+		}
+	}
+	h_residue_end[molecule_numbers - 1] = md_info->res.residue_numbers;
+
+	for (int i = 0; i < molecule_numbers; i++)
+	{
+		h_mass[i] = 0;
+		for (molecule_j = h_atom_start[i]; molecule_j < h_atom_end[i]; molecule_j++)
+		{
+			h_mass[i] += md_info->h_mass[molecule_j];
+		}
+		h_mass_inverse[i] = 1.0f / h_mass[i];
+	}
+
+	cudaMemcpy(d_mass, h_mass, sizeof(float)*molecule_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_mass_inverse, h_mass_inverse, sizeof(float)*molecule_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_atom_start, h_atom_start, sizeof(int)*molecule_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_atom_end, h_atom_end, sizeof(int)*molecule_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_residue_start, h_residue_start, sizeof(int)*molecule_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_residue_end, h_residue_end, sizeof(int)*molecule_numbers, cudaMemcpyHostToDevice);
+
+	free(visited);
+	free(first_edge);
+	free(edges);
+	free(edge_next);
+	free(molecule_belongings);
+	controller->printf("    End initializing molecule list\n");
+}
+
+void MD_INFORMATION::molecule_information::Molecule_Crd_Map(VECTOR *no_wrap_crd, float scaler)
+{
+	//为了有一个分子有很多残基，而其他分子都很小这种情况的并行，先求残基的质心
+	Get_Center_Of_Mass << <64, 128 >> >(md_info->res.residue_numbers, md_info->res.d_res_start, md_info->res.d_res_end, no_wrap_crd, md_info->d_mass, md_info->res.d_mass_inverse, md_info->res.d_center_of_mass);
+	//再用残基的质心求分子的质心
+	Get_Center_Of_Mass << <32, 64 >> >(molecule_numbers, d_residue_start, d_residue_end, md_info->res.d_center_of_mass, md_info->res.d_mass, d_mass_inverse, d_center_of_mass);
+
+	Map_Center_Of_Mass << <20, { 32, 4 } >> >(molecule_numbers, d_atom_start, d_atom_end, scaler, d_center_of_mass, md_info->sys.box_length, no_wrap_crd, md_info->crd);
 }

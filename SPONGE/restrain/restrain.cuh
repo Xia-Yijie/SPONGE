@@ -25,7 +25,7 @@ struct RESTRAIN_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210831;
 
 	//E_restrain = 0.5 * weight * (r - r_ref) ^ 2
 	int restrain_numbers = 0; //限制的原子数量
@@ -36,7 +36,7 @@ struct RESTRAIN_INFORMATION
 	float h_sum_of_restrain_ene;
 	float *d_sum_of_restrain_ene = NULL;
 
-	float weight = 100; //限制力常数
+	float weight = 20; //限制力常数
 	VECTOR *crd_ref = NULL; //限制的参考坐标(在GPU上)
 
 	//cuda计算分配相关参数
@@ -47,9 +47,6 @@ struct RESTRAIN_INFORMATION
 	//清空模块
 	void Clear();
 
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是普通md的需求
-	------------------------------------------------------------------------------------------*/
 	//计算Restrain的能量、力和维里
 	void Restraint(const VECTOR *crd, const VECTOR box_length,
 		float *atom_energy, float *atom_virial, VECTOR *frc);
@@ -57,15 +54,6 @@ struct RESTRAIN_INFORMATION
 	//获得能量
 	float Get_Energy(const VECTOR *crd, const VECTOR box_length, int is_download = 1);
 
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是其他需求的排列组合，但是接口没有特地优化，如果自己需要，可能需要修改接口或写一个重载函数
-	------------------------------------------------------------------------------------------*/
-
-	//计算Restrain能量
-	void Restrain_Energy(const VECTOR *crd, const VECTOR box_length);
-
-	//将能量从gpu转移到cpu上
-	void Energy_Device_To_Host();
 };
 
 #endif //RESTRAIN_CUH(restrain.cuh)

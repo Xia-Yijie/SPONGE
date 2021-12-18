@@ -27,7 +27,7 @@ struct Particle_Mesh_Ewald
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210831;
 
 	//fft维度参数
 	int fftx = -1;
@@ -48,7 +48,7 @@ struct Particle_Mesh_Ewald
 	//体积相关的物理参数
 	VECTOR boxlength;
 	float *PME_BC = NULL;        //GPU上的BC数组
-	float *PME_BC0 = NULL;       //CPU上的BC数组
+	float *PME_BC0 = NULL;       //GPU上的BC0数组，也即BC数组在乘上盒子相关信息之前的数组，更新体积的时候用
 	VECTOR PME_inverse_box_vector;
 
 	//体积无关的物理参数
@@ -102,31 +102,9 @@ struct Particle_Mesh_Ewald
 	float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 		const ATOM_GROUP *nl, const VECTOR scaler,
 		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int is_download = 1);
-	void Update_Volume(double factor);
-	void Restore_Volume(VECTOR boxlength);
-
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是其他需求的排列组合，但是接口没有特地优化，如果自己需要，可能需要修改接口或写一个重载函数
-	------------------------------------------------------------------------------------------*/
-	//计算PME倒空间的力（unsigned_int坐标，电荷，力，PME信息）
-	void PME_Reciprocal_Force(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, VECTOR* force);
-
-	//计算PME键连修正的力
-	void PME_Excluded_Force(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sacler, const float *charge,
-		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
-		VECTOR* frc);
-
-	//计算PME直接部分的能量,将能量数组暴露出来，并将其加到每个原子的头上（用于SITS之类的分能过程）
-	void Direct_Atom_Energy(const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
-		const ATOM_GROUP *nl, const VECTOR scaler,float *atom_energy);
-	
-	//计算PME的能量
-	void PME_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
-		const ATOM_GROUP *nl, const VECTOR scaler,
-		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers);
-
-	//能量导出
-	void Energy_Device_To_Host();
+	int update_volume_count = 0;
+	void Update_Volume(double factor, VECTOR boxlength);
+	void Update_Box_Length(VECTOR boxlength);
 
 };
 

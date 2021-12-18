@@ -50,7 +50,7 @@ bool is_str_equal(const char* a_str, const char *b_str, int case_sensitive)
 bool CONTROLLER::Command_Exist(const char *key)
 {
 	command_check[key] = 0;
-	return commands.count(key);
+	return (bool)commands.count(key);
 }
 
 bool CONTROLLER::Command_Exist(const char *prefix, const char *key)
@@ -59,39 +59,41 @@ bool CONTROLLER::Command_Exist(const char *prefix, const char *key)
 	strcpy(temp, prefix);
 	strcat(temp, "_");
 	strcat(temp, key);
-	return commands.count(temp);
+	return (bool)commands.count(temp);
 }
 
-bool CONTROLLER::Command_Choice(const char *key, const char *value, int no_set_return_value, int case_sensitive)
+bool CONTROLLER::Command_Choice(const char *key, const char *value, bool case_sensitive)
 {
 	if (commands.count(key))
 	{
 		if (is_str_equal(commands[key].c_str(), value, case_sensitive))
 		{
 			command_check[key] = 0;
+			choice_check[key] = 1;
 			return true;
 		}
 		else
 		{
-			if (command_check[key] == 1)
-				command_check[key] = 2;
+			command_check[key] = 0;
+			if (choice_check[key] != 1)
+				choice_check[key] = 2;
 			return false;
 		}
 	}
 	else
 	{
-		command_check[key] = 2;
-		return no_set_return_value;
+		choice_check[key] = 3;
+                return false;
 	}
 }
 
-bool CONTROLLER::Command_Choice(const char *prefix, const char *key, const char *value, int no_set_return_value, int case_sensitive)
+bool CONTROLLER::Command_Choice(const char *prefix, const char *key, const char *value, bool case_sensitive)
 {
 	char temp[CHAR_LENGTH_MAX];
 	strcpy(temp, prefix);
 	strcat(temp, "_");
 	strcat(temp, key);
-	return Command_Choice(temp, value, no_set_return_value, case_sensitive);
+	return Command_Choice(temp, value, case_sensitive);
 }
 
 const char * CONTROLLER::Command(const char *key)
@@ -170,7 +172,7 @@ void CONTROLLER::Arguments_Parse(int argc, char **argv)
 void CONTROLLER::Get_Command(char *line, char *prefix)
 {
 	
-	if (prefix[0] == ':' || prefix[0] == ' ' || prefix[0] == '\t')
+	if ((prefix[0] == '#' && prefix[1] == '#') || prefix[0] == ' ' || prefix[0] == '\t')
 	{
 		return;
 	}
@@ -193,9 +195,7 @@ void CONTROLLER::Get_Command(char *line, char *prefix)
 
 void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 {
-	char prefix[CHAR_LENGTH_MAX] = { 0 };
-	int prefix_status = 0;
-	int scanf_ret = 0;
+
 
 	FILE *In_File = NULL;
 	if (!Command_Exist(MDIN_COMMAND))
@@ -213,11 +213,10 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 		char line[CHAR_LENGTH_MAX];
 		char prefix[CHAR_LENGTH_MAX] = { 0 };
 		char ender[CHAR_LENGTH_MAX];
-		char *temp = NULL;
-		fgets(line, CHAR_LENGTH_MAX, In_File);
+		char *get_ret = fgets(line, CHAR_LENGTH_MAX, In_File);
 		line[strlen(line) - 1] = 0;
 		commands["md_name"] = line;
-		fscanf(In_File, "%*[ \t,\n}{]");
+		int scanf_ret = fscanf(In_File, "%*[ \t,\n}{]");
 		while (true)
 		{
 			if (fscanf(In_File, "%[^,\n}{]%[ \t,\n}{]", line, ender) == EOF)
@@ -226,9 +225,21 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 			}
 			if (line[0] == '#')
 			{
-				if (strchr(ender, '\n') == NULL)
+				if (line[1] == '#')
 				{
-					fscanf(In_File, "%*[^\n]%*[\n]");
+					if (strchr(ender, '{') != NULL)
+					{
+						sscanf(line, "%s", prefix);
+					}
+					if (strchr(ender, '}') != NULL )
+					{
+						prefix[0] = 0;
+					}
+				}
+				if (strchr(ender, '\n') == NULL)				
+				{
+					scanf_ret = fscanf(In_File, "%*[^\n]%*[\n]");
+					fseek(In_File, -1, SEEK_CUR);
 				}
 			}
 			else if (strchr(ender, '{') != NULL)
@@ -246,7 +257,7 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 			}
 		}
 	}
-	
+
 	if (Command_Exist(MDINFO_COMMAND))
 	{
 		Open_File_Safely(&mdinfo, Command(MDINFO_COMMAND), "w");
@@ -264,22 +275,22 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 		Open_File_Safely(&mdout, MDOUT_DEFAULT_FILENAME, "w");
 	}
 	printf("MD TASK NAME:\n    %s\n\n", commands["md_name"].c_str());
-	fprintf(mdinfo, "Terminal Commands:\n    ");
+	int scanf_ret = fprintf(mdinfo, "Terminal Commands:\n    ");
 	for (int i = 0; i < argc; i++)
 	{
-		fprintf(mdinfo, "%s", argv[i]);
+		scanf_ret = fprintf(mdinfo, "%s ", argv[i]);
 	}
-	fprintf(mdinfo, "\n\n");
+	scanf_ret = fprintf(mdinfo, "\n\n");
 	if (In_File != NULL)
 	{
-		fprintf(mdinfo, "Mdin File:\n");
+		scanf_ret = fprintf(mdinfo, "Mdin File:\n");
 		fseek(In_File, 0, SEEK_SET);
 		char temp[CHAR_LENGTH_MAX];
 		while (fgets(temp, CHAR_LENGTH_MAX, In_File) != NULL)
 		{
-			fprintf(mdinfo, "    %s", temp);
+			scanf_ret = fprintf(mdinfo, "    %s", temp);
 		}
-		fprintf(mdinfo, "\n\n");
+		scanf_ret = fprintf(mdinfo, "\n\n");
 		fclose(In_File);
 	}
 	
@@ -349,18 +360,26 @@ void CONTROLLER::Input_Check()
 		{
 			if (iter->second == 1)
 			{
-				printf("Warning: '%s' is set, but never used.\n",iter->first.c_str());
-				no_warning = 1;
+				printf("Warning: '%s' is set, but never used.\n", iter->first.c_str());
+				no_warning += 1;
 			}
-			else if (iter->second == 2)
+		}
+		for (CheckMap::iterator iter = choice_check.begin(); iter != choice_check.end(); iter++)
+		{
+			if (iter->second == 2)
 			{
-				printf("Warning: command '%s' matches none of the choices.\n", iter->first.c_str());
-				no_warning = 1;
+				printf("Warning: the value '%s' of command '%s' matches none of the choices.\n", this->commands[iter->first].c_str(), iter->first.c_str());
+				no_warning += 1;
+			}
+			else if (iter->second == 3)
+			{
+				printf("Warning: command '%s' is not set.\n", iter->first.c_str());
+				no_warning += 1;
 			}
 		}
 		if (no_warning)
 		{
-			printf("\nWarning: Some inputs raised warning. Press any key to continue. Set dont_check_input = 1 to disable this warning.\n");
+			printf("\nWarning: inputs raised %d warning(s). Press any key to continue. Set dont_check_input = 1 to disable this warning.\n", no_warning);
 			getchar();
 		}
 	}

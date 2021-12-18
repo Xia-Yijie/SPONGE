@@ -31,9 +31,6 @@ static __global__ void MD_Iteration_Leap_Frog_With_Langevin(const int atom_numbe
 		crd[i].y = crd[i].y + dt*vel[i].y;
 		crd[i].z = crd[i].z + dt*vel[i].z;
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 	}
 }
 
@@ -45,54 +42,14 @@ static __global__ void MD_Iteration_Leap_Frog_With_Langevin_With_Max_Velocity(co
 	if (i < atom_numbers)
 	{
 		VECTOR acc_i = inverse_mass[i] * frc[i] - gamma_ln * vel[i] + sigma_mass[i] * random_frc[i];
-		VECTOR vel_i = vel[i] + dt * acc[i];
+		VECTOR vel_i = vel[i] + dt * acc_i;
 		vel[i] = Make_Vector_Not_Exceed_Value(vel_i, max_velocity);
 		crd[i] = crd[i] + dt * vel[i];
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 	}
 }
 
-static __global__ void MD_Iteration_Speed_Verlet_2_With_Langevin
-(const int atom_numbers, const float half_dt, const float *inverse_mass, const float gamma_ln, const float *sigma_mass, const VECTOR *frc, VECTOR *vel, VECTOR *random_frc, VECTOR *acc)
-{
-	int i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (i < atom_numbers)
-	{
-		acc[i].x = inverse_mass[i] * frc[i].x;
-		acc[i].y = inverse_mass[i] * frc[i].y;
-		acc[i].z = inverse_mass[i] * frc[i].z;
-		random_frc[i].x = sigma_mass[i] * random_frc[i].x;
-		random_frc[i].y = sigma_mass[i] * random_frc[i].y;
-		random_frc[i].z = sigma_mass[i] * random_frc[i].z;
-		acc[i].x = acc[i].x - gamma_ln*vel[i].x + random_frc[i].x;
-		acc[i].y = acc[i].y - gamma_ln*vel[i].y + random_frc[i].y;
-		acc[i].z = acc[i].z - gamma_ln*vel[i].z + random_frc[i].z;
-		vel[i].x = vel[i].x + half_dt*acc[i].x;
-		vel[i].y = vel[i].y + half_dt*acc[i].y;
-		vel[i].z = vel[i].z + half_dt*acc[i].z;
-	}
-}
-
-static __global__ void MD_Iteration_Speed_Verlet_2_With_Langevin_With_Max_Velocity
-(const int atom_numbers, const float half_dt, const float *inverse_mass, const float gamma_ln, const float *sigma_mass, 
-  const VECTOR *frc, VECTOR *vel, VECTOR *random_frc, VECTOR *acc, const float max_velocity)
-{
-	int i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (i < atom_numbers)
-	{
-		VECTOR acc_i = inverse_mass[i] * frc[i] - gamma_ln * vel[i] + sigma_mass[i] * random_frc[i];
-		VECTOR vel_i = vel[i] + half_dt * acc_i;
-
-		//控制速度
-		vel[i] = Make_Vector_Not_Exceed_Value(vel_i, max_velocity);
-		acc[i] = acc_i;
-	}
-}
-
-void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, const char *module_name)
+void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller,const int atom_numbers, const float target_temperature,const float *h_mass, const char *module_name)
 {
 	controller[0].printf("START INITIALIZING LANGEVIN DYNAMICS:\n");
 	if (module_name == NULL)
@@ -104,48 +61,12 @@ void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_tempe
 		strcpy(this->module_name, module_name);
 	}
 	
-
-	float *h_mass;
-	if (!module_name && controller[0].Command_Exist("mass_in_file"))
-	{
-		FILE *fp;
-		Open_File_Safely(&fp, controller[0].Command("mass_in_file"), "r");
-		fscanf(fp, "%d", &atom_numbers);
-		Malloc_Safely((void**)&h_mass, sizeof(float)*atom_numbers);
-		controller[0].printf("    atom_numbers is %d\n", atom_numbers);
-		for (int i = 0; i < atom_numbers; i++)
-		{
-			fscanf(fp, "%f", &h_mass[i]);
-		}
-		fclose(fp);
-	}
-	else if (module_name && controller[0].Command_Exist(module_name, "mass_in_file"))
-	{
-		FILE *fp;
-		Open_File_Safely(&fp, controller[0].Command(module_name, "mass_in_file"), "r");
-		fscanf(fp, "%d", &atom_numbers);
-		Malloc_Safely((void**)&h_mass, sizeof(float)*atom_numbers);
-		controller[0].printf("    atom_numbers is %d\n", atom_numbers);
-		for (int i = 0; i < atom_numbers; i++)
-		{
-			fscanf(fp, "%f", &h_mass[i]);
-		}
-		fclose(fp);
-	}
-	else if (controller[0].Command_Exist("amber_parm7"))
-	{
-		controller[0].printf("    Reading mass information from AMBER file:\n");
-		Initial_From_AMBER(&h_mass, controller[0].Command("amber_parm7"), controller[0]);
-		controller[0].printf("    End reading mass information from AMBER file\n");
-	}
-	else
-	{
-		controller[0].printf("    MD basic information needed. Specify the mass in file.\n");
-		getchar();
-		exit(1);
-	}
-
+	controller[0].printf("    atom_numbers is %d\n", atom_numbers);
+	this->atom_numbers = atom_numbers;
 	this->target_temperature = target_temperature;
+	float *h_mass_temp = NULL;
+	Malloc_Safely((void**)&h_mass_temp, sizeof(float)*atom_numbers);
+	cudaMemcpy(h_mass_temp, h_mass, sizeof(float)*atom_numbers,cudaMemcpyHostToHost);
 
 	gamma_ln = 1.0f;
 	if (controller[0].Command_Exist(this->module_name, "gamma"))
@@ -185,11 +106,11 @@ void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_tempe
 	Malloc_Safely((void**)&h_sigma_mass, sizeof(float)* atom_numbers);
 	for (int i = 0; i < atom_numbers; i = i + 1)
 	{
-		if (h_mass[i] == 0)
+		if (h_mass_temp[i] == 0)
 			h_sigma_mass[i] = 0;
 		else
 		{
-			h_sigma_mass[i] = sigma_ln*sqrtf(1.0 / h_mass[i]);
+			h_sigma_mass[i] = sigma_ln*sqrtf(1.0 / h_mass_temp[i]);
 		}
 			
 	}
@@ -197,12 +118,12 @@ void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_tempe
 	Cuda_Malloc_Safely((void**)&d_mass_inverse, sizeof(float)*atom_numbers);
 	for (int i = 0; i < atom_numbers; i = i + 1)
 	{
-		if (h_mass[i] != 0)
+		if (h_mass_temp[i] != 0)
 		{
-			h_mass[i] = 1.0 / h_mass[i];
+			h_mass_temp[i] = 1.0 / h_mass_temp[i];
 		}
 	}
-	cudaMemcpy(d_mass_inverse, h_mass, sizeof(float)* atom_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_mass_inverse, h_mass_temp, sizeof(float)* atom_numbers, cudaMemcpyHostToDevice);
 	//确定是否加上速度上限
 	max_velocity = 0;
 	if (controller[0].Command_Exist(this->module_name, "velocity_max"))
@@ -211,7 +132,7 @@ void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_tempe
 		controller[0].printf("    max velocity is %.2f\n", max_velocity);
 	}
 
-	free(h_mass);
+	free(h_mass_temp);
 	
 	is_initialized = 1;
 	if (is_initialized && !is_controller_printf_initialized)
@@ -220,70 +141,6 @@ void Langevin_MD_INFORMATION::Initial(CONTROLLER *controller, float target_tempe
 		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 	}
 	controller[0].printf("END INITIALIZING LANGEVIN DYNAMICS\n\n");
-}
-
-void Langevin_MD_INFORMATION::Initial_From_AMBER(float **h_mass, const char *file_name, CONTROLLER controller)
-{
-	FILE *parm;
-	Open_File_Safely(&parm, file_name, "r");
-	char temps[CHAR_LENGTH_MAX];
-	char temp_first_str[CHAR_LENGTH_MAX];
-	char temp_second_str[CHAR_LENGTH_MAX];
-	while (true)
-	{
-		if (fgets(temps, CHAR_LENGTH_MAX, parm) == NULL)
-		{
-			break;
-		}
-		if (sscanf(temps, "%s %s", temp_first_str, temp_second_str) != 2)
-		{
-			continue;
-		}
-		//read in atomnumber atomljtypenumber
-		if (strcmp(temp_first_str, "%FLAG") == 0
-			&& strcmp(temp_second_str, "POINTERS") == 0)
-		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
-
-			fscanf(parm, "%d\n", &atom_numbers);
-			controller.printf("        atom_numbers is %d\n", atom_numbers);
-			Malloc_Safely((void**)h_mass, sizeof(float)*atom_numbers);
-		}//FLAG POINTERS
-
-		//atom mass read in
-		if (strcmp(temp_first_str, "%FLAG") == 0
-			&& strcmp(temp_second_str, "MASS") == 0)
-		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
-			double lin;
-			for (int i = 0; i< atom_numbers; i = i + 1)
-			{
-				fscanf(parm, "%lf\n", &lin);
-				h_mass[0][i] = (float)lin;
-			}
-		}
-	}//while cycle
-	fclose(parm);
-}
-
-void Langevin_MD_INFORMATION::MD_Iteration_Speed_Verlet_2(VECTOR *frc, VECTOR *vel, VECTOR *acc)
-{
-	if (is_initialized)
-	{
-		Rand_Normal << <(unsigned int)ceilf((float)float4_numbers / threads_per_block), threads_per_block >> >
-			(float4_numbers, rand_state, (float4 *)random_force);
-
-		if (max_velocity <= 0)
-		{
-			MD_Iteration_Speed_Verlet_2_With_Langevin << <(unsigned int)ceilf((float)atom_numbers / threads_per_block), threads_per_block >> >
-				(atom_numbers, half_dt, d_mass_inverse, gamma_ln, d_sigma_mass, frc, vel, random_force, acc);
-		}
-		else
-		{
-			MD_Iteration_Speed_Verlet_2_With_Langevin_With_Max_Velocity << <(unsigned int)ceilf((float)atom_numbers / threads_per_block), threads_per_block >> >
-				(atom_numbers, half_dt, d_mass_inverse, gamma_ln, d_sigma_mass, frc, vel, random_force, acc, max_velocity);
-		}
-	}
 }
 
 void Langevin_MD_INFORMATION::MD_Iteration_Leap_Frog(VECTOR *frc, VECTOR *crd, VECTOR *vel, VECTOR *acc)

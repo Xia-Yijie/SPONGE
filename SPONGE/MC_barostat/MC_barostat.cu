@@ -34,7 +34,7 @@ void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers,
 	controller->printf("START INITIALIZING MC BAROSTAT:\n");
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "mc_baro");
+		strcpy(this->module_name, "monte_carlo_barostat");
 	}
 	else
 	{
@@ -59,17 +59,12 @@ void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers,
 		check_interval = atoi(controller[0].Command(this->module_name, "check_interval"));
 	controller->printf("    The check_interval is %d\n", check_interval);
 
-	scale_coordinate_by_residue = res_is_initialized;
-	if (controller[0].Command_Exist(this->module_name, "residue_scale"))
-		scale_coordinate_by_residue = atoi(controller[0].Command(this->module_name, "residue_scale"));
-	if (scale_coordinate_by_residue == 1 && res_is_initialized == 0)
-	{
-		controller->printf("    Warning: The residue is not initialized, so can not use residue scale mode. Atom scale mode is set instead.\n", update_interval);
-		scale_coordinate_by_residue = 0;
-	}
-	controller->printf("    The residue_scale is %d\n", scale_coordinate_by_residue);
+	scale_coordinate_by_molecule = res_is_initialized;
+	if (controller[0].Command_Exist(this->module_name, "molecule_scale"))
+		scale_coordinate_by_molecule = atoi(controller[0].Command(this->module_name, "molecule_scale"));
 
-	system_reinitializing_count = 0;
+	controller->printf("    The molecule_scale is %d\n", scale_coordinate_by_molecule);
+
 
 	accept_rate_low = 30.0;
 	if (controller[0].Command_Exist(this->module_name, "accept_rate_low"))

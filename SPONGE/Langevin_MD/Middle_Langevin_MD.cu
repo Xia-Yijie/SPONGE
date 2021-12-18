@@ -1,4 +1,4 @@
-﻿#include "LiuJian_MD.cuh"
+﻿#include "Middle_Langevin_MD.cuh"
 
 static __global__ void MD_Iteration_Leap_Frog_With_LiuJian
 (const int atom_numbers, const float half_dt, const float dt,const float exp_gamma, 
@@ -30,9 +30,6 @@ VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, VECTOR *random_frc)
 		crd[i].y = crd[i].y + half_dt*vel[i].y;
 		crd[i].z = crd[i].z + half_dt*vel[i].z;
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 
 	}
 }
@@ -53,18 +50,12 @@ VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, VECTOR *random_frc,const flo
 		vel[i].y = vel[i].y + dt*acc[i].y;
 		vel[i].z = vel[i].z + dt*acc[i].z;
 
-		abs_vel = norm3df(vel[i].x, vel[i].y, vel[i].z);
-		if (abs_vel<max_vel)
-		{
 
-		}
-		else
-		{
-			abs_vel = max_vel / abs_vel;
-			vel[i].x = abs_vel* vel[i].x;
-			vel[i].y = abs_vel* vel[i].y;
-			vel[i].z = abs_vel* vel[i].z;
-		}
+		abs_vel = fminf(1.0, max_vel * rnorm3df(vel[i].x, vel[i].y, vel[i].z));
+		vel[i].x = abs_vel* vel[i].x;
+		vel[i].y = abs_vel* vel[i].y;
+		vel[i].z = abs_vel* vel[i].z;
+	
 
 		crd[i].x = crd[i].x + half_dt*vel[i].x;
 		crd[i].y = crd[i].y + half_dt*vel[i].y;
@@ -79,65 +70,29 @@ VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, VECTOR *random_frc,const flo
 		crd[i].y = crd[i].y + half_dt*vel[i].y;
 		crd[i].z = crd[i].z + half_dt*vel[i].z;
 
-		frc[i].x = 0.;
-		frc[i].y = 0.;
-		frc[i].z = 0.;
 
 	}
 }
-void LIUJIAN_MD_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, const char *module_name)
+
+
+void MIDDLE_Langevin_INFORMATION::Initial(CONTROLLER *controller, const int atom_numbers, const float target_temperature, const float *h_mass, const char *module_name)
 {
-	controller[0].printf("START INITIALIZING LANGEVIN_LIU DYNAMICS:\n");
+	controller[0].printf("START INITIALIZING MIDDLE LANGEVIN DYNAMICS:\n");
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "langevin_liu");
+		strcpy(this->module_name, "middle_langevin");
 	}
 	else
 	{
 		strcpy(this->module_name, module_name);
 	}
 
-	float *h_mass;
-	if (!module_name && controller[0].Command_Exist("mass_in_file"))
-	{
-		FILE *fp;
-		Open_File_Safely(&fp, controller[0].Command("mass_in_file"), "r");
-		fscanf(fp, "%d", &atom_numbers);
-		Malloc_Safely((void**)&h_mass, sizeof(float)*atom_numbers);
-		controller[0].printf("    atom_numbers is %d\n", atom_numbers);
-		for (int i = 0; i < atom_numbers; i++)
-		{
-			fscanf(fp, "%f", &h_mass[i]);
-		}
-		fclose(fp);
-	}
-	else if (module_name && controller[0].Command_Exist(module_name, "mass_in_file"))
-	{
-		FILE *fp;
-		Open_File_Safely(&fp, controller[0].Command(module_name, "mass_in_file"), "r");
-		fscanf(fp, "%d", &atom_numbers);
-		Malloc_Safely((void**)&h_mass, sizeof(float)*atom_numbers);
-		controller[0].printf("    atom_numbers is %d\n", atom_numbers);
-		for (int i = 0; i < atom_numbers; i++)
-		{
-			fscanf(fp, "%f", &h_mass[i]);
-		}
-		fclose(fp);
-	}
-	else if (controller[0].Command_Exist("amber_parm7"))
-	{
-		controller[0].printf("    Reading mass information from AMBER file:\n");
-		Initial_From_AMBER(&h_mass, controller[0].Command("amber_parm7"), controller[0]);
-		controller[0].printf("    End reading mass information from AMBER file\n");
-	}
-	else
-	{
-		controller[0].printf("    MD basic information needed. Specify the mass in file.\n");
-		getchar();
-		exit(1);
-	}
-
+	float *h_mass_temp=NULL;
+	this->atom_numbers = atom_numbers;
 	this->target_temperature = target_temperature;
+	controller[0].printf("    atom_numbers is %d\n", atom_numbers);
+	Malloc_Safely((void**)&h_mass_temp, sizeof(float)*atom_numbers);
+	cudaMemcpy(h_mass_temp, h_mass, sizeof(float)*atom_numbers, cudaMemcpyHostToHost);
 
 	gamma_ln = 1.0f;
 	if (controller[0].Command_Exist(this->module_name, "gamma"))
@@ -178,10 +133,10 @@ void LIUJIAN_MD_INFORMATION::Initial(CONTROLLER *controller, float target_temper
 	Malloc_Safely((void**)&h_sqrt_mass, sizeof(float)* atom_numbers);
 	for (int i = 0; i < atom_numbers; i = i + 1)
 	{
-		if (h_mass[i] == 0)
+		if (h_mass_temp[i] == 0)
 			h_sqrt_mass[i] = 0;
 		else
-			h_sqrt_mass[i] = sart_gamma * sqrtf(1. / h_mass[i]);
+			h_sqrt_mass[i] = sart_gamma * sqrtf(1. / h_mass_temp[i]);
 	}
 	cudaMemcpy(d_sqrt_mass, h_sqrt_mass, sizeof(float)* atom_numbers, cudaMemcpyHostToDevice);
 
@@ -195,67 +150,23 @@ void LIUJIAN_MD_INFORMATION::Initial(CONTROLLER *controller, float target_temper
 	//记录质量的倒数
 	for (int i = 0; i < atom_numbers; i = i + 1)
 	{
-		if (h_mass[i] == 0)
-			h_mass[i] = 0;
+		if (h_mass_temp[i] == 0)
+			h_mass_temp[i] = 0;
 		else
-			h_mass[i] = 1.0f / h_mass[i];
+			h_mass_temp[i] = 1.0f / h_mass_temp[i];
 	}
-	cudaMemcpy(d_mass_inverse, h_mass, sizeof(float)*atom_numbers, cudaMemcpyHostToDevice);
-	free(h_mass);
+	cudaMemcpy(d_mass_inverse, h_mass_temp, sizeof(float)*atom_numbers, cudaMemcpyHostToDevice);
+	free(h_mass_temp);
 	is_initialized = 1;
 	if (is_initialized && !is_controller_printf_initialized)
 	{
 		is_controller_printf_initialized = 1;
 		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 	}
-	controller[0].printf("END INITIALIZING LANGEVIN_LIU DYNAMICS\n\n");
+	controller[0].printf("END INITIALIZING MIDDLE LANGEVIN DYNAMICS\n\n");
 }
 
-void LIUJIAN_MD_INFORMATION::Initial_From_AMBER(float **h_mass, const char *file_name, CONTROLLER controller)
-{
-	FILE *parm;
-	Open_File_Safely(&parm, file_name, "r");
-	char temps[CHAR_LENGTH_MAX];
-	char temp_first_str[CHAR_LENGTH_MAX];
-	char temp_second_str[CHAR_LENGTH_MAX];
-	while (true)
-	{
-		if (fgets(temps, CHAR_LENGTH_MAX, parm) == NULL)
-		{
-			break;
-		}
-		if (sscanf(temps, "%s %s", temp_first_str, temp_second_str) != 2)
-		{
-			continue;
-		}
-		//read in atomnumber atomljtypenumber
-		if (strcmp(temp_first_str, "%FLAG") == 0
-			&& strcmp(temp_second_str, "POINTERS") == 0)
-		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
-
-			fscanf(parm, "%d\n", &atom_numbers);
-			controller.printf("        atom_numbers is %d\n", atom_numbers);
-			Malloc_Safely((void**)h_mass, sizeof(float)*atom_numbers);
-		}//FLAG POINTERS
-
-		//atom mass read in
-		if (strcmp(temp_first_str, "%FLAG") == 0
-			&& strcmp(temp_second_str, "MASS") == 0)
-		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
-			double lin;
-			for (int i = 0; i< atom_numbers; i = i + 1)
-			{
-				fscanf(parm, "%lf\n", &lin);
-				h_mass[0][i] = (float)lin;
-			}
-		}
-	}//while cycle
-	fclose(parm);
-}
-
-void LIUJIAN_MD_INFORMATION::MD_Iteration_Leap_Frog(VECTOR *frc, VECTOR *vel, VECTOR *acc, VECTOR *crd)
+void MIDDLE_Langevin_INFORMATION::MD_Iteration_Leap_Frog(VECTOR *frc, VECTOR *vel, VECTOR *acc, VECTOR *crd)
 {
 	if (is_initialized)
 	{
@@ -280,7 +191,7 @@ void LIUJIAN_MD_INFORMATION::MD_Iteration_Leap_Frog(VECTOR *frc, VECTOR *vel, VE
 	}
 }
 
-void LIUJIAN_MD_INFORMATION::Clear()
+void MIDDLE_Langevin_INFORMATION::Clear()
 {
 	if (is_initialized)
 	{

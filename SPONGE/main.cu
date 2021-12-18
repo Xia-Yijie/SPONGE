@@ -2,7 +2,7 @@
 
 CONTROLLER controller;
 MD_INFORMATION md_info;
-LIUJIAN_MD_INFORMATION liujian_info;
+MIDDLE_Langevin_INFORMATION middle_langevin;
 Langevin_MD_INFORMATION lg_info;
 BOND bond;
 ANGLE angle;
@@ -39,13 +39,13 @@ void Main_Initial(int argc, char *argv[])
 	md_info.Initial(&controller);
 	controller.Command_Exist("end_pause");
 
-	if  (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "langevin_liu"))
+	if  (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "middle_langevin"))
 	{
-		liujian_info.Initial(&controller, md_info.sys.target_temperature);
+		middle_langevin.Initial(&controller, md_info.atom_numbers, md_info.sys.target_temperature, md_info.h_mass);
 	}
 	if (md_info.mode >= md_info.NVT && controller.Command_Choice("thermostat", "langevin"))
 	{
-		lg_info.Initial(&controller, md_info.sys.target_temperature);
+		lg_info.Initial(&controller, md_info.atom_numbers, md_info.sys.target_temperature, md_info.h_mass);
 	}
 	neighbor_list.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff, md_info.nb.skin);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.FORCED_UPDATE);
@@ -63,17 +63,17 @@ void Main_Initial(int argc, char *argv[])
 	{	
 		simple_constrain.Add_HBond_To_Constrain_Pair(&controller, bond.bond_numbers, bond.h_atom_a, bond.h_atom_b, bond.h_r0, md_info.h_mass);
 		simple_constrain.Add_HAngle_To_Constrain_Pair(&controller, angle.angle_numbers, angle.h_atom_a, angle.h_atom_b, angle.h_atom_c, angle.h_angle_theta0, md_info.h_mass);
-		if (liujian_info.is_initialized)
-			simple_constrain.Initial_Simple_Constrain(&controller, md_info.atom_numbers, md_info.dt, md_info.sys.box_length, liujian_info.exp_gamma, 0, md_info.h_mass, &md_info.sys.freedom);
+		if (middle_langevin.is_initialized)
+			simple_constrain.Initial_Simple_Constrain(&controller, md_info.atom_numbers, md_info.dt, md_info.sys.box_length, middle_langevin.exp_gamma, 0, md_info.h_mass, &md_info.sys.freedom);
 		else
 			simple_constrain.Initial_Simple_Constrain(&controller, md_info.atom_numbers, md_info.dt, md_info.sys.box_length, 1.0, md_info.mode == md_info.MINIMIZATION, md_info.h_mass, &md_info.sys.freedom);
 	}
 
-	if (md_info.mode == md_info.NPT && controller.Command_Choice("barostat", "monte_carlo"))
+	if (md_info.mode == md_info.NPT && controller.Command_Choice("barostat", "monte_carlo_barostat"))
 	{
-		mc_baro.Initial(&controller, md_info.atom_numbers, md_info.sys.target_pressure, md_info.sys.box_length, md_info.res.is_initialzed);
+		mc_baro.Initial(&controller, md_info.atom_numbers, md_info.sys.target_pressure, md_info.sys.box_length, md_info.res.is_initialized);
 	}
-	if (md_info.mode == md_info.NPT && controller.Command_Choice("barostat", "berendsen"))
+	if (md_info.mode == md_info.NPT && controller.Command_Choice("barostat", "berendsen_barostat"))
 	{
 		bd_baro.Initial(&controller, md_info.sys.target_pressure, md_info.sys.box_length);
 	}
@@ -108,7 +108,7 @@ void Main_Clear()
 void Main_Calculate_Force()
 {
 	md_info.MD_Information_Crd_To_Uint_Crd();
-	md_info.MD_Reset_Atom_Energy_And_Virial();
+	md_info.MD_Reset_Atom_Energy_And_Virial_And_Force();
 	if (md_info.sys.steps % md_info.output.write_trajectory_interval == 0)
 	{
 		md_info.need_potential = 1;
@@ -118,8 +118,8 @@ void Main_Calculate_Force()
 
 	lj.LJ_PME_Direct_Force_With_Atom_Energy_And_Virial(md_info.atom_numbers, md_info.uint_crd, md_info.d_charge, md_info.frc,
 		neighbor_list.d_nl, pme.beta, md_info.need_potential, md_info.d_atom_energy, md_info.need_pressure, md_info.d_atom_virial, pme.d_direct_atom_energy);
-	//lj.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
-	//	md_info.need_potential, md_info.sys.d_potential);
+	lj.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
+		md_info.need_potential, md_info.sys.d_potential);
 	
 	pme.PME_Excluded_Force_With_Atom_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.d_charge,
 		md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, md_info.frc, pme.d_correction_atom_energy);
@@ -153,10 +153,10 @@ void Main_Iteration()
 
 
 		//改变坐标
-		if (mc_baro.scale_coordinate_by_residue)
+		if (mc_baro.scale_coordinate_by_molecule)
 		{
 			mol_map.Calculate_No_Wrap_Crd(md_info.crd);
-			md_info.res.Residue_Crd_Map(mol_map.nowrap_crd, mc_baro.crd_scale_factor);
+			md_info.mol.Molecule_Crd_Map(mol_map.nowrap_crd, mc_baro.crd_scale_factor);
 			mol_map.Refresh_BoxMapTimes(md_info.crd);
 		}
 		else
@@ -167,15 +167,14 @@ void Main_Iteration()
 		
 		//改变体积
 		Main_Volume_Change(mc_baro.crd_scale_factor);
-		mc_baro.system_reinitializing_count += 1;
 
 		//新能量
 		Main_Calculate_Force();
 		mc_baro.energy_new = md_info.sys.h_potential;
 
 		//计算接受概率
-		if (mc_baro.scale_coordinate_by_residue)
-			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.res.residue_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
+		if (mc_baro.scale_coordinate_by_molecule)
+			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.mol.molecule_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
 		else
 			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.atom_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
 
@@ -189,23 +188,21 @@ void Main_Iteration()
 			mc_baro.crd_scale_factor = 1.0 / mc_baro.crd_scale_factor;
 			cudaMemcpy(md_info.crd, mc_baro.crd_backup, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
 			Main_Volume_Change(mc_baro.crd_scale_factor);
-			mc_baro.system_reinitializing_count += 1;
 			neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 			cudaMemcpy(md_info.frc, mc_baro.frc_backup, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
 		}
 		//接受后体积变化过大或对体积操作次数太多（~1 ns）以后，重新对部分模块初始化
-		if (mc_baro.system_reinitializing_count >= 20000 || (!mc_baro.reject && (mc_baro.newV > 1.331 * mc_baro.V0 || mc_baro.newV < 0.729 * mc_baro.V0)))
+		if ((!mc_baro.reject && (mc_baro.newV > 1.331 * mc_baro.V0 || mc_baro.newV < 0.729 * mc_baro.V0)))
 		{
 			Main_Volume_Change_Largely();
 			mc_baro.V0 = mc_baro.newV;
-			mc_baro.system_reinitializing_count = 0;
 		}
 
 		//对最大变化值进行迭代
 		mc_baro.Delta_V_Max_Update();
 	}
 
-	simple_constrain.Remember_Last_Coordinates(md_info.crd);
+	simple_constrain.Remember_Last_Coordinates(md_info.crd, md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof);
 
 	if (md_info.mode == md_info.NVE)
 	{
@@ -215,15 +212,15 @@ void Main_Iteration()
 	{
 		md_info.MD_Information_Gradient_Descent();
 	}
-	else if (liujian_info.is_initialized)
+	else if (middle_langevin.is_initialized)
 	{
-		liujian_info.MD_Iteration_Leap_Frog(md_info.frc, md_info.vel, md_info.acc, md_info.crd);
+		middle_langevin.MD_Iteration_Leap_Frog(md_info.frc, md_info.vel, md_info.acc, md_info.crd);
 	}
 	else if (lg_info.is_initialized)
 	{
 		lg_info.MD_Iteration_Leap_Frog(md_info.frc, md_info.crd, md_info.vel, md_info.acc);
 	}
-	simple_constrain.Constrain(md_info.crd, md_info.vel, md_info.d_mass_inverse, md_info.need_pressure, md_info.sys.d_pressure);
+	simple_constrain.Constrain(md_info.crd, md_info.vel, md_info.d_mass_inverse, md_info.d_mass, md_info.sys.box_length, md_info.need_pressure, md_info.sys.d_pressure);
 	
 	if (bd_baro.is_initialized && md_info.sys.steps % bd_baro.update_interval == 0)
 	{
@@ -232,13 +229,11 @@ void Main_Iteration()
 		bd_baro.crd_scale_factor = 1 - bd_baro.update_interval * bd_baro.compressibility * bd_baro.dt / bd_baro.taup / 3 * (md_info.sys.target_pressure - p_now);
 
 		Main_Volume_Change(bd_baro.crd_scale_factor);
-		bd_baro.system_reinitializing_count += 1;
 		bd_baro.newV = md_info.sys.Get_Volume();
-		if (bd_baro.system_reinitializing_count >= 10000 || bd_baro.newV > 1.331 * bd_baro.V0 || bd_baro.newV < 0.729 * bd_baro.V0)
+		if (bd_baro.newV > 1.331 * bd_baro.V0 || bd_baro.newV < 0.729 * bd_baro.V0)
 		{
 			Main_Volume_Change_Largely();
 			bd_baro.V0 = bd_baro.newV;
-			bd_baro.system_reinitializing_count = 0;
 		}
 	}
 
@@ -254,7 +249,7 @@ void Main_Print()
 	{
 		controller.Step_Print("step", md_info.sys.steps);
 		controller.Step_Print("time", md_info.sys.Get_Current_Time());
-		controller.Step_Print("temperature", md_info.res.Get_Residue_Temperature());
+		controller.Step_Print("temperature", md_info.sys.Get_Atom_Temperature());
 		controller.Step_Print("potential", md_info.sys.h_potential);
 		controller.Step_Print("PME", pme.Get_Energy(md_info.uint_crd,md_info.d_charge, neighbor_list.d_nl, md_info.pbc.uint_dr_to_dr_cof, 
 			md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers));
@@ -273,11 +268,20 @@ void Main_Print()
 		if (md_info.output.is_molecule_map_output)
 		{
 			mol_map.Calculate_No_Wrap_Crd(md_info.crd);
-			md_info.res.Residue_Crd_Map(mol_map.nowrap_crd);
+			md_info.mol.Molecule_Crd_Map(mol_map.nowrap_crd);
 			mol_map.Refresh_BoxMapTimes(md_info.crd);
 		}
 		md_info.output.Append_Crd_Traj_File();
 		md_info.output.Append_Box_Traj_File();
+		// 20210827用于输出速度和力
+		if (md_info.output.is_vel_traj)
+		{
+			md_info.output.Append_Vel_Traj_File();
+		}
+		if (md_info.output.is_frc_traj)
+		{
+			md_info.output.Append_Frc_Traj_File();
+		}
 	}
 	if (md_info.sys.steps % md_info.output.write_restart_file_interval == 0)
 	{
@@ -291,7 +295,7 @@ void Main_Volume_Change(double factor)
 	neighbor_list.Update_Volume(md_info.sys.box_length);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 	lj.Update_Volume(md_info.sys.box_length);
-	pme.Update_Volume(factor);
+	pme.Update_Volume(factor, md_info.sys.box_length);
 	simple_constrain.Update_Volume(md_info.sys.box_length);
 	mol_map.Update_Volume(md_info.sys.box_length);
 }

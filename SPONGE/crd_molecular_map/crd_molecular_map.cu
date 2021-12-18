@@ -1,5 +1,32 @@
 #include "crd_molecular_map.cuh"
 
+__global__ void Calculate_No_Wrap_Crd_CUDA
+(const int atom_numbers, const INT_VECTOR *box_map_times, const VECTOR box, const VECTOR *crd,
+VECTOR *nowrap_crd)
+{
+	for (int i = threadIdx.x; i < atom_numbers; i = i + blockDim.x)
+	{
+		nowrap_crd[i].x = (float)box_map_times[i].int_x*box.x + crd[i].x;
+		nowrap_crd[i].y = (float)box_map_times[i].int_y*box.y + crd[i].y;
+		nowrap_crd[i].z = (float)box_map_times[i].int_z*box.z + crd[i].z;
+	}
+}
+
+__global__ void Refresh_BoxMapTimes_CUDA
+(const int atom_numbers, const VECTOR box_length_inverse, const VECTOR *crd,
+INT_VECTOR *box_map_times, VECTOR *old_crd)
+{
+	VECTOR crd_i, old_crd_i;
+	for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < atom_numbers; i += gridDim.x * blockDim.x)
+	{
+		crd_i = crd[i];
+		old_crd_i = old_crd[i];
+		box_map_times[i].int_x += floor((old_crd_i.x - crd_i.x) * box_length_inverse.x + 0.5);
+		box_map_times[i].int_y += floor((old_crd_i.y - crd_i.y) * box_length_inverse.y + 0.5);
+		box_map_times[i].int_z += floor((old_crd_i.z - crd_i.z) * box_length_inverse.z + 0.5);
+		old_crd[i] = crd_i;
+	}
+}
 
 void Move_Crd_Nearest_From_Exclusions_Host(int atom_numbers, VECTOR *crd, INT_VECTOR *box_map_times, const VECTOR box_length,
 	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list)
@@ -128,7 +155,8 @@ void CoordinateMolecularMap::Initial(int atom_numbers, VECTOR box_length, VECTOR
 	Move_Crd_Nearest_From_Exclusions_Host(atom_numbers, h_nowrap_crd, h_box_map_times, box_length,
 		exclude_numbers, exclude_length,exclude_start, exclude_list);
 
-	//Move_Crd_Nearest_As_AtomSerial_Host(atom_numbers, h_nowrap_crd, h_box_map_times, box_length);
+	//使用cuda内部函数，给出占用率最大的block和thread参数
+	cudaOccupancyMaxPotentialBlockSize(&blocks_per_grid, &threads_per_block, Refresh_BoxMapTimes_CUDA, 0, 0);
 
 	cudaMemcpy(nowrap_crd, h_nowrap_crd, sizeof(VECTOR)*atom_numbers, cudaMemcpyHostToDevice);
 	cudaMemcpy(old_crd, h_old_crd, sizeof(VECTOR)*atom_numbers, cudaMemcpyHostToDevice);
@@ -136,47 +164,22 @@ void CoordinateMolecularMap::Initial(int atom_numbers, VECTOR box_length, VECTOR
 	free(coordinate);
 	is_initialized = 1;
 }
-__global__ void Calculate_No_Wrap_Crd_CUDA
-(const int atom_numbers, const INT_VECTOR *box_map_times, const VECTOR box,const VECTOR *crd,
-VECTOR *nowrap_crd)
-{
-	for (int i = threadIdx.x; i < atom_numbers; i = i + blockDim.x)
-	{
-		nowrap_crd[i].x = (float)box_map_times[i].int_x*box.x + crd[i].x;
-		nowrap_crd[i].y = (float)box_map_times[i].int_y*box.y + crd[i].y;
-		nowrap_crd[i].z = (float)box_map_times[i].int_z*box.z + crd[i].z;
-	}
-}
-__global__ void Refresh_BoxMapTimes_CUDA
-(const int atom_numbers, const VECTOR box_length_inverse, const VECTOR *crd,
-INT_VECTOR *box_map_times, VECTOR *old_crd)
-{
-	VECTOR crd_i, old_crd_i;
-	for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < atom_numbers; i += gridDim.x * blockDim.x)
-	{
-		crd_i = crd[i];
-		old_crd_i = old_crd[i];
-		box_map_times[i].int_x += floor((old_crd_i.x - crd_i.x) * box_length_inverse.x + 0.5);
-		box_map_times[i].int_y += floor((old_crd_i.y - crd_i.y) * box_length_inverse.y + 0.5);
-		box_map_times[i].int_z += floor((old_crd_i.z - crd_i.z) * box_length_inverse.z + 0.5);
-		old_crd[i] = crd_i;
-	}
-}
+
 void CoordinateMolecularMap::Calculate_No_Wrap_Crd(const VECTOR *crd)
 {
 	if (is_initialized)
-		Calculate_No_Wrap_Crd_CUDA << <20, threads_per_block >> >(atom_numbers, box_map_times, box_length, crd, nowrap_crd);
+		Calculate_No_Wrap_Crd_CUDA << <blocks_per_grid, threads_per_block >> >(atom_numbers, box_map_times, box_length, crd, nowrap_crd);
 }
+
 void CoordinateMolecularMap::Refresh_BoxMapTimes(const VECTOR *crd)
 {
 	if (is_initialized)
 	{
-		Refresh_BoxMapTimes_CUDA << <1, threads_per_block >> >
+		Refresh_BoxMapTimes_CUDA << <blocks_per_grid, threads_per_block >> >
 			(atom_numbers, 1.0 / box_length, crd,
 			box_map_times, old_crd);
 	}
 }
-
 
 void CoordinateMolecularMap::Update_Volume(VECTOR box_length)
 {

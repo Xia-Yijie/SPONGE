@@ -47,7 +47,7 @@ struct NEIGHBOR_LIST
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210826;
 
 	int atom_numbers = 0;//整个模拟体系的原子数目,跟随MD信息
 	
@@ -61,6 +61,7 @@ struct NEIGHBOR_LIST
 	float half_cutoff_with_skin;
 	float cutoff_with_skin_square;
 	float half_skin_square;//单次近邻表更新时，原子能运动的最大距离平方
+	float skin_permit=1.;//用于不严格要求的智能更新近邻表修正，该值越大，更新信号越不容易被触发。
 	VECTOR box_length;
 	VECTOR quarter_crd_to_uint_crd_cof;
 	VECTOR uint_dr_to_dr_cof;
@@ -86,8 +87,11 @@ struct NEIGHBOR_LIST
 	void Clear();
 
 	//更新近邻表，需要：浮点数坐标，整数坐标，1/4浮到整转换系数，整到浮转换系数，盒子的大小，排除表相关信息，是否强制更新，是否强制检查
-	void Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers, 
+	void Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers,
 		int forced_update = 0, int forced_check = 0);
+
+	void Update_Volume(VECTOR box_length);
+
 	//去除魔鬼数字用
 	enum NEIGHBOR_LIST_UPDATE_PARAMETER
 	{
@@ -99,18 +103,6 @@ struct NEIGHBOR_LIST
 		CONDITIONAL_CHECK = 0,
 		FORCED_CHECK = 1
 	};
-	//专为SITS使用
-	//第一次初始化得到邻居表，并且第一次将坐标平移{ skin, skin, skin }
-	void Initial_SITS_Neighbor(VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
-		const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
-		const VECTOR box_length, const int protein_atom_numbers, ATOM_GROUP *ppww, ATOM_GROUP *pwwp, int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers);
-	void SITS_Neighbor_List_Update(VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
-		const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
-		const VECTOR box_length, const int protein_atom_numbers, ATOM_GROUP *ppww, ATOM_GROUP *pwwp, int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers);
-	
-	void Update_Volume(VECTOR box_length);
-
-	void Restore_Volume(VECTOR box_length);
 };
 
 #endif //NEIGHBOR_LIST_CUH(neighbor_list.cuh)

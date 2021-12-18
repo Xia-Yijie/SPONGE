@@ -121,10 +121,10 @@ struct VIRTUAL_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//cuda信息
-	int threads_per_block = 32;
+	int threads_per_block = 128;
 
 	//内容信息
     int max_level = 0; //最大的虚拟层级

@@ -27,12 +27,58 @@ struct CONSTRAIN_PAIR
 	float constant_r;
 	float constrain_k;//这个并不是说有个弹性系数来固定，而是迭代时，有个系数k=m1*m2/(m1+m2)
 };
+
+struct CONSTRAIN_TRIANGLE
+{
+	int atom_A;
+	int atom_B;
+	int atom_C;
+	float ra;
+	float rb;
+	float rc;
+	float rd;
+	float re;
+};
+
+
+
 struct SIMPLE_CONSTARIN
 {
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
+
+	struct SETTLE_INFORMATION
+	{
+		char module_name[CHAR_LENGTH_MAX];
+		int is_initialized = 0;
+		int is_controller_printf_initialized = 0;
+		int last_modify_date = 20210830;
+
+		void Initial(CONTROLLER* controller, SIMPLE_CONSTARIN* simple_constrain, float *h_mass, char* module_name = NULL);
+
+		int triangle_numbers = 0;
+		CONSTRAIN_TRIANGLE* d_triangles = NULL, *h_triangles = NULL;
+
+
+		int pair_numbers = 0;
+		CONSTRAIN_PAIR *d_pairs = NULL, *h_pairs = NULL;
+
+		VECTOR* last_pair_AB = NULL;
+		VECTOR* last_triangle_BA = NULL;
+		VECTOR* last_triangle_CA = NULL;
+		void Remember_Last_Coordinates(UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
+
+		float dt;
+		float half_exp_gamma_plus_half;
+		float exp_gamma;
+		float* virial = NULL;
+		VECTOR* virial_vector = NULL;
+		void Do_SETTLE(const float* d_mass, VECTOR* crd, VECTOR box_length, VECTOR* vel,
+			int need_pressure, float* d_pressure);
+
+	} settle;
 
 	//约束内力，使得主循环中更新后的坐标加上该力（力的方向与更新前的pair方向一致）修正，得到满足约束的坐标。
 	VECTOR *constrain_frc = NULL;
@@ -112,13 +158,15 @@ struct SIMPLE_CONSTARIN
 	//清除内存
 	void Clear();
 	//记录更新前的距离
-	void Remember_Last_Coordinates(VECTOR *crd);
+	void Remember_Last_Coordinates(VECTOR *crd, UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
 	//进行约束迭代
 	void Constrain
-		(VECTOR *crd, VECTOR *vel, const float *mass_inverse, int need_pressure, float *d_pressure);
+		(VECTOR *crd, VECTOR *vel, const float *mass_inverse, const float *d_mass, VECTOR box_length, int need_pressure, float *d_pressure);
 	//体积变化时的参数更新
 	void Update_Volume(VECTOR box_length);
 
-
 };
+
+
+
 #endif //SIMPLE_CONSTARIN_CUH(simple_constrain.cuh)

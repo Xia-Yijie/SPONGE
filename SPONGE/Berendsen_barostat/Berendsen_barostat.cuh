@@ -27,13 +27,12 @@ struct BERENDSEN_BAROSTAT_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210825;
 
 
 	float taup; //压强弛豫时间（ps）
 	float dt;  //步长（ps）
 	int update_interval; //更新间隔
-	int system_reinitializing_count = 0; //计数，使得跑太长以后重新初始化部分模块
 	float compressibility; //压缩系数（mdin里单位是bar^-1, 转换存为程序内单位）
 	
 	float V0; //体积

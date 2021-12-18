@@ -237,6 +237,8 @@ void VIRTUAL_INFORMATION::Initial( CONTROLLER *controller, int atom_numbers, int
         int temp[12];
 		float tempf[5];
 		int scanf_ret;
+
+		
         //文件会从头到尾读三遍，分别确定每个原子的虚拟等级（因为可能存在坐标依赖于虚原子的虚原子，所以不得不如此做）
         //第一遍确定虚拟原子的层级
 		controller[0].printf("    Start reading virtual levels\n");
@@ -483,6 +485,10 @@ void VIRTUAL_INFORMATION::Initial( CONTROLLER *controller, int atom_numbers, int
 
 		controller[0].printf("END INITIALIZING VIRTUAL ATOM\n\n");
     }
+	else
+	{
+		controller->printf("VIRTUAL ATOM IS NOT INITIALIZED\n\n");
+	}
 }
 
 void VIRTUAL_INFORMATION::Coordinate_Refresh(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *crd)

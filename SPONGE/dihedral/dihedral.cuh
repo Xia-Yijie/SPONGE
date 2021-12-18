@@ -14,6 +14,8 @@
 * limitations under the License.
 */
 
+//更加详细的类似备注请见bond模块
+
 #ifndef DIHEDRAL_CUH
 #define DIHEDRAL_CUH
 #include "../common.cuh"
@@ -24,7 +26,7 @@ struct DIHEDRAL
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//phi = 面abc和面bcd的二面角
 	// E_dihedral = pk * (1 + cos(pn * phi + phi0) )
@@ -75,9 +77,6 @@ struct DIHEDRAL
 	//拷贝cpu中的数据到gpu
 	void Parameter_Host_To_Device();
 
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是普通md的需求
-	------------------------------------------------------------------------------------------*/
 	
 	//计算dihedral force并同时计算能量并加到原子能量列表上
 	void Dihedral_Force_With_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float *atom_energy);
@@ -85,23 +84,6 @@ struct DIHEDRAL
 	//获得能量
 	float Get_Energy(const UNSIGNED_INT_VECTOR *unit_crd, const VECTOR scaler, int is_download = 1);
 
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是其他需求的排列组合，但是接口没有特地优化，如果自己需要，可能需要修改接口或写一个重载函数
-	------------------------------------------------------------------------------------------*/
-
-
-	//将能量从gpu拷贝到cpu上
-	void Energy_Device_To_Host();
-
-	//计算dihedral force（整数坐标，缩放因子，力）
-	void Dihedral_Force(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc);
-
-	//计算dihedral energy（整数坐标，缩放因子）
-	void Dihedral_Engergy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler);
-
-	//计算dihedral energy将能量数组暴露出来，并将其加到每个原子的头上（用于SITS之类的分能过程）
-	void Dihedral_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, float *atom_ene);
-	
 };
 
 #endif //DIHEDRAL_CUH(dihedral.cuh)

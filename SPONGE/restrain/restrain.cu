@@ -1,19 +1,27 @@
 ﻿#include "restrain.cuh"
 
 //读取rst7
-static void Import_Information_From_Rst7(const char *file_name, int *atom_numbers, float *sys_time, VECTOR **crd, VECTOR **vel, VECTOR *box_length, int irest, CONTROLLER controller)
+static void Import_Information_From_Rst7(const char *file_name, int *atom_numbers, float *sys_time, VECTOR **crd, VECTOR **vel, VECTOR *box_length, CONTROLLER controller)
 {
 	FILE *fin = NULL;
 	Open_File_Safely(&fin, file_name, "r");
 	controller.printf("    Start reading restrain reference coordinate from AMBERFILE\n");
-	controller.printf("        irest = %d\n", irest);
 	char lin[CHAR_LENGTH_MAX];
-	fgets(lin, CHAR_LENGTH_MAX, fin);
-	fscanf(fin, "%d", atom_numbers);
-	controller.printf("        atom_numbers is %d\n", atom_numbers[0]);
-	if (irest == 1)
+	char *get_ret = fgets(lin, CHAR_LENGTH_MAX, fin);
+	get_ret = fgets(lin, CHAR_LENGTH_MAX, fin);
+	int has_vel = 0;
+	int scanf_ret = sscanf(lin, "%d %f", &atom_numbers[0], &sys_time[0]);
+	if (scanf_ret == 2)
 	{
-		fscanf(fin, "%f", sys_time);
+		has_vel = 1;
+	}
+	else
+	{
+		sys_time[0] = 0.;
+	}
+	controller.printf("        atom_numbers is %d\n", atom_numbers[0]);
+	if (has_vel == 1)
+	{
 		controller.printf("        system_start_time is %f\n", sys_time[0]);
 	}
 
@@ -25,16 +33,16 @@ static void Import_Information_From_Rst7(const char *file_name, int *atom_number
 	Cuda_Malloc_Safely((void**)&vel[0], sizeof(VECTOR)*atom_numbers[0]);
 	for (int i = 0; i < atom_numbers[0]; i = i + 1)
 	{
-		fscanf(fin, "%f %f %f",
+		scanf_ret = fscanf(fin, "%f %f %f",
 			&h_crd[i].x,
 			&h_crd[i].y,
 			&h_crd[i].z);
 	}
-	if (irest == 1)
+	if (has_vel == 1)
 	{
 		for (int i = 0; i < atom_numbers[0]; i = i + 1)
 		{
-			fscanf(fin, "%f %f %f",
+			scanf_ret = fscanf(fin, "%f %f %f",
 				&h_vel[i].x,
 				&h_vel[i].y,
 				&h_vel[i].z);
@@ -49,7 +57,7 @@ static void Import_Information_From_Rst7(const char *file_name, int *atom_number
 			h_vel[i].z = 0.0;
 		}
 	}
-	fscanf(fin, "%f %f %f", &box_length[0].x, &box_length[0].y, &box_length[0].z);
+	scanf_ret = fscanf(fin, "%f %f %f", &box_length[0].x, &box_length[0].y, &box_length[0].z);
 	controller.printf("        system size is %f %f %f\n", box_length[0].x, box_length[0].y, box_length[0].z);
 	cudaMemcpy(crd[0], h_crd, sizeof(VECTOR)*atom_numbers[0], cudaMemcpyHostToDevice);
 	cudaMemcpy(vel[0], h_vel, sizeof(VECTOR)*atom_numbers[0], cudaMemcpyHostToDevice);
@@ -108,10 +116,11 @@ void RESTRAIN_INFORMATION::Initial(CONTROLLER *controller, const int atom_number
 	{
 		strcpy(this->module_name, module_name);
 	}
+
 	if (controller[0].Command_Exist(this->module_name, "atom_id"))
 	{
 		controller[0].printf("START INITIALIZING RESTRAIN:\n");
-		this->weight = 100.0f;
+		this->weight = 20.0f;
 		if (controller[0].Command_Exist(this->module_name, "weight"))
 			this->weight = atof(controller[0].Command(this->module_name, "weight"));
 		controller[0].printf("    %s_weight is %.0f\n", this->module_name, this->weight);
@@ -147,33 +156,36 @@ void RESTRAIN_INFORMATION::Initial(CONTROLLER *controller, const int atom_number
 		//读参考原子坐标
 		Cuda_Malloc_Safely((void**)&crd_ref, sizeof(VECTOR)*atom_numbers);
 
-		if (!controller[0].Command_Exist(this->module_name, "coordinate"))
+		if (controller[0].Command_Exist(this->module_name, "coordinate_in_file"))
 		{
-			controller[0].printf("    restrain reference coordinate copy from input coordinate\n");
-			cudaMemcpy(crd_ref, crd, sizeof(VECTOR)* atom_numbers, cudaMemcpyDeviceToDevice);	
-		}
-		else if (controller[0].Command_Exist("amber_irest"))
-		{
-			Import_Information_From_Rst7(controller[0].Command(this->module_name, "coordinate"),
-				&temp_atom, &ref_time, &crd_ref, &d_vel, &h_boxlength, atoi(controller[0].Command("amber_irest")), controller[0]);	
-		}
-		else
-		{
-			controller[0].printf("    reading restrain reference coordinate file\n");
+			controller[0].printf("    reading restrain reference from %s\n", controller[0].Command(this->module_name, "coordinate_in_file"));
 			VECTOR *h_crd = NULL;
 			Malloc_Safely((void**)&h_crd, sizeof(VECTOR)*atom_numbers);
 			FILE *fp = NULL;
-			Open_File_Safely(&fp, controller[0].Command(this->module_name, "coordinate"), "r");
-			fscanf(fp, "%d", &atom_numbers);
-			controller[0].printf("        atom_numbers is %d\n", atom_numbers);
+			Open_File_Safely(&fp, controller[0].Command(this->module_name, "coordinate_in_file"), "r");
+                        int temp_atom_numbers = 0;
+			int scanf_ret = fscanf(fp, "%d", &temp_atom_numbers);
+			controller[0].printf("        atom_numbers is %d\n", temp_atom_numbers);
 			for (int i = 0; i < atom_numbers; i++)
 			{
-				fscanf(fp, "%f %f %f", &h_crd[i].x, &h_crd[i].y, &h_crd[i].z);
+				scanf_ret = fscanf(fp, "%f %f %f", &h_crd[i].x, &h_crd[i].y, &h_crd[i].z);
 			}
 			cudaMemcpy(crd_ref, h_crd, sizeof(VECTOR)* atom_numbers, cudaMemcpyHostToDevice);
 			free(h_crd);
 			fclose(fp);
 		}
+		else if (controller[0].Command_Exist(this->module_name, "amber_rst7"))
+		{
+			controller[0].printf("    reading restrain reference from %s\n", controller[0].Command(this->module_name, "amber_rst7"));
+			Import_Information_From_Rst7(controller[0].Command(this->module_name, "amber_rst7"),
+				&temp_atom, &ref_time, &crd_ref, &d_vel, &h_boxlength, controller[0]);	
+		}
+		else
+		{
+			controller[0].printf("    restrain reference coordinate copy from input coordinate\n");
+			cudaMemcpy(crd_ref, crd, sizeof(VECTOR)* atom_numbers, cudaMemcpyDeviceToDevice);
+		}
+
 
 		cudaFree(d_vel);
 		free(temp_atom_lists);
@@ -186,6 +198,10 @@ void RESTRAIN_INFORMATION::Initial(CONTROLLER *controller, const int atom_number
 			controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 		}
 		controller[0].printf("END INITIALIZING RESTRAIN\n\n");
+	}
+	else
+	{
+		controller[0].printf("RESTRAIN IS NOT INITIALIZED\n\n");
 	}
 }
 
@@ -217,26 +233,10 @@ float RESTRAIN_INFORMATION::Get_Energy(const VECTOR *crd, const VECTOR box_lengt
 			return 0;
 		}
 	}
+	return NAN;
 }
 
-void RESTRAIN_INFORMATION::Restrain_Energy(const VECTOR *crd, const VECTOR box_length)
-{
-	if (is_initialized)
-	{
-		restrain_energy << <(unsigned int)ceilf((float)this->restrain_numbers / threads_per_block), threads_per_block >> >
-			(this->restrain_numbers, this->d_lists, crd, this->crd_ref,
-			this->weight, box_length, d_restrain_ene);
-		Sum_Of_List(d_restrain_ene, d_sum_of_restrain_ene, restrain_numbers);
-	}
-}
 
-void RESTRAIN_INFORMATION::Energy_Device_To_Host()
-{
-	if (is_initialized)
-	{
-		cudaMemcpy(&h_sum_of_restrain_ene, d_sum_of_restrain_ene, sizeof(float), cudaMemcpyDeviceToHost);
-	}
-}
 
 void RESTRAIN_INFORMATION::Clear()
 {

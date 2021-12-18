@@ -14,6 +14,8 @@
 * limitations under the License.
 */
 
+//更加详细的类似备注请见bond模块
+
 #ifndef NB14_CUH
 #define NB14_CUH
 #include "../common.cuh"
@@ -42,7 +44,7 @@ struct NON_BOND_14
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210825;
 
 	//r = ab原子的距离
 	//E_lj_energy = lj_scale_factor * (lj_A/12 * r^-12 - lj_B/6 * r^-6) 
@@ -72,35 +74,13 @@ struct NON_BOND_14
 	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller);
 	void Parameter_Host_To_Device();
 
-	void Energy_Device_To_Host();
-
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是普通md的需求
-	------------------------------------------------------------------------------------------*/
-
 	//同时计算原子的力、能量和维里
 	void Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc, float *atom_energy, float *atom_virial);
 
 	//获得能量
 	float Get_14_LJ_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, int is_download = 1);
 	float Get_14_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, int is_download = 1);
-	/*-----------------------------------------------------------------------------------------
-	下面的函数是其他需求的排列组合，但是接口没有特地优化，如果自己需要，可能需要修改接口或写一个重载函数
-	------------------------------------------------------------------------------------------*/
 
-	void Non_Bond_14_LJ_Force(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc);
-	void Non_Bond_14_LJ_CF_Force(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc);
-
-	void Non_Bond_14_LJ_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B);
-	void Non_Bond_14_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler);
-	void Non_Bond_14_LJ_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B);
-
-	//能量列表导出并非给原子上，用于SITS等分能量方法
-	void Non_Bond_14_LJ_Atom_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B,float *atom_ene);
-	void Non_Bond_14_CF_Atom_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler,float *atom_ene);
-	void Non_Bond_14_LJ_CF_Force_With_Atom_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc,float *atom_energy);
-
-	
 	
 };
 

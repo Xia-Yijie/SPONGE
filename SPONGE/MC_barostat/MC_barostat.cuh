@@ -26,15 +26,14 @@ struct MC_BAROSTAT_INFORMATION
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210827;
 
 	int update_interval = 100;   //每多少步进行一次MC尝试
 	int check_interval = 20;  //每多少次MC尝试以后进行一次DeltaV_max取值的检查（使得MC接受概率在40%~50%
-	int system_reinitializing_count = 0; //每隔多少步重启一次
 	int reject = 1;  //接受与否
 	VECTOR *frc_backup;     //备份力，以便还原
 	VECTOR *crd_backup;     //备份坐标，以便还原
-	int scale_coordinate_by_residue = 1; //按照残基的质心进行规度坐标
+	int scale_coordinate_by_molecule = 1; //按照分子的质心进行规度坐标
 	//成功率记录相关
 	int total_count = 0;    //总共进行的MC尝试次数
 	int accep_count = 0;    //接受的MC尝试次数

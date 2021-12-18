@@ -1,88 +1,5 @@
 ﻿#include "dihedral.cuh"
 
-static __global__ void Dihedral_Force_CUDA(const int dihedral_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
-	const int *atom_a, const int *atom_b, const int *atom_c, const int *atom_d, const int *ipn, const float *pk, const float *gamc, const float *gams, const float *pn, VECTOR *frc)
-{
-	int dihedral_i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (dihedral_i < dihedral_numbers)
-	{
-		int atom_i = atom_a[dihedral_i];
-		int atom_j = atom_b[dihedral_i];
-		int atom_k = atom_c[dihedral_i];
-		int atom_l = atom_d[dihedral_i];
-
-		int temp_ipn = ipn[dihedral_i];
-
-//		float temp_pk = pk[dihedral_i];
-		float temp_pn = pn[dihedral_i];
-		float temp_gamc = gamc[dihedral_i];
-		float temp_gams = gams[dihedral_i];
-
-		VECTOR drij = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
-		VECTOR drkj = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_j], scaler);
-		VECTOR drkl = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_l], scaler);
-
-		VECTOR r1 = drij ^ drkj;
-		VECTOR r2 = drkl ^ drkj;
-
-		float r1_1 = rnorm3df(r1.x, r1.y, r1.z);
-		float r2_1 = rnorm3df(r2.x, r2.y, r2.z);
-		float r1_2 = r1_1 * r1_1;
-		float r2_2 = r2_1 * r2_1;
-		float r1_1_r2_1 = r1_1 * r2_1;
-
-		float phi = r1 * r2 * r1_1_r2_1;
-		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
-		phi = acosf(phi);
-
-		float sign = (r2 ^ r1) * drkj;
-		copysignf(phi, sign);
-		
-		phi = CONSTANT_Pi - phi;
-
-		float nphi = temp_pn * phi;
-		
-		float cos_phi = cosf(phi);
-		float sin_phi = sinf(phi);
-		float cos_nphi = cosf(nphi);
-		float sin_nphi = sinf(nphi);
-
-		float dE_dphi;
-		if (fabsf(sin_phi) < 1e-6)
-		{
-			temp_ipn *= temp_ipn % 2;  //  (((temp_ipn - 1) & 1) ^ 1)
-			dE_dphi = temp_gamc * (temp_pn - temp_ipn + temp_ipn * cos_phi);
-		}
-		else
-			dE_dphi = temp_pn * (temp_gamc * sin_nphi - temp_gams * cos_nphi) / sin_phi;
-
-		VECTOR dphi_dr1 = r1_1_r2_1 * r2 + cos_phi * r1_2 * r1;
-		VECTOR dphi_dr2 = r1_1_r2_1 * r1 + cos_phi * r2_2 * r2;
-
-		VECTOR dE_dri = dE_dphi * drkj ^ dphi_dr1;
-		VECTOR dE_drl = dE_dphi * dphi_dr2 ^ drkj;
-		VECTOR dE_drj_part = dE_dphi * ((drij ^ dphi_dr1) + (drkl ^ dphi_dr2));
-
-		VECTOR fi = dE_dri;
-		VECTOR fj = dE_drj_part - dE_dri;
-		VECTOR fk = -dE_drl - dE_drj_part;
-		VECTOR fl = dE_drl;
-
-		atomicAdd(&frc[atom_i].x, fi.x);
-		atomicAdd(&frc[atom_i].y, fi.y);
-		atomicAdd(&frc[atom_i].z, fi.z);
-		atomicAdd(&frc[atom_j].x, fj.x);
-		atomicAdd(&frc[atom_j].y, fj.y);
-		atomicAdd(&frc[atom_j].z, fj.z);
-		atomicAdd(&frc[atom_k].x, fk.x);
-		atomicAdd(&frc[atom_k].y, fk.y);
-		atomicAdd(&frc[atom_k].z, fk.z);
-		atomicAdd(&frc[atom_l].x, fl.x);
-		atomicAdd(&frc[atom_l].y, fl.y);
-		atomicAdd(&frc[atom_l].z, fl.z);
-	}
-}
-
 static __global__ void Dihedral_Energy_CUDA(const int dihedral_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
 	const int *atom_a, const int *atom_b, const int *atom_c, const int *atom_d, const int *ipn, const float *pk, const float *gamc, const float *gams, const float *pn, float *ene)
 {
@@ -117,7 +34,7 @@ static __global__ void Dihedral_Energy_CUDA(const int dihedral_numbers, const UN
 		phi = acosf(phi);
 
 		float sign = (r2 ^ r1) * drkj;
-		copysignf(phi, sign);
+		phi=copysignf(phi, sign);
 
 		phi = CONSTANT_Pi - phi;
 
@@ -127,53 +44,6 @@ static __global__ void Dihedral_Energy_CUDA(const int dihedral_numbers, const UN
 		float sin_nphi = sinf(nphi);
 
 		ene[dihedral_i] = (temp_pk + cos_nphi * temp_gamc + sin_nphi * temp_gams);
-	}
-}
-
-static __global__ void Dihedral_Atom_Energy_CUDA(const int dihedral_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
-	const int *atom_a, const int *atom_b, const int *atom_c, const int *atom_d, const int *ipn, const float *pk, const float *gamc, const float *gams, const float *pn, float *ene)
-{
-	int dihedral_i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (dihedral_i < dihedral_numbers)
-	{
-		int atom_i = atom_a[dihedral_i];
-		int atom_j = atom_b[dihedral_i];
-		int atom_k = atom_c[dihedral_i];
-		int atom_l = atom_d[dihedral_i];
-
-//		int temp_ipn = ipn[dihedral_i];
-
-		float temp_pk = pk[dihedral_i];
-		float temp_pn = pn[dihedral_i];
-		float temp_gamc = gamc[dihedral_i];
-		float temp_gams = gams[dihedral_i];
-
-		VECTOR drij = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
-		VECTOR drkj = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_j], scaler);
-		VECTOR drkl = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_l], scaler);
-
-		VECTOR r1 = drij ^ drkj;
-		VECTOR r2 = drkl ^ drkj;
-
-		float r1_1 = rnorm3df(r1.x, r1.y, r1.z);
-		float r2_1 = rnorm3df(r2.x, r2.y, r2.z);
-		float r1_1_r2_1 = r1_1 * r2_1;
-
-		float phi = r1 * r2 * r1_1_r2_1;
-		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
-		phi = acosf(phi);
-
-		float sign = (r2 ^ r1) * drkj;
-		copysignf(phi, sign);
-
-		phi = CONSTANT_Pi - phi;
-
-		float nphi = temp_pn * phi;
-
-		float cos_nphi = cosf(nphi);
-		float sin_nphi = sinf(nphi);
-
-		atomicAdd(&ene[atom_i], (temp_pk + cos_nphi * temp_gamc + sin_nphi * temp_gams));
 	}
 }
 
@@ -214,7 +84,7 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 		phi = acosf(phi);
 
 		float sign = (r2 ^ r1) * drkj;
-		copysignf(phi, sign);
+		phi=copysignf(phi, sign);
 
 		phi = CONSTANT_Pi - phi;
 
@@ -264,7 +134,6 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 }
 void DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
 {
-	controller[0].printf("START INITIALIZING DIHEDRAL:\n");
 	if (module_name == NULL)
 	{
 		strcpy(this->module_name, "dihedral");
@@ -273,12 +142,20 @@ void DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
 	{
 		strcpy(this->module_name, module_name);
 	}
-	if (controller[0].Command_Exist(this->module_name, "in_file"))
-	{
-		FILE *fp = NULL;
-		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
 
-		fscanf(fp, "%d", &dihedral_numbers);
+
+	char file_name_suffix[CHAR_LENGTH_MAX];
+	sprintf(file_name_suffix, "in_file");
+
+
+	if (controller[0].Command_Exist(this->module_name, file_name_suffix))
+	{
+		controller[0].printf("START INITIALIZING DIHEDRAL (%s_%s):\n", this->module_name, file_name_suffix);
+
+		FILE *fp = NULL;
+		Open_File_Safely(&fp, controller[0].Command(this->module_name, file_name_suffix), "r");
+
+		int scanf_ret = fscanf(fp, "%d", &dihedral_numbers);
 		controller[0].printf("    dihedral_numbers is %d\n", dihedral_numbers);
 		Memory_Allocate();
 
@@ -286,7 +163,7 @@ void DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
 		float temp;
 		for (int i = 0; i < dihedral_numbers; i++)
 		{
-			fscanf(fp, "%d %d %d %d %d %f %f", h_atom_a + i, h_atom_b + i, h_atom_c + i, h_atom_d + i, h_ipn + i, h_pk + i, &temp);
+			scanf_ret = fscanf(fp, "%d %d %d %d %d %f %f", h_atom_a + i, h_atom_b + i, h_atom_c + i, h_atom_d + i, h_ipn + i, h_pk + i, &temp);
 			h_pn[i] = (float) h_ipn[i];
 			h_gamc[i] = cosf(temp) * h_pk[i];
 			h_gams[i] = sinf(temp )* h_pk[i];
@@ -297,15 +174,25 @@ void DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
 	}
 	else if (controller[0].Command_Exist("amber_parm7"))
 	{
+		controller[0].printf("START INITIALIZING DIHEDRAL (amber_parm7):\n");
 		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0]);
+		is_initialized = 1;
 	}
+	else
+	{
+		controller[0].printf("DIHEDRAL IS NOT INITIALIZED\n\n");
+	}
+
 	if (is_initialized && !is_controller_printf_initialized)
 	{
 		controller[0].Step_Print_Initial(this->module_name, "%.2f");
 		is_controller_printf_initialized = 1;
 		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 	}
-	controller[0].printf("END INITIALIZING DIHEDRAL\n\n");
+	if (is_initialized)
+	{
+		controller[0].printf("END INITIALIZING DIHEDRAL\n\n");
+	}
 }
 void DIHEDRAL::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller)
 {
@@ -330,13 +217,13 @@ void DIHEDRAL::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "POINTERS") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 			for (i = 0; i < 6; i++)
-				fscanf(parm, "%d", &tempi);
+				int scanf_ret = fscanf(parm, "%d", &tempi);
 
-			fscanf(parm, "%d", &dihedral_with_hydrogen);
-			fscanf(parm, "%d", &this->dihedral_numbers);
+			int scanf_ret = fscanf(parm, "%d", &dihedral_with_hydrogen);
+			scanf_ret = fscanf(parm, "%d", &this->dihedral_numbers);
 			this->dihedral_numbers += dihedral_with_hydrogen;
 			
 			controller.printf("        dihedral numbers is %d\n", this->dihedral_numbers);
@@ -344,9 +231,9 @@ void DIHEDRAL::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER
 			this->Memory_Allocate();
 
 			for (i = 0; i < 9; i++)
-				fscanf(parm, "%d", &tempi);
+				scanf_ret = fscanf(parm, "%d", &tempi);
 
-			fscanf(parm, "%d", &dihedral_type_numbers);
+			scanf_ret = fscanf(parm, "%d", &dihedral_type_numbers);
 			controller.printf("        dihedral type numbers is %d\n", dihedral_type_numbers);
 
 			Malloc_Safely((void**)&phase_type_cpu, sizeof(float)* dihedral_type_numbers);
@@ -357,40 +244,40 @@ void DIHEDRAL::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER
 			&& strcmp(temp_second_str, "DIHEDRAL_FORCE_CONSTANT") == 0)
 		{
 			controller.printf("        read dihedral force constant\n");
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = 0; i < dihedral_type_numbers; i++)
-				fscanf(parm, "%f", &pk_type_cpu[i]);
+				int scanf_ret = fscanf(parm, "%f", &pk_type_cpu[i]);
 		}
 
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "DIHEDRAL_PHASE") == 0)
 		{
 			controller.printf("        read dihedral phase\n");
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = 0; i<dihedral_type_numbers; i++)
-				fscanf(parm, "%f", &phase_type_cpu[i]);
+				int scanf_ret = fscanf(parm, "%f", &phase_type_cpu[i]);
 		}
 
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "DIHEDRAL_PERIODICITY") == 0)
 		{
 			controller.printf("        read dihedral periodicity\n");
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = 0; i<dihedral_type_numbers; i++)
-				fscanf(parm, "%f", &pn_type_cpu[i]);
+				int scanf_ret = fscanf(parm, "%f", &pn_type_cpu[i]);
 		}
 
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "DIHEDRALS_INC_HYDROGEN") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = 0; i < dihedral_with_hydrogen; i++)
 			{
-				fscanf(parm, "%d\n", &this->h_atom_a[i]);
-				fscanf(parm, "%d\n", &this->h_atom_b[i]);
-				fscanf(parm, "%d\n", &this->h_atom_c[i]);
-				fscanf(parm, "%d\n", &this->h_atom_d[i]);
-				fscanf(parm, "%d\n", &tempi);
+				int scanf_ret = fscanf(parm, "%d\n", &this->h_atom_a[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_b[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_c[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_d[i]);
+				scanf_ret = fscanf(parm, "%d\n", &tempi);
 				this->h_atom_a[i] /= 3;
 				this->h_atom_b[i] /= 3;
 				this->h_atom_c[i] /= 3;
@@ -421,14 +308,14 @@ void DIHEDRAL::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "DIHEDRALS_WITHOUT_HYDROGEN") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = dihedral_with_hydrogen; i < this->dihedral_numbers; i++)
 			{
-				fscanf(parm, "%d\n", &this->h_atom_a[i]);
-				fscanf(parm, "%d\n", &this->h_atom_b[i]);
-				fscanf(parm, "%d\n", &this->h_atom_c[i]);
-				fscanf(parm, "%d\n", &this->h_atom_d[i]);
-				fscanf(parm, "%d\n", &tempi);
+				int scanf_ret = fscanf(parm, "%d\n", &this->h_atom_a[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_b[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_c[i]);
+				scanf_ret = fscanf(parm, "%d\n", &this->h_atom_d[i]);
+				scanf_ret = fscanf(parm, "%d\n", &tempi);
 				this->h_atom_a[i] /= 3;
 				this->h_atom_b[i] /= 3;
 				this->h_atom_c[i] /= 3;
@@ -604,15 +491,6 @@ void DIHEDRAL::Clear()
 	}
 }
 
-void DIHEDRAL::Dihedral_Force(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc)
-{
-	if (is_initialized)
-	{
-		Dihedral_Force_CUDA << <(unsigned int)ceilf((float)this->dihedral_numbers / this->threads_per_block), this->threads_per_block >> >
-			(this->dihedral_numbers, uint_crd, scaler,
-			this->d_atom_a, this->d_atom_b, this->d_atom_c, this->d_atom_d, this->d_ipn, this->d_pk, this->d_gamc, this->d_gams, this->d_pn, frc);
-	}
-}
 
 float DIHEDRAL::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download)
 {
@@ -634,30 +512,11 @@ float DIHEDRAL::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sca
 			return 0;
 		}
 	}
+	return NAN;
 }
 
-void DIHEDRAL::Dihedral_Engergy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler)
-{
-	if (is_initialized)
-	{
-		Dihedral_Energy_CUDA << <(unsigned int)ceilf((float)this->dihedral_numbers / this->threads_per_block), this->threads_per_block >> >
-			(this->dihedral_numbers, uint_crd, scaler,
-			this->d_atom_a, this->d_atom_b, this->d_atom_c, this->d_atom_d, this->d_ipn, this->d_pk, this->d_gamc,
-			this->d_gams, this->d_pn, this->d_dihedral_ene);
-		Sum_Of_List << <1, 1024 >> >(this->dihedral_numbers, this->d_dihedral_ene, this->d_sigma_of_dihedral_ene);
-	}
-}
-
-void DIHEDRAL::Dihedral_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, float *atom_ene)
-{
-	if (is_initialized)
-	{
-		Dihedral_Atom_Energy_CUDA << <(unsigned int)ceilf((float)this->dihedral_numbers / this->threads_per_block), this->threads_per_block >> >
-			(this->dihedral_numbers, uint_crd, scaler,
-			this->d_atom_a, this->d_atom_b, this->d_atom_c, this->d_atom_d, this->d_ipn, this->d_pk, this->d_gamc,
-			this->d_gams, this->d_pn, atom_ene);
-	}
-}
+  
+ 
 void DIHEDRAL::Dihedral_Force_With_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float *atom_energy)
 {
 	if (is_initialized)
@@ -667,7 +526,4 @@ void DIHEDRAL::Dihedral_Force_With_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_c
 			this->d_atom_a, this->d_atom_b, this->d_atom_c, this->d_atom_d, this->d_ipn, this->d_pk, this->d_gamc, this->d_gams, this->d_pn, frc,
 			atom_energy);
 	}
-}
-void DIHEDRAL::Energy_Device_To_Host(){
-	cudaMemcpy(this->h_sigma_of_dihedral_ene, this->d_sigma_of_dihedral_ene, sizeof(float), cudaMemcpyDeviceToHost);
 }

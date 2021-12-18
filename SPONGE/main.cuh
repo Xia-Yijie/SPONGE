@@ -13,7 +13,7 @@
 #include "Lennard_Jones_force/Lennard_Jones_force.cuh"
 #include "PME_force/PME_force.cuh"
 #include "Langevin_MD/Langevin_MD.cuh"
-#include "Langevin_MD/LiuJian_MD.cuh"
+#include "Langevin_MD/Middle_Langevin_MD.cuh"
 #include "MC_barostat/MC_barostat.cuh"
 #include "Berendsen_barostat/Berendsen_barostat.cuh"
 #include "restrain/restrain.cuh"

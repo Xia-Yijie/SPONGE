@@ -46,7 +46,7 @@ struct CONTROLLER
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210412;
+	int last_modify_date = 20210827;
 
 	void Initial(int argc, char **argv);
 	void Clear();
@@ -55,6 +55,7 @@ struct CONTROLLER
 	StringMap original_commands;  //由文件读入的原始命令
 	StringMap commands;   //由文件读入的命令（去除空格）
 	CheckMap command_check;   //检查输入是否都使用了
+	CheckMap choice_check;   //检查选项是否都使用了
 	void Get_Command(char *line, char *prefix); //内部解析argument时专用，设置命令，不外部调用
 	void Set_Command(const char *Flag, const char *Value, int Check = 1, const char *prefix = NULL); //内部解析argument时专用，设置命令，不外部调用
 	void Arguments_Parse(int argc, char **argv);  //对终端输入进行分析
@@ -68,9 +69,9 @@ struct CONTROLLER
 	bool Command_Exist(const char *key);   //判断文件读入的命令中是否有key
 	bool Command_Exist(const char *prefix, const char *key);   //判断文件读入的命令中是否有key
 	//判断是否存在key且值为value。未设置时返回no_set_return_value，可控制比对是否对大小写敏感
-	bool Command_Choice(const char *key, const char *value, int no_set_return_value = 0, int case_sensitive = 0); 
+	bool Command_Choice(const char *key, const char *value, bool case_sensitive = 0);
 	//判断是否存在prefix_key且值为value。未设置时返回no_set_return_value，可控制比对是否对大小写敏感
-	bool Command_Choice(const char *prefix, const char *key, const char *value, int no_set_return_value = 0, int case_sensitive = 0);
+	bool Command_Choice(const char *prefix, const char *key, const char *value, bool case_sensitive = 0);
 	const char * Command(const char *key);   //获得文件读入的命令key对应的value
 	const char * Command(const char *prefix, const char *key);   //获得文件读入的命令key对应的value
 	const char * Original_Command(const char *key);   //获得文件读入的命令key对应的value

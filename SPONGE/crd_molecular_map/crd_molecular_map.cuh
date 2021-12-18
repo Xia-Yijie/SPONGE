@@ -26,7 +26,7 @@ struct CoordinateMolecularMap
 {
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210830;
 
 	//体系基本信息
 	int atom_numbers=0;
@@ -41,7 +41,7 @@ struct CoordinateMolecularMap
 	INT_VECTOR *h_box_map_times = NULL;
 
 	int threads_per_block = 256;
-
+	int blocks_per_grid = 20;
 	//注意传入的crd是device上地址，一般初始化的时候总是有这个东西的
 	void Initial(int atom_numbers, VECTOR box_length, VECTOR *crd, 
 		const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, char *module_name = NULL);

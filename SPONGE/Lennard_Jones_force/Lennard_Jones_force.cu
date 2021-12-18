@@ -50,19 +50,17 @@ static __global__ void LJ_Force_With_Direct_CF_CUDA(
 	const float *LJ_type_A, const float *LJ_type_B, const float cutoff,
 	VECTOR *frc,const float pme_beta,const float sqrt_pi)
 {
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	int atom_i = blockDim.y*blockIdx.y + threadIdx.y;
 	if (atom_i < atom_numbers)
 	{
 		ATOM_GROUP nl_i = nl[atom_i];
 		int N = nl_i.atom_numbers;
-		//int B = (unsigned int)ceilf((float)N / blockDim.y);
 		int atom_j;
 		int int_x;
 		int int_y;
 		int int_z;
 		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i], r2;
 		VECTOR dr;
-//		float dr2;
 		float dr_2;
 		float dr_4;
 		float dr_8;
@@ -82,76 +80,80 @@ static __global__ void LJ_Force_With_Direct_CF_CUDA(
 
 		int x, y;
 		int atom_pair_LJ_type;
-		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		for (int j = threadIdx.x; j < N; j = j + blockDim.x)
 		{
-			
 			atom_j = nl_i.atom_serial[j];
-				r2 = uint_crd[atom_j];
-				//CF
-				charge_j = r2.charge;
+			r2 = uint_crd[atom_j];
+			//CF
+			charge_j = r2.charge;
 
-				int_x = r2.uint_x - r1.uint_x;
-				int_y = r2.uint_y - r1.uint_y;
-				int_z = r2.uint_z - r1.uint_z;
-				dr.x = boxlength.x*int_x;
-				dr.y = boxlength.y*int_y;
-				dr.z = boxlength.z*int_z;
-				dr_abs = norm3df(dr.x, dr.y, dr.z);
-				if (dr_abs < cutoff)
-				{
-					dr_1 = 1. / dr_abs;
-					dr_2 = dr_1*dr_1;
-					dr_4 = dr_2*dr_2;
-					dr_8 = dr_4*dr_4;
-					//dr_14 = dr_8*dr_4*dr_2;
-					dr_6 = dr_4 * dr_2;
-
-
-					y = (r2.LJ_type - r1.LJ_type);
-					x = y >> 31;
-					y = (y^x) - x;
-					x = r2.LJ_type + r1.LJ_type;
-					r2.LJ_type = (x + y) >> 1;
-					x = (x - y) >> 1;
-					atom_pair_LJ_type = (r2.LJ_type*(r2.LJ_type + 1) >> 1) + x;
+			int_x = r2.uint_x - r1.uint_x;
+			int_y = r2.uint_y - r1.uint_y;
+			int_z = r2.uint_z - r1.uint_z;
+			dr.x = boxlength.x*int_x;
+			dr.y = boxlength.y*int_y;
+			dr.z = boxlength.z*int_z;
+			dr_abs = norm3df(dr.x, dr.y, dr.z);
+			if (dr_abs < cutoff)
+			{
+				dr_1 = 1. / dr_abs;
+				dr_2 = dr_1*dr_1;
+				dr_4 = dr_2*dr_2;
+				dr_8 = dr_4*dr_4;
+				dr_6 = dr_4 * dr_2;
 
 
-
-				//	frc_abs = -LJ_type_A[atom_pair_LJ_type] * dr_14
-				//		+ LJ_type_B[atom_pair_LJ_type] * dr_8;
-					frc_abs = (-LJ_type_A[atom_pair_LJ_type] * dr_6
-						+ LJ_type_B[atom_pair_LJ_type]) * dr_8;
-					//CF
-					//charge_j = charge[atom_j];
-					//dr_abs = sqrtf(dr2);
-					beta_dr = pme_beta*dr_abs;
-					//sqrt_pi= 2/sqrt(3.141592654);
-					frc_cf_abs = beta_dr *sqrt_pi * expf(-beta_dr*beta_dr) + erfcf(beta_dr);
-					frc_cf_abs = frc_cf_abs * dr_2 *dr_1;
-					frc_cf_abs = charge_i * charge_j*frc_cf_abs;
-
-					frc_abs = frc_abs - frc_cf_abs;
-					//
-					//frc_abs = frc_abs + dr_2*sqrtf(dr_2) * 7.72261074E-01 * 7.72261074E-01;//charge
+				y = (r2.LJ_type - r1.LJ_type);
+				x = y >> 31;
+				y = (y^x) - x;
+				x = r2.LJ_type + r1.LJ_type;
+				r2.LJ_type = (x + y) >> 1;
+				x = (x - y) >> 1;
+				atom_pair_LJ_type = (r2.LJ_type*(r2.LJ_type + 1) >> 1) + x;
 
 
-					frc_lin.x = frc_abs*dr.x;
-					frc_lin.y = frc_abs*dr.y;
-					frc_lin.z = frc_abs*dr.z;
+				frc_abs = (-LJ_type_A[atom_pair_LJ_type] * dr_6
+					+ LJ_type_B[atom_pair_LJ_type]) * dr_8;
+				//PME的直接部分
+				beta_dr = pme_beta*dr_abs;
+				//sqrt_pi= 2/sqrt(3.141592654);
+				frc_cf_abs = beta_dr *sqrt_pi * expf(-beta_dr*beta_dr) + erfcf(beta_dr);
+				frc_cf_abs = frc_cf_abs * dr_2 *dr_1;
+				frc_cf_abs = charge_i * charge_j*frc_cf_abs;
 
-					frc_record.x = frc_record.x + frc_lin.x;
-					frc_record.y = frc_record.y + frc_lin.y;
-					frc_record.z = frc_record.z + frc_lin.z;
+				frc_abs = frc_abs - frc_cf_abs;
 
-					atomicAdd(&frc[atom_j].x, -frc_lin.x);
-					atomicAdd(&frc[atom_j].y, -frc_lin.y);
-					atomicAdd(&frc[atom_j].z, -frc_lin.z);
-				}
+				frc_lin.x = frc_abs*dr.x;
+				frc_lin.y = frc_abs*dr.y;
+				frc_lin.z = frc_abs*dr.z;
+
+				frc_record.x = frc_record.x + frc_lin.x;
+				frc_record.y = frc_record.y + frc_lin.y;
+				frc_record.z = frc_record.z + frc_lin.z;
+
+				atomicAdd(&frc[atom_j].x, -frc_lin.x);
+				atomicAdd(&frc[atom_j].y, -frc_lin.y);
+				atomicAdd(&frc[atom_j].z, -frc_lin.z);
+			}
 			
 		}//atom_j cycle
-		atomicAdd(&frc[atom_i].x, frc_record.x);
-		atomicAdd(&frc[atom_i].y, frc_record.y);
-		atomicAdd(&frc[atom_i].z, frc_record.z);
+
+		int delta = 32;
+		for (int i = 0; i < 5; i += 1)
+		{
+			delta >>= 1;
+			frc_record.x += __shfl_down_sync(0xFFFFFFFF, frc_record.x, delta, 32);
+			frc_record.y += __shfl_down_sync(0xFFFFFFFF, frc_record.y, delta, 32);
+			frc_record.z += __shfl_down_sync(0xFFFFFFFF, frc_record.z, delta, 32);
+		}
+		if (threadIdx.x == 0)
+		{
+			atomicAdd(&frc[atom_i].x, frc_record.x);
+			atomicAdd(&frc[atom_i].y, frc_record.y);
+			atomicAdd(&frc[atom_i].z, frc_record.z);
+		}
+
+
 	}
 }
 
@@ -167,19 +169,17 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 	const float *LJ_type_A, const float *LJ_type_B, const float cutoff,
 	VECTOR *frc, const float pme_beta, const float sqrt_pi,float *atom_energy)
 {
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	int atom_i = blockDim.y*blockIdx.y + threadIdx.y;
 	if (atom_i < atom_numbers)
 	{
 		ATOM_GROUP nl_i = nl[atom_i];
 		int N = nl_i.atom_numbers;
-		//int B = (unsigned int)ceilf((float)N / blockDim.y);
 		int atom_j;
 		int int_x;
 		int int_y;
 		int int_z;
 		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i], r2;
 		VECTOR dr;
-//		float dr2;
 		float dr_2;
 		float dr_4;
 		float dr_8;
@@ -195,7 +195,7 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 		float dr_1;
 		float beta_dr;
 		float frc_cf_abs;
-		//
+
 
 		//能量
 		float ene_lin=0.;
@@ -203,7 +203,7 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 
 		int x, y;
 		int atom_pair_LJ_type;
-		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		for (int j = threadIdx.x; j < N; j = j + blockDim.x)
 		{
 
 			atom_j = nl_i.atom_serial[j];
@@ -225,7 +225,6 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 				dr_2 = dr_1*dr_1;
 				dr_4 = dr_2*dr_2;
 				dr_8 = dr_4*dr_4;
-				//dr_14 = dr_8*dr_4*dr_2;
 				dr_6 = dr_4 * dr_2;
 
 
@@ -237,15 +236,9 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 				x = (x - y) >> 1;
 				atom_pair_LJ_type = (r2.LJ_type*(r2.LJ_type + 1) >> 1) + x;
 
-
-
-				//	frc_abs = -LJ_type_A[atom_pair_LJ_type] * dr_14
-				//		+ LJ_type_B[atom_pair_LJ_type] * dr_8;
-
 				frc_abs = (-LJ_type_A[atom_pair_LJ_type] * dr_6
 					+ LJ_type_B[atom_pair_LJ_type]) * dr_8;
 				//CF
-				//charge_j = charge[atom_j];
 				//dr_abs = sqrtf(dr2);
 				beta_dr = pme_beta*dr_abs;
 				//sqrt_pi= 2/sqrt(3.141592654);
@@ -260,8 +253,7 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 
 				//两种力的绝对值
 				frc_abs = frc_abs - frc_cf_abs;
-				//
-				//frc_abs = frc_abs + dr_2*sqrtf(dr_2) * 7.72261074E-01 * 7.72261074E-01;//charge
+
 
 
 				frc_lin.x = frc_abs*dr.x;
@@ -278,12 +270,25 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_CUDA(
 			}
 
 		}//atom_j cycle
-                                
-		atomicAdd(&frc[atom_i].x, frc_record.x);
-		atomicAdd(&frc[atom_i].y, frc_record.y);
-		atomicAdd(&frc[atom_i].z, frc_record.z);
+		ene_lin += ene_lin2;
+		int delta = 32;
+		for (int i = 0; i < 5; i += 1)
+		{
+			delta >>= 1;
+			frc_record.x += __shfl_down_sync(0xFFFFFFFF, frc_record.x, delta, 32);
+			frc_record.y += __shfl_down_sync(0xFFFFFFFF, frc_record.y, delta, 32);
+			frc_record.z += __shfl_down_sync(0xFFFFFFFF, frc_record.z, delta, 32);
+			ene_lin += __shfl_down_sync(0xFFFFFFFF, ene_lin, delta, 32);
+		}
+		if (threadIdx.x == 0)
+		{
+			atomicAdd(&frc[atom_i].x, frc_record.x);
+			atomicAdd(&frc[atom_i].y, frc_record.y);
+			atomicAdd(&frc[atom_i].z, frc_record.z);
+			atom_energy[atom_i] += ene_lin;
+		}
 
-		atomicAdd(&atom_energy[atom_i], ene_lin + ene_lin2);
+		
 	}
 }
 
@@ -293,19 +298,17 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 	const float *LJ_type_A, const float *LJ_type_B, const float cutoff,
 	VECTOR *frc, const float pme_beta, const float sqrt_pi, float *atom_lj_virial,float *atom_direct_cf_energy)
 {
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	int atom_i = blockDim.y*blockIdx.y + threadIdx.y;
 	if (atom_i < atom_numbers)
 	{
 		ATOM_GROUP nl_i = nl[atom_i];
 		int N = nl_i.atom_numbers;
-		//int B = (unsigned int)ceilf((float)N / blockDim.y);
 		int atom_j;
 		int int_x;
 		int int_y;
 		int int_z;
 		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i], r2;
 		VECTOR dr;
-//		float dr2;
 		float dr_2;
 		float dr_4;
 		float dr_8;
@@ -330,7 +333,7 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 
 		int x, y;
 		int atom_pair_LJ_type;
-		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		for (int j = threadIdx.x; j < N; j = j + blockDim.x)
 		{
 
 			atom_j = nl_i.atom_serial[j];
@@ -351,7 +354,6 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 				dr_2 = dr_1*dr_1;
 				dr_4 = dr_2*dr_2;
 				dr_8 = dr_4*dr_4;
-				//dr_14 = dr_8*dr_4*dr_2;
 				dr_6 = dr_4 * dr_2;
 
 
@@ -365,13 +367,9 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 
 
 
-				//	frc_abs = -LJ_type_A[atom_pair_LJ_type] * dr_14
-				//		+ LJ_type_B[atom_pair_LJ_type] * dr_8;
-
 				frc_abs = (-LJ_type_A[atom_pair_LJ_type] * dr_6
 					+ LJ_type_B[atom_pair_LJ_type]) * dr_8;
 				//CF
-				//charge_j = charge[atom_j];
 				//dr_abs = sqrtf(dr2);
 				beta_dr = pme_beta*dr_abs;
 				//sqrt_pi= 2/sqrt(3.141592654);
@@ -385,9 +383,6 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 				virial_lin = virial_lin - frc_abs * dr_abs * dr_abs;
 				//两种力的绝对值
 				frc_abs = frc_abs - frc_cf_abs;
-				//
-				//frc_abs = frc_abs + dr_2*sqrtf(dr_2) * 7.72261074E-01 * 7.72261074E-01;//charge
-
 
 				frc_lin.x = frc_abs*dr.x;
 				frc_lin.y = frc_abs*dr.y;
@@ -403,12 +398,26 @@ static __global__ void LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA(
 			}
 
 		}//atom_j cycle
-		atomicAdd(&frc[atom_i].x, frc_record.x);
-		atomicAdd(&frc[atom_i].y, frc_record.y);
-		atomicAdd(&frc[atom_i].z, frc_record.z);
 
-		atomicAdd(&atom_direct_cf_energy[atom_i], energy_lin);
-		atomicAdd(&atom_lj_virial[atom_i], virial_lin);
+		int delta = 32;
+		for (int i = 0; i < 5; i += 1)
+		{
+			delta >>= 1;
+			frc_record.x += __shfl_down_sync(0xFFFFFFFF, frc_record.x, delta, 32);
+			frc_record.y += __shfl_down_sync(0xFFFFFFFF, frc_record.y, delta, 32);
+			frc_record.z += __shfl_down_sync(0xFFFFFFFF, frc_record.z, delta, 32);
+			energy_lin += __shfl_down_sync(0xFFFFFFFF, energy_lin, delta, 32);
+			virial_lin += __shfl_down_sync(0xFFFFFFFF, virial_lin, delta, 32);
+		}
+		if (threadIdx.x == 0)
+		{
+			atomicAdd(&frc[atom_i].x, frc_record.x);
+			atomicAdd(&frc[atom_i].y, frc_record.y);
+			atomicAdd(&frc[atom_i].z, frc_record.z);
+			atom_direct_cf_energy[atom_i] += energy_lin;
+			atom_lj_virial[atom_i] += virial_lin;
+		}
+
 	}
 }
 
@@ -418,15 +427,25 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_
 	const float *LJ_type_A, const float *LJ_type_B, const float cutoff,
 	VECTOR *frc, const float pme_beta, const float sqrt_pi, float *atom_energy, float *atom_lj_virial, float *atom_direct_cf_energy)
 {
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	int atom_i = blockDim.y*blockIdx.y + threadIdx.y;
 	if (atom_i < atom_numbers)
 	{
+		
 		ATOM_GROUP nl_i = nl[atom_i];
 		int N = nl_i.atom_numbers;
 		int atom_j;
 		int int_x;
 		int int_y;
 		int int_z;
+		VECTOR frc_record = { 0.0f, 0.0f, 0.0f };
+		//LJ维里（未乘1/3/V）
+		float virial_lin = 0.0f;
+		//PME direct 能量
+		float ene_lin2 = 0.0f;
+		//lj能量
+		float ene_lin = 0.0f;
+		
+
 		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i], r2;
 		VECTOR dr;
 		float dr_2;
@@ -434,9 +453,9 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_
 		float dr_8;
 		float dr_6;
 		float frc_abs = 0.0f;
+		int atom_pair_LJ_type;
+		int x, y;
 		VECTOR frc_lin;
-		VECTOR frc_record = { 0.0f, 0.0f, 0.0f };
-
 		//CF
 		float charge_i = r1.charge; //r1.charge;
 		float charge_j;
@@ -444,17 +463,8 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_
 		float dr_1;
 		float beta_dr;
 		float frc_cf_abs;
-		//
 
-		//LJ维里（未乘1/3/V）
-		float virial_lin = 0.0f;
-		//PME direct 能量
-		float ene_lin2 = 0.0f;
-		//lj能量
-		float ene_lin = 0.0f;
-		int x, y;
-		int atom_pair_LJ_type;
-		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		for (int j = threadIdx.x; j < N; j = j + blockDim.x)
 		{
 
 			atom_j = nl_i.atom_serial[j];
@@ -524,13 +534,30 @@ static __global__ void LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_
 			}
 
 		}//atom_j cycle
-		atomicAdd(&frc[atom_i].x, frc_record.x);
-		atomicAdd(&frc[atom_i].y, frc_record.y);
-		atomicAdd(&frc[atom_i].z, frc_record.z);
+		ene_lin += ene_lin2;
 
-		atomicAdd(&atom_direct_cf_energy[atom_i], ene_lin2);
-		atomicAdd(&atom_lj_virial[atom_i], virial_lin);
-		atomicAdd(&atom_energy[atom_i], ene_lin + ene_lin2);
+		//通过原语对warp内的32个线程规约求和，减少atomicAdd的使用次数，以提高速度
+		int delta = 32;
+		for (int i = 0; i < 5; i += 1)
+		{
+			delta >>= 1;
+			frc_record.x += __shfl_down_sync(0xFFFFFFFF, frc_record.x, delta, 32);
+			frc_record.y += __shfl_down_sync(0xFFFFFFFF, frc_record.y, delta, 32);
+			frc_record.z += __shfl_down_sync(0xFFFFFFFF, frc_record.z, delta, 32);
+			ene_lin += __shfl_down_sync(0xFFFFFFFF, ene_lin, delta, 32);
+			ene_lin2 += __shfl_down_sync(0xFFFFFFFF, ene_lin2, delta, 32);
+			virial_lin += __shfl_down_sync(0xFFFFFFFF, virial_lin, delta, 32);
+
+		}
+		if (threadIdx.x == 0)
+		{
+			atomicAdd(&frc[atom_i].x, frc_record.x);
+			atomicAdd(&frc[atom_i].y, frc_record.y);
+			atomicAdd(&frc[atom_i].z, frc_record.z);
+			atom_direct_cf_energy[atom_i] += ene_lin2;
+			atom_energy[atom_i] += ene_lin;
+			atom_lj_virial[atom_i] += virial_lin;
+		}
 	}
 }
 
@@ -1047,68 +1074,68 @@ void LENNARD_JONES_INFORMATION::Initial(CONTROLLER *controller, float cutoff, VE
 	{
 		strcpy(this->module_name, module_name);
 	}
-		controller[0].printf("START INITIALIZING LENNADR JONES INFORMATION:\n");
-		if (controller[0].Command_Exist(this->module_name, "in_file"))
-		{
-			FILE *fp = NULL;
-			Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
+	controller[0].printf("START INITIALIZING LENNADR JONES INFORMATION:\n");
+	if (controller[0].Command_Exist(this->module_name, "in_file"))
+	{
+		FILE *fp = NULL;
+		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
 
-			fscanf(fp, "%d %d", &atom_numbers, &atom_type_numbers);
-			controller[0].printf("    atom_numbers is %d\n", atom_numbers);
-			controller[0].printf("    atom_LJ_type_number is %d\n", atom_type_numbers);
-			pair_type_numbers = atom_type_numbers * (atom_type_numbers + 1) / 2;
-			LJ_Malloc();
+		int scanf_ret = fscanf(fp, "%d %d", &atom_numbers, &atom_type_numbers);
+		controller[0].printf("    atom_numbers is %d\n", atom_numbers);
+		controller[0].printf("    atom_LJ_type_number is %d\n", atom_type_numbers);
+		pair_type_numbers = atom_type_numbers * (atom_type_numbers + 1) / 2;
+		LJ_Malloc();
 
-			for (int i = 0; i < pair_type_numbers; i++)
-			{
-				fscanf(fp, "%f", h_LJ_A + i);
-				h_LJ_A[i] *= 12.0f;
-			}
-			for (int i = 0; i < pair_type_numbers; i++)
-			{
-				fscanf(fp, "%f", h_LJ_B + i);
-				h_LJ_B[i] *= 6.0f;
-			}
-			for (int i = 0; i < atom_numbers; i++)
-			{
-				fscanf(fp, "%d", h_atom_LJ_type + i);
-			}
-			fclose(fp);
-			Parameter_Host_To_Device();
-			is_initialized = 1;
-		}
-		else if (controller[0].Command_Exist("amber_parm7"))
+		for (int i = 0; i < pair_type_numbers; i++)
 		{
-			Initial_From_AMBER_Parm(controller[0].Command("amber_parm7"), controller[0]);
+			scanf_ret = fscanf(fp, "%f", h_LJ_A + i);
+			h_LJ_A[i] *= 12.0f;
 		}
-		if (is_initialized)
+		for (int i = 0; i < pair_type_numbers; i++)
 		{
-			this->cutoff = cutoff;
-			this->uint_dr_to_dr_cof = 1.0f / CONSTANT_UINT_MAX_FLOAT * box_length;
-			Cuda_Malloc_Safely((void **)&uint_crd_with_LJ, sizeof(UINT_VECTOR_LJ_TYPE)* atom_numbers);
-			Copy_LJ_Type_To_New_Crd << <ceilf((float)this->atom_numbers / 32), 32 >> >
-				(atom_numbers, uint_crd_with_LJ, d_atom_LJ_type);
-			controller[0].printf("    Start initializing long range LJ correction\n");
-			long_range_factor = 0;
-			float *d_factor = NULL;
-			Cuda_Malloc_Safely((void**)&d_factor, sizeof(float));
-			Reset_List(d_factor, 0.0f, 1, 1);
-			Total_C6_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type, d_LJ_B, d_factor);
-			cudaMemcpy(&long_range_factor, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
-			cudaFree(d_factor);
+			scanf_ret = fscanf(fp, "%f", h_LJ_B + i);
+			h_LJ_B[i] *= 6.0f;
+		}
+		for (int i = 0; i < atom_numbers; i++)
+		{
+			scanf_ret = fscanf(fp, "%d", h_atom_LJ_type + i);
+		}
+		fclose(fp);
+		Parameter_Host_To_Device();
+		is_initialized = 1;
+	}
+	else if (controller[0].Command_Exist("amber_parm7"))
+	{
+		Initial_From_AMBER_Parm(controller[0].Command("amber_parm7"), controller[0]);
+	}
+	if (is_initialized)
+	{
+		this->cutoff = cutoff;
+		this->uint_dr_to_dr_cof = 1.0f / CONSTANT_UINT_MAX_FLOAT * box_length;
+		Cuda_Malloc_Safely((void **)&uint_crd_with_LJ, sizeof(UINT_VECTOR_LJ_TYPE)* atom_numbers);
+		Copy_LJ_Type_To_New_Crd << <ceilf((float)this->atom_numbers / 32), 32 >> >
+			(atom_numbers, uint_crd_with_LJ, d_atom_LJ_type);
+		controller[0].printf("    Start initializing long range LJ correction\n");
+		long_range_factor = 0;
+		float *d_factor = NULL;
+		Cuda_Malloc_Safely((void**)&d_factor, sizeof(float));
+		Reset_List(d_factor, 0.0f, 1, 1);
+		Total_C6_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type, d_LJ_B, d_factor);
+		cudaMemcpy(&long_range_factor, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
+		cudaFree(d_factor);
 
-			long_range_factor *= -2.0f / 3.0f * CONSTANT_Pi / cutoff / cutoff / cutoff / 6.0f;
-			this->volume = box_length.x * box_length.y * box_length.z;
-			controller[0].printf("        long range correction factor is: %e\n", long_range_factor);
-			controller[0].printf("    End initializing long range LJ correction\n");
-		}
-		if (is_initialized && !is_controller_printf_initialized)
-		{
-			controller[0].Step_Print_Initial(this->module_name, "%.2f");
-			is_controller_printf_initialized = 1;
-			controller[0].printf("    structure last modify date is %d\n", last_modify_date);
-		}
-		controller[0].printf("END INITIALIZING LENNADR JONES INFORMATION\n\n");
+		long_range_factor *= -2.0f / 3.0f * CONSTANT_Pi / cutoff / cutoff / cutoff / 6.0f;
+		this->volume = box_length.x * box_length.y * box_length.z;
+		controller[0].printf("        long range correction factor is: %e\n", long_range_factor);
+		controller[0].printf("    End initializing long range LJ correction\n");
+	}
+	if (is_initialized && !is_controller_printf_initialized)
+	{
+		controller[0].Step_Print_Initial(this->module_name, "%.2f");
+		is_controller_printf_initialized = 1;
+		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
+	}
+	controller[0].printf("END INITIALIZING LENNADR JONES INFORMATION\n\n");
 }
 
 void LENNARD_JONES_INFORMATION::Clear()
@@ -1194,11 +1221,11 @@ void LENNARD_JONES_INFORMATION::Initial_From_AMBER_Parm(const char *file_name, C
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "POINTERS") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
-			fscanf(parm, "%d\n", &atom_numbers);
+			int scanf_ret = fscanf(parm, "%d\n", &atom_numbers);
 			controller.printf("        atom_numbers is %d\n", atom_numbers);
-			fscanf(parm, "%d\n", &atom_type_numbers);
+			scanf_ret = fscanf(parm, "%d\n", &atom_type_numbers);
 			controller.printf("        atom_LJ_type_number is %d\n", atom_type_numbers);
 			pair_type_numbers = atom_type_numbers * (atom_type_numbers + 1) / 2;
 
@@ -1208,36 +1235,36 @@ void LENNARD_JONES_INFORMATION::Initial_From_AMBER_Parm(const char *file_name, C
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "ATOM_TYPE_INDEX") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			printf("	    read atom LJ type index\n");
 			int atomljtype;
 			for (int i = 0; i<atom_numbers; i = i + 1)
 			{
-				fscanf(parm, "%d\n", &atomljtype);
+				int scanf_ret = fscanf(parm, "%d\n", &atomljtype);
 				h_atom_LJ_type[i] = atomljtype - 1;
 			}
 		}
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "LENNARD_JONES_ACOEF") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			printf("	    read atom LJ A\n");
 			double lin;
 			for (int i = 0; i < pair_type_numbers; i = i + 1)
 			{
-				fscanf(parm, "%lf\n", &lin);
+				int scanf_ret = fscanf(parm, "%lf\n", &lin);
 				h_LJ_A[i] = (float)12.* lin;
 			}
 		}
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "LENNARD_JONES_BCOEF") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			printf("	    read atom LJ B\n");
 			double lin;
 			for (int i = 0; i < pair_type_numbers; i = i + 1)
 			{
-				fscanf(parm, "%lf\n", &lin);
+				int scanf_ret = fscanf(parm, "%lf\n", &lin);
 				h_LJ_B[i] = (float)6.* lin;
 			}
 		}
@@ -1265,21 +1292,13 @@ void LENNARD_JONES_INFORMATION::LJ_Force(const UINT_VECTOR_LJ_TYPE *uint_crd, co
 			d_LJ_A, d_LJ_B, cutoff,
 			frc);
 }
-//void LENNARD_JONES_INFORMATION::LJ_Force_With_PME_Direct_Force(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, VECTOR *frc, const ATOM_GROUP *nl, const float pme_beta)
-//{
-//	if (is_initialized)
-//		LJ_Force_With_Direct_CF_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
-//			(atom_numbers, nl,
-//			uint_crd, scaler,
-//			d_LJ_A, d_LJ_B, cutoff,
-//			frc, pme_beta, TWO_DIVIDED_BY_SQRT_PI);
-//}
+
 
 void LENNARD_JONES_INFORMATION::LJ_Force_With_PME_Direct_Force(const int atom_numbers, const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, VECTOR *frc,
 	const ATOM_GROUP *nl, const float cutoff, const float pme_beta)
 {
 	if (is_initialized)
-		LJ_Force_With_Direct_CF_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
+		LJ_Force_With_Direct_CF_CUDA << <{1, (unsigned int)ceilf((float)atom_numbers / thread_LJ.y)}, thread_LJ >> >
 			(atom_numbers, nl,
 			uint_crd, scaler,
 			d_LJ_A, d_LJ_B, cutoff,
@@ -1289,7 +1308,7 @@ void LENNARD_JONES_INFORMATION::LJ_PME_Direct_Force_With_Atom_Energy(const int a
 	const ATOM_GROUP *nl, const float cutoff, const float pme_beta,float *atom_energy)
 {
 	if (is_initialized)
-		LJ_Direct_CF_Force_With_Atom_Energy_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
+		LJ_Direct_CF_Force_With_Atom_Energy_CUDA << <{1, (unsigned int)ceilf((float)atom_numbers / thread_LJ.y)}, thread_LJ >> >
 			(atom_numbers, nl,
 			uint_crd, scaler,
 			d_LJ_A, d_LJ_B, cutoff,
@@ -1302,7 +1321,7 @@ void LENNARD_JONES_INFORMATION::LJ_PME_Direct_Force_With_Atom_Energy_And_Virial(
 {
 	if (is_initialized)
 	{
-		Copy_Crd_And_Charge_To_New_Crd << <(unsigned int)ceilf((float)atom_numbers / 32), 32 >> >(atom_numbers, uint_crd, uint_crd_with_LJ, charge);
+		Copy_Crd_And_Charge_To_New_Crd << <(unsigned int)ceilf((float)atom_numbers / 1024), 1024 >> >(atom_numbers, uint_crd, uint_crd_with_LJ, charge);
 		if (!need_atom_energy > 0 && !need_virial > 0)
 		{
 			LJ_Force_With_PME_Direct_Force(atom_numbers, uint_crd_with_LJ, uint_dr_to_dr_cof, frc, nl, cutoff, pme_beta);
@@ -1314,7 +1333,7 @@ void LENNARD_JONES_INFORMATION::LJ_PME_Direct_Force_With_Atom_Energy_And_Virial(
 		else if (!need_atom_energy > 0 && need_virial> 0)
 		{
 			Reset_List(atom_direct_pme_energy, 0.0f, atom_numbers, 1024);
-			LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
+			LJ_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUDA << <{1, (unsigned int)ceilf((float)atom_numbers / thread_LJ.y)}, thread_LJ >> >
 				(atom_numbers, nl,
 				uint_crd_with_LJ, uint_dr_to_dr_cof,
 				d_LJ_A, d_LJ_B, cutoff,
@@ -1323,7 +1342,7 @@ void LENNARD_JONES_INFORMATION::LJ_PME_Direct_Force_With_Atom_Energy_And_Virial(
 		else
 		{
 			Reset_List(atom_direct_pme_energy, 0.0f, atom_numbers, 1024);
-			LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_CF_Energy_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
+			LJ_Direct_CF_Force_With_Atom_Energy_And_LJ_Virial_Direct_CF_Energy_CUDA << <{1, (unsigned int)ceilf((float)atom_numbers / thread_LJ.y)}, thread_LJ >> >
 				(atom_numbers, nl,
 				uint_crd_with_LJ, uint_dr_to_dr_cof,
 				d_LJ_A, d_LJ_B, cutoff,
@@ -1398,7 +1417,7 @@ float LENNARD_JONES_INFORMATION::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd,
 			d_LJ_energy_atom);
 		Sum_Of_List(d_LJ_energy_atom, d_LJ_energy_sum, atom_numbers);
 
-		//device_add << <1, 1 >> >(d_LJ_energy_sum, long_range_factor / volume);
+		device_add << <1, 1 >> >(d_LJ_energy_sum, long_range_factor / volume);
 
 		if (is_download)
 		{
@@ -1410,6 +1429,7 @@ float LENNARD_JONES_INFORMATION::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd,
 			return 0;
 		}
 	}
+	return NAN;
 }
 
 void LENNARD_JONES_INFORMATION::LJ_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const ATOM_GROUP *nl)
@@ -1565,14 +1585,4 @@ __global__ void LJ_Force_With_FGM_Direct_Force_CUDA(
 		atomicAdd(&frc[atom_i].y, frc_record.y);
 		atomicAdd(&frc[atom_i].z, frc_record.z);
 	}
-}
-
-void LENNARD_JONES_INFORMATION::LJ_Force_With_FGM_Direct_Force(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, VECTOR *frc,
-	const ATOM_GROUP *nl, const float cutoff, const float CUBIC_R_INVERSE)
-{
-	LJ_Force_With_FGM_Direct_Force_CUDA << <(unsigned int)ceilf((float)atom_numbers / thread_LJ.x), thread_LJ >> >
-		(atom_numbers, nl,
-		uint_crd, scaler,
-		d_LJ_A, d_LJ_B, cutoff,
-		frc, CUBIC_R_INVERSE);
 }

@@ -5,11 +5,11 @@ compiler=nvcc
 COMMON_COMMAND=-arch=sm_50 -rdc=true -lcudadevrt -lcufft --use_fast_math -O4 -std=c++11
 BIN_NAME=SPONGE
 
-install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/LiuJian_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	$(compiler) -o $(BIN_NAME)  $^ $(COMMON_COMMAND)
 
 
-all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/LiuJian_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o Langevin_MD/Langevin_MD.o Langevin_MD/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	
 
 
@@ -61,7 +61,7 @@ Langevin_MD/Langevin_MD.o: Langevin_MD/Langevin_MD.cu Langevin_MD/Langevin_MD.cu
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-Langevin_MD/LiuJian_MD.o: Langevin_MD/LiuJian_MD.cu Langevin_MD/LiuJian_MD.cuh common.cuh control.cuh
+Langevin_MD/Middle_Langevin_MD.o: Langevin_MD/Middle_Langevin_MD.cu Langevin_MD/Middle_Langevin_MD.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 

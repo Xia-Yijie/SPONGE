@@ -7,7 +7,7 @@ void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float targe
 	controller->printf("START INITIALIZING BERENDSEN BAROSTAT:\n");
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "bd_baro");
+		strcpy(this->module_name, "berendsen_barostat");
 	}
 	else
 	{
@@ -39,7 +39,6 @@ void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float targe
 	if (controller[0].Command_Exist(this->module_name, "update_interval"))
 		update_interval = atoi(controller[0].Command(this->module_name, "update_interval"));
 	controller->printf("    The update_interval is %d\n", update_interval);
-	system_reinitializing_count = 0;
 
 	is_initialized = 1;
 	if (is_initialized && !is_controller_printf_initialized)

@@ -1,6 +1,6 @@
 ﻿#include "neighbor_list.cuh"
 
-void Initial_Neighbor_Grid(
+static void Initial_Neighbor_Grid(
 	GRID_POINTER **gpointer, GRID_BUCKET **bucket, int **atom_numbers_in_grid_bucket,
 	float half_cutoff_with_skin, GRID_INFORMATION *grid_info,
 	const int in_bucket_atom_numbers_max, VECTOR box_length)
@@ -25,13 +25,13 @@ void Initial_Neighbor_Grid(
 	grid_info[0].grid_numbers = grid_info[0].Nz*grid_info[0].Nxy;
 
 	Cuda_Malloc_Safely((void **)&atom_numbers_in_grid_bucket[0], sizeof(int)*grid_info[0].grid_numbers);
-	Reset_List << <ceilf((float)grid_info[0].grid_numbers / 32), 32 >> >(grid_info[0].grid_numbers, atom_numbers_in_grid_bucket[0], (const int)0);
+	Reset_List << <ceilf((float)grid_info[0].grid_numbers / 32), 32 >> >(grid_info[0].grid_numbers, atom_numbers_in_grid_bucket[0], 0);
 
 	Malloc_Safely((void**)&grid_info[0].h_bucket,sizeof(GRID_BUCKET)*grid_info[0].grid_numbers); 
 	for (int i = 0; i < grid_info[0].grid_numbers; i = i + 1)
 	{
 		Cuda_Malloc_Safely((void**)&grid_info[0].h_bucket[i].atom_serial, sizeof(int)* in_bucket_atom_numbers_max);
-		Reset_List << <ceilf((float)in_bucket_atom_numbers_max/32), 32 >> >(in_bucket_atom_numbers_max, grid_info[0].h_bucket[i].atom_serial, (const int)-1);
+		Reset_List << <ceilf((float)in_bucket_atom_numbers_max/32), 32 >> >(in_bucket_atom_numbers_max, grid_info[0].h_bucket[i].atom_serial, -1);
 	}
 	Cuda_Malloc_Safely((void**)&bucket[0], sizeof(GRID_BUCKET)*grid_info[0].grid_numbers);
 	cudaMemcpy(bucket[0], grid_info[0].h_bucket, sizeof(GRID_BUCKET)*grid_info[0].grid_numbers, cudaMemcpyHostToDevice);
@@ -100,7 +100,7 @@ void Initial_Neighbor_Grid(
 	cudaMemcpy(gpointer[0], grid_info[0].h_pointer, sizeof(GRID_POINTER)*grid_info[0].grid_numbers, cudaMemcpyHostToDevice);
 }
 
-__global__ void Clear_Grid_Bucket(const int grid_numbers, int *atom_numbers_in_grid_bucket, GRID_BUCKET *bucket)
+static __global__ void Clear_Grid_Bucket(const int grid_numbers, int *atom_numbers_in_grid_bucket, GRID_BUCKET *bucket)
 {
 	int grid_serial = blockDim.x*blockIdx.x + threadIdx.x;
 	if (grid_serial < grid_numbers)
@@ -114,7 +114,7 @@ __global__ void Clear_Grid_Bucket(const int grid_numbers, int *atom_numbers_in_g
 	}
 }
 
-__global__ void Find_Atom_In_Grid_Serial(const int atom_numbers, const VECTOR grid_length_inverse, const VECTOR *crd, const INT_VECTOR grid_N, const int gridxy, int *atom_in_grid_serial)
+static __global__ void Find_Atom_In_Grid_Serial(const int atom_numbers, const VECTOR grid_length_inverse, const VECTOR *crd, const INT_VECTOR grid_N, const int gridxy, int *atom_in_grid_serial)
 {
 	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (atom_i < atom_numbers)
@@ -137,7 +137,7 @@ __global__ void Find_Atom_In_Grid_Serial(const int atom_numbers, const VECTOR gr
 		//}
 	}
 }
-__global__ void Put_Atom_In_Grid_Bucket(const int atom_numbers, const int *atom_in_grid_serial, GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket)
+static __global__ void Put_Atom_In_Grid_Bucket(const int atom_numbers, const int *atom_in_grid_serial, GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket)
 {
 	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (atom_i < atom_numbers)
@@ -171,7 +171,7 @@ __global__ void Put_Atom_In_Grid_Bucket(const int atom_numbers, const int *atom_
 	}
 }
 
-__global__ void Find_atom_neighbors(
+static __global__ void Find_atom_neighbors(
 	const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
 	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
 	ATOM_GROUP *nl, const float cutoff_skin_square)
@@ -224,7 +224,7 @@ __global__ void Find_atom_neighbors(
 	}
 }
 
-__global__ void Is_need_refresh_neighbor_list_cuda(const int atom_numbers,const VECTOR *crd, const VECTOR *old_crd,
+static __global__ void Is_need_refresh_neighbor_list_cuda(const int atom_numbers,const VECTOR *crd, const VECTOR *old_crd,
 	const VECTOR box_length, const float half_skin_square,int *need_refresh_flag)
 {
 	int i = blockDim.x*blockIdx.x + threadIdx.x;
@@ -241,7 +241,7 @@ __global__ void Is_need_refresh_neighbor_list_cuda(const int atom_numbers,const 
 	}
 }
 
-__global__ void Delete_Excluded_Atoms_Serial_In_Neighbor_List
+static __global__ void Delete_Excluded_Atoms_Serial_In_Neighbor_List
 (const int atom_numbers, ATOM_GROUP *nl, const int *excluded_list_start,const int *excluded_list,const int *excluded_atom_numbers)
 {
 	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
@@ -292,7 +292,7 @@ __global__ void Delete_Excluded_Atoms_Serial_In_Neighbor_List
 		}//if need excluded
 	}
 }
-__global__ void Refresh_Neighbor_List
+static __global__ void Refresh_Neighbor_List
 (int *refresh_sign, const int thread,
 const int atom_numbers, VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
 const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
@@ -334,7 +334,7 @@ ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_
 }
 
 
-void Refresh_Neighbor_List_No_Check
+static void Refresh_Neighbor_List_No_Check
 (const int atom_numbers, VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
 const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
 int *atom_in_grid_serial,
@@ -368,196 +368,7 @@ ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_
 }
 
 
-__global__ void SITS_Put_Atom_In_Grid_Bucket(const int atom_start, const int atom_end, const int *atom_in_grid_serial, GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket)
-{
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x + atom_start;
-	if (atom_i < atom_end)
-	{
-		int grid_serial = atom_in_grid_serial[atom_i];
-		int a = atom_numbers_in_grid_bucket[grid_serial];
-		atomicCAS(&bucket[grid_serial].atom_serial[a], -1, atom_i);
-		if (bucket[grid_serial].atom_serial[a] != atom_i)
-		{
-			while (true)
-			{
-				a = a + 1;
-				atomicCAS(&bucket[grid_serial].atom_serial[a], -1, atom_i);
-				if (bucket[grid_serial].atom_serial[a] == atom_i)
-				{
-					atomicAdd(&atom_numbers_in_grid_bucket[grid_serial], 1);
-					break;
-				}
-			}
-		}
-		else
-		{
-			atomicAdd(&atom_numbers_in_grid_bucket[grid_serial], 1);
-		}
-	}
-}
-__global__ void SITS_Find_atom_neighbors(
-	const int atom_start, const int atom_end, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
-	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
-	ATOM_GROUP *nl, const float cutoff_skin_square)
-{
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x + atom_start;
-	if (atom_i < atom_end)
-	{
-		int grid_serial = atom_in_grid_serial[atom_i];
-		int grid_serial2;
-		int atom_numbers_in_nl_lin = 0;
-		int atom_j;
-		int int_x;
-		int int_y;
-		int int_z;
-		VECTOR dr;
-		float dr2;
-		for (int grid_cycle = 0; grid_cycle < 125; grid_cycle = grid_cycle + 1)
-		{
-			grid_serial2 = gpointer[grid_serial].grid_serial[grid_cycle];
-			for (int i = 0; i < atom_numbers_in_grid_bucket[grid_serial2]; i = i + 1)
-			{
-				atom_j = bucket[grid_serial2].atom_serial[i];
-				if (atom_j > atom_i)
-				{
-					int_x = uint_crd[atom_j].uint_x - uint_crd[atom_i].uint_x;
-					int_y = uint_crd[atom_j].uint_y - uint_crd[atom_i].uint_y;
-					int_z = uint_crd[atom_j].uint_z - uint_crd[atom_i].uint_z;
-					dr.x = uint_dr_to_dr_cof.x*int_x;
-					dr.y = uint_dr_to_dr_cof.y*int_y;
-					dr.z = uint_dr_to_dr_cof.z*int_z;
-					dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
 
-					if (dr2 < cutoff_skin_square)
-					{
-						nl[atom_i].atom_serial[atom_numbers_in_nl_lin] = atom_j;
-						atom_numbers_in_nl_lin = atom_numbers_in_nl_lin + 1;
-					}
-				}
-			}
-		}//124 grid cycle
-		nl[atom_i].atom_numbers = atom_numbers_in_nl_lin;
-	}
-}
-__global__ void SITS_Find_protein_water_neighbors(
-	const int atom_end, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
-	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
-	ATOM_GROUP *nl, const float cutoff_skin_square)
-{
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
-	if (atom_i < atom_end)
-	{
-		int grid_serial = atom_in_grid_serial[atom_i];
-		int grid_serial2;
-		int atom_numbers_in_nl_lin = 0;
-		int atom_j;
-		int int_x;
-		int int_y;
-		int int_z;
-		VECTOR dr;
-		float dr2;
-		for (int grid_cycle = 0; grid_cycle < 125; grid_cycle = grid_cycle + 1)
-		{
-			grid_serial2 = gpointer[grid_serial].grid_serial[grid_cycle];
-			for (int i = 0; i < atom_numbers_in_grid_bucket[grid_serial2]; i = i + 1)
-			{
-				atom_j = bucket[grid_serial2].atom_serial[i];
-				if (atom_j >= atom_end)
-				{
-					int_x = uint_crd[atom_j].uint_x - uint_crd[atom_i].uint_x;
-					int_y = uint_crd[atom_j].uint_y - uint_crd[atom_i].uint_y;
-					int_z = uint_crd[atom_j].uint_z - uint_crd[atom_i].uint_z;
-					dr.x = uint_dr_to_dr_cof.x*int_x;
-					dr.y = uint_dr_to_dr_cof.y*int_y;
-					dr.z = uint_dr_to_dr_cof.z*int_z;
-					dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
-
-					if (dr2 < cutoff_skin_square)
-					{
-						nl[atom_i].atom_serial[atom_numbers_in_nl_lin] = atom_j;
-						atom_numbers_in_nl_lin = atom_numbers_in_nl_lin + 1;
-					}
-				}
-			}
-		}//124 grid cycle
-		nl[atom_i].atom_numbers = atom_numbers_in_nl_lin;
-	}
-}
-__global__ void SITS_Refresh_Neighbor_List
-(int *refresh_sign, const int thread,
-const int atom_numbers, const int atom_end,
-VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
-const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
-int *atom_in_grid_serial,
-const float half_skin_square, const VECTOR box_length,
-const GRID_INFORMATION grid_info, const GRID_POINTER *gpointer,
-GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket,
-
-ATOM_GROUP *d_nl,
-ATOM_GROUP *d_nl_p,
-
-int *excluded_list_start, int * excluded_list, int * excluded_numbers,int cutoff_with_skin_square)
-{
-	if (refresh_sign[0] == 1)
-	{
-		//int p_atom_numbers = atom_end;
-		int w_atom_numbers = atom_numbers - atom_end;
-		/**********************************************************************************************************/
-		//与普通MD一样的更新过程，先进行向量平移，做周期性映射，根据应放入的桶子对原子编号，重新平移坐标，更新老坐标，得到整数坐标
-		Crd_Periodic_Map << <ceilf((float)atom_numbers / thread), thread >> >(atom_numbers, crd, box_length);
-		Find_Atom_In_Grid_Serial << <ceilf((float)atom_numbers / thread), thread >> >
-			(atom_numbers, grid_info.grid_length_inverse, crd, grid_info.grid_N, grid_info.Nxy, atom_in_grid_serial);
-
-		Copy_List << <ceilf((float)3.*atom_numbers / thread), thread >> >
-			(3 * atom_numbers, (float*)crd, (float*)old_crd);
-		Crd_To_Uint_Crd << <ceilf((float)atom_numbers / thread), thread >> >
-			(atom_numbers, quarter_crd_to_uint_crd_cof, crd, uint_crd);
-		/**********************************************************************************************************/
-
-		//清空桶子中的原子
-		Clear_Grid_Bucket << <ceilf((float)grid_info.grid_numbers / thread), thread >> >
-			(grid_info.grid_numbers, atom_numbers_in_grid_bucket, bucket);
-		//向桶子中放入蛋白原子
-		SITS_Put_Atom_In_Grid_Bucket << <ceilf((float)atom_end / thread), thread >> >
-			(0, atom_end, atom_in_grid_serial, bucket, atom_numbers_in_grid_bucket);
-		//构建蛋白-蛋白近邻表
-		SITS_Find_atom_neighbors << <ceilf((float)atom_end / thread), thread >> >
-			(0, atom_end, uint_crd, uint_dr_to_dr_cof,
-			atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
-			d_nl, cutoff_with_skin_square);
-
-		//清空桶子中的原子
-		/*Clear_Grid_Bucket << <ceilf((float)grid_info.grid_numbers / thread), thread >> >
-		(grid_info.grid_numbers, atom_numbers_in_grid_bucket, bucket);*/
-		//向桶子中放入水原子
-		SITS_Put_Atom_In_Grid_Bucket << <ceilf((float)w_atom_numbers / thread), thread >> >
-			(atom_end, atom_numbers, atom_in_grid_serial, bucket, atom_numbers_in_grid_bucket);
-		//构建水-水近邻表
-		SITS_Find_atom_neighbors << <ceilf((float)w_atom_numbers / thread), thread >> >
-			(atom_end, atom_numbers, uint_crd, uint_dr_to_dr_cof,
-			atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
-			d_nl, cutoff_with_skin_square);
-
-		//进行蛋白-蛋白，水-水近邻表中的原子剔除
-		Delete_Excluded_Atoms_Serial_In_Neighbor_List << <ceilf((float)atom_numbers / thread), thread >> >
-			(atom_numbers, d_nl, excluded_list_start, excluded_list, excluded_numbers);
-
-
-		//向桶子中再放入蛋白原子
-		/*SITS_Put_Atom_In_Grid_Bucket << <ceilf((float)atom_end / thread), thread >> >
-		(0, atom_end, atom_in_grid_serial, bucket, atom_numbers_in_grid_bucket);*/
-		//构建蛋白-水近邻表。注意，此时构建的近邻表是非全原子的近邻表而是对蛋白原子一个专用的近邻表（用于存储蛋白-水交叉项）
-		SITS_Find_protein_water_neighbors << <ceilf((float)atom_end / thread), thread >> >
-			(atom_end, uint_crd, uint_dr_to_dr_cof,
-			atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
-			d_nl_p, cutoff_with_skin_square);
-		//假设蛋白和水原子间没有剔除关系，因此不对这个近邻表进行剔除操作。
-                //which isn't always true
-		Delete_Excluded_Atoms_Serial_In_Neighbor_List << <ceilf((float)atom_numbers / thread), thread >> >
-			(atom_numbers, d_nl_p, excluded_list_start, excluded_list, excluded_numbers);
-		refresh_sign[0] = 0;
-	}
-}
 void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers,
 	int forced_update, int forced_check)
 {
@@ -592,7 +403,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 		else //其余情况
 		{
 			Is_need_refresh_neighbor_list_cuda << <ceilf((float)atom_numbers / 128), 128 >> >
-				(atom_numbers, crd, old_crd, box_length, half_skin_square, is_need_refresh_neighbor_list);
+				(atom_numbers, crd, old_crd, box_length, skin_permit*skin_permit*half_skin_square, is_need_refresh_neighbor_list);
 			Refresh_Neighbor_List << <1, 1 >> >
 				(is_need_refresh_neighbor_list, 32,
 				atom_numbers, crd, old_crd, uint_crd,
@@ -604,50 +415,6 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square);
 		}
 	}
-}
-
-void NEIGHBOR_LIST::Initial_SITS_Neighbor(VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
-	const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
-	const VECTOR box_length, const int protein_atom_numbers, ATOM_GROUP *ppww, ATOM_GROUP *pwwp,
-	int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers)
-{
-
-	Reset_List << <1, 1 >> >(1, is_need_refresh_neighbor_list, 1);
-
-	SITS_Refresh_Neighbor_List << <1, 1 >> >
-		(is_need_refresh_neighbor_list, 32,
-		atom_numbers, protein_atom_numbers,
-		crd, old_crd, uint_crd,
-		quarter_crd_to_uint_crd_cof, uint_dr_to_dr_cof,
-		grid_info.atom_in_grid_serial,
-		skin, box_length,
-		grid_info, grid_info.gpointer,
-		grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-		ppww,
-		pwwp,
-		d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square);
-}
-	
-
-void NEIGHBOR_LIST::SITS_Neighbor_List_Update(VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
-	const VECTOR quarter_crd_to_uint_crd_cof, const VECTOR uint_dr_to_dr_cof,
-	const VECTOR box_length, const int protein_atom_numbers, ATOM_GROUP *ppww, ATOM_GROUP *pwwp,
-	int *d_excluded_list_start, int *d_excluded_list, int *d_excluded_numbers)
-{
-	Is_need_refresh_neighbor_list_cuda << <ceilf((float)atom_numbers / 128), 128 >> >
-		(atom_numbers, crd, old_crd, box_length, half_skin_square, is_need_refresh_neighbor_list);
-	SITS_Refresh_Neighbor_List << <1, 1 >> >
-		(is_need_refresh_neighbor_list, 32,
-		atom_numbers, protein_atom_numbers,
-		crd, old_crd, uint_crd,
-		quarter_crd_to_uint_crd_cof, uint_dr_to_dr_cof,
-		grid_info.atom_in_grid_serial,
-		skin, box_length,
-		grid_info, grid_info.gpointer,
-		grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-		ppww,
-		pwwp,
-		d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square);
 }
 
 void NEIGHBOR_LIST::Initial_Malloc()
@@ -686,52 +453,54 @@ void NEIGHBOR_LIST::Initial(CONTROLLER *controller, int md_atom_numbers, VECTOR 
 	/*===========================
 	从mdin中读取控制信息
 	============================*/
-	if (controller[0].Command_Exist(this->module_name, "no_initial") && !is_str_equal(controller[0].Command(this->module_name, "no_initial"), "0"))
+	controller[0].printf("START INITIALIZING NEIGHBOR LIST:\n");
+	atom_numbers = md_atom_numbers;
+	if (controller[0].Command_Exist(this->module_name, "refresh_interval"))
 	{
-		return;
+		refresh_interval = atoi(controller[0].Command(this->module_name, "refresh_interval"));
 	}
-	else
+	if (controller[0].Command_Exist(this->module_name, "max_atom_in_grid_numbers"))
 	{
-		controller[0].printf("START INITIALIZING NEIGHBOR LIST:\n");
-		atom_numbers = md_atom_numbers;
-		if (controller[0].Command_Exist(this->module_name, "refresh_interval"))
-		{
-			refresh_interval = atoi(controller[0].Command(this->module_name, "refresh_interval"));
-		}
-		if (controller[0].Command_Exist(this->module_name, "max_atom_in_grid_numbers"))
-		{
-			max_atom_in_grid_numbers = atoi(controller[0].Command(this->module_name, "max_atom_in_grid_numbers"));
-		}
-		if (controller[0].Command_Exist(this->module_name, "max_neighbor_numbers"))
-		{
-			max_neighbor_numbers = atoi(controller[0].Command(this->module_name, "max_neighbor_numbers"));
-		}
-		this->skin = skin;
-		this->cutoff = cut;
-		cutoff_square = cutoff*cutoff;
-		cutoff_with_skin = cutoff + skin;
-		half_cutoff_with_skin = 0.5*cutoff_with_skin;
-		cutoff_with_skin_square = cutoff_with_skin*cutoff_with_skin;
-		half_skin_square = 0.25*skin*skin;
-		Update_Volume(box_length);
-		/*===========================
-		//初始化格子信息
-		============================*/
-		Initial_Malloc();
-		Initial_Neighbor_Grid(
-			&grid_info.gpointer, &grid_info.bucket, &grid_info.atom_numbers_in_grid_bucket,
-			half_cutoff_with_skin, &grid_info,
-			max_atom_in_grid_numbers, box_length);
-		is_initialized = 1;
-		controller->printf("    grid dimension is %d %d %d\n", grid_info.Nx, grid_info.Ny, grid_info.Nz);
-		if (is_initialized && !is_controller_printf_initialized)
-		{
-			is_controller_printf_initialized = 1;
-			controller[0].printf("    structure last modify date is %d\n", last_modify_date);
-		}
-		controller[0].printf("END INITIALIZING NEIGHBOR LIST\n\n");
+		max_atom_in_grid_numbers = atoi(controller[0].Command(this->module_name, "max_atom_in_grid_numbers"));
 	}
+	if (controller[0].Command_Exist(this->module_name, "max_neighbor_numbers"))
+	{
+		max_neighbor_numbers = atoi(controller[0].Command(this->module_name, "max_neighbor_numbers"));
+	}
+	if (controller[0].Command_Exist(this->module_name, "skin_permit"))
+	{
+		skin_permit = 2.*atof(controller[0].Command(this->module_name, "skin_permit"));//以外界的0.5等于不变（即程序内的1.）
+	}
+	this->skin = skin;
+	this->cutoff = cut;
+	cutoff_square = cutoff*cutoff;
+	cutoff_with_skin = cutoff + skin;
+	half_cutoff_with_skin = 0.5*cutoff_with_skin;
+	cutoff_with_skin_square = cutoff_with_skin*cutoff_with_skin;
+	half_skin_square = 0.25*skin*skin;
+		
 
+	this->box_length = box_length;
+	this->quarter_crd_to_uint_crd_cof = 0.25f * CONSTANT_UINT_MAX_FLOAT / box_length;
+	this->uint_dr_to_dr_cof = 1.0f / CONSTANT_UINT_MAX_FLOAT * box_length;
+
+
+	/*===========================
+	//初始化格子信息
+	============================*/
+	Initial_Malloc();
+	Initial_Neighbor_Grid(
+		&grid_info.gpointer, &grid_info.bucket, &grid_info.atom_numbers_in_grid_bucket,
+		half_cutoff_with_skin, &grid_info,
+		max_atom_in_grid_numbers, box_length);
+	is_initialized = 1;
+	controller->printf("    grid dimension is %d %d %d\n", grid_info.Nx, grid_info.Ny, grid_info.Nz);
+	if (is_initialized && !is_controller_printf_initialized)
+	{
+		is_controller_printf_initialized = 1;
+		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
+	}
+	controller[0].printf("END INITIALIZING NEIGHBOR LIST\n\n");
 }
 
 
@@ -748,11 +517,6 @@ void NEIGHBOR_LIST::Update_Volume(VECTOR box_length)
 	grid_info.grid_length_inverse = 1.0f / grid_info.grid_length;
 }
 
-
-void NEIGHBOR_LIST::Restore_Volume(VECTOR box_length)
-{
-
-}
 
 void NEIGHBOR_LIST::Clear()
 {

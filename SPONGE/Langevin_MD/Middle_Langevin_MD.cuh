@@ -14,20 +14,22 @@
 * limitations under the License.
 */
 
+//该方法的主要实现的参考文献
+//A unified thermostat scheme for efficient configurational sampling for classical/quantum canonical ensembles via molecular dynamics
 
-#ifndef LIUJIAN_MD_CUH
-#define LIUJIAN_MD_CUH
+#ifndef MIDDLE_LANGEVIN_CUH
+#define MIDDLE_LANGEVIN_CUH
 #include "../common.cuh"
 #include "../control.cuh"
 
-struct LIUJIAN_MD_INFORMATION
+struct MIDDLE_Langevin_INFORMATION
 {
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210525;
+	int last_modify_date = 20210826;
 
-	int threads_per_block = 32;
+	int threads_per_block = 128;
 
 	int atom_numbers;
 	float dt;
@@ -46,10 +48,9 @@ struct LIUJIAN_MD_INFORMATION
 	//使用速度上限的迭代方法而非盲目加大摩擦、降低温度、减少步长
 	float max_velocity;
 
-	//初始化（质量直接读取文件）
-	void Initial(CONTROLLER *controller, float target_temperature, const char *module_name = NULL);
-	//从AMBER中读取质量
-	void Initial_From_AMBER(float **h_mass, const char *file, CONTROLLER controller);
+	//初始化（质量信息从某个MD_CORE的已初始化质量数组中获得）
+	void Initial(CONTROLLER *controller, const int atom_numbers, const float target_temperature, const float *h_mass, const char *module_name = NULL);
+
 	//清除内存
 	void Clear();
 	//迭代算法
@@ -58,4 +59,4 @@ struct LIUJIAN_MD_INFORMATION
 };
 
 
-#endif //LIUJIAN_MD_CUH(LiuJian_MD.cuh)
+#endif //MIDDLE_LANGEVIN_CUH(Middle_Langevin_MD.cuh)
