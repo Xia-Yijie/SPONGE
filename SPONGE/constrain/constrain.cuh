@@ -15,8 +15,8 @@
 */
 
 
-#ifndef SIMPLE_CONSTARIN_CUH
-#define SIMPLE_CONSTARIN_CUH
+#ifndef CONSTARIN_CUH
+#define CONSTARIN_CUH
 #include "../common.cuh"
 #include "../control.cuh"
 
@@ -28,72 +28,23 @@ struct CONSTRAIN_PAIR
 	float constrain_k;//这个并不是说有个弹性系数来固定，而是迭代时，有个系数k=m1*m2/(m1+m2)
 };
 
-struct CONSTRAIN_TRIANGLE
-{
-	int atom_A;
-	int atom_B;
-	int atom_C;
-	float ra;
-	float rb;
-	float rc;
-	float rd;
-	float re;
-};
-
-
-
-struct SIMPLE_CONSTARIN
+struct CONSTRAIN
 {
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210830;
+	int last_modify_date = 20211222;
 
-	struct SETTLE_INFORMATION
-	{
-		char module_name[CHAR_LENGTH_MAX];
-		int is_initialized = 0;
-		int is_controller_printf_initialized = 0;
-		int last_modify_date = 20210830;
-
-		void Initial(CONTROLLER* controller, SIMPLE_CONSTARIN* simple_constrain, float *h_mass, char* module_name = NULL);
-
-		int triangle_numbers = 0;
-		CONSTRAIN_TRIANGLE* d_triangles = NULL, *h_triangles = NULL;
-
-
-		int pair_numbers = 0;
-		CONSTRAIN_PAIR *d_pairs = NULL, *h_pairs = NULL;
-
-		VECTOR* last_pair_AB = NULL;
-		VECTOR* last_triangle_BA = NULL;
-		VECTOR* last_triangle_CA = NULL;
-		void Remember_Last_Coordinates(UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
-
-		float dt;
-		float half_exp_gamma_plus_half;
-		float exp_gamma;
-		float* virial = NULL;
-		VECTOR* virial_vector = NULL;
-		void Do_SETTLE(const float* d_mass, VECTOR* crd, VECTOR box_length, VECTOR* vel,
-			int need_pressure, float* d_pressure);
-
-	} settle;
-
-	//约束内力，使得主循环中更新后的坐标加上该力（力的方向与更新前的pair方向一致）修正，得到满足约束的坐标。
-	VECTOR *constrain_frc = NULL;
-	//每对的维里
-	float *d_pair_virial = NULL;
-	//总维里
-	float *d_virial = NULL;
-	//进行constrain迭代过程中的不断微调的原子uint坐标
-	UNSIGNED_INT_VECTOR *test_uint_crd = NULL;
-
-	//主循环中更新前的pair向量信息
-	VECTOR *last_pair_dr = NULL;
-
+	int atom_numbers = 0;
+	float dt = 0.001f;
 	float dt_inverse;
-	float half_exp_gamma_plus_half;//为0.5*(1.+exp_gamma)
+	VECTOR uint_dr_to_dr_cof;//该系数可将无符号整型坐标之差变为实际坐标之差
+	VECTOR quarter_crd_to_uint_crd_cof;//该系数可将实际坐标变为对应的一半长度的无符号整型坐标
+	float volume; //体积
+
+	float v_factor = 1.0f;  //一个积分步中,一个微小的力F对速度的影响，即dv = v_factor * F * dt/m
+	float x_factor = 1.0f;  //一个积分步中,一个微小的力F对位移的影响，即dx = x_factor * F * dt * dt/m 
+	float constrain_mass = 3.3;//对质量小于该值的原子进行限制
 
 	//在初始化的时候用到，在实际计算中不会使用,在初始化时已经被释放
 	int bond_constrain_pair_numbers = 0;
@@ -117,25 +68,10 @@ struct SIMPLE_CONSTARIN
 	}bond_info;
 
 
-	struct INFORMATION//由于info里面的信息几乎来源于md_info，因此在Initial_Simple_Constrain一步直接传参进来得到，而无需额外来源
-	{
-		int atom_numbers = 0;
-		float dt = 0.001f;
-		VECTOR uint_dr_to_dr_cof;//该系数可将无符号整型坐标之差变为实际坐标之差
-		VECTOR quarter_crd_to_uint_crd_cof;//该系数可将实际坐标变为对应的一半长度的无符号整型坐标
-		float volume; //体积
-
-		float exp_gamma = 1.0f;//用刘剑热浴的时候，需要修改这个值变为热浴中使用的exp_gamma，除此之外就是1
-		float step_length = 1.0f;//迭代求力时选取的步长，步长为1.可以刚好严格求得两体的constrain
-								//但对于三体及以上的情况，步长小一点会更稳定，但随之而来可能要求迭代次数增加
-		int iteration_numbers = 25;//迭代步数
-		float constrain_mass = 3;//对质量小于该值的原子进行限制
-	}info;
-
 	//默认的Initial需要按照下面的顺序：
 	//Add_HBond_To_Constrain_Pair
 	//Add_HAngle_To_Constrain_Pair
-	//Initial_Simple_Constrain
+	//Initial_Constrain
 
 	//20201125 由于MD_INFORMATION里面暂时没有加入原子序数，所以不用原子序数判断H，而是直接比较质量
 	//当质量较小时，就认为是H
@@ -151,18 +87,14 @@ struct SIMPLE_CONSTARIN
 		const float *angle_theta, const float *atom_mass);//要求均是指向host上内存的指针
 	
 	//在加入各种constrain_pair后初始化
-	//最后的exp_gamma为朗之万刘剑热浴的exp_gamma
-	void Initial_Simple_Constrain
+	//中间的exp_gamma为朗之万刘剑热浴的exp_gamma
+	void Initial_Constrain
 		(CONTROLLER *controller, const int atom_numbers, const float dt, const VECTOR box_length, const float exp_gamma, const int is_Minimization, float *atom_mass, int *system_freedom);
 	
 	//清除内存
 	void Clear();
 	//记录更新前的距离
-	void Remember_Last_Coordinates(VECTOR *crd, UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
-	//进行约束迭代
-	void Constrain
-		(VECTOR *crd, VECTOR *vel, const float *mass_inverse, const float *d_mass, VECTOR box_length, int need_pressure, float *d_pressure);
-	//体积变化时的参数更新
+
 	void Update_Volume(VECTOR box_length);
 
 };

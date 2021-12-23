@@ -1,7 +1,7 @@
 ﻿#include "nb14.cuh"
 
-static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR boxlength,
-	const int *a_14, const int *b_14, const float *lj_scale_factor, const float *LJ_type_A, const float *LJ_type_B, float *ene)
+static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength,
+	const int *a_14, const int *b_14, const float *lj_A, const float *lj_B, float *ene)
 {
 	int dihedral_14_i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (dihedral_14_i < dihedral_14_numbers)
@@ -9,8 +9,8 @@ static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, cons
 		int atom_i = a_14[dihedral_14_i];
 		int atom_j = b_14[dihedral_14_i];
 
-		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i];
-		UINT_VECTOR_LJ_TYPE r2 = uint_crd[atom_j];
+		UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i];
+		UNSIGNED_INT_VECTOR r2 = uint_crd[atom_j];
 
 		int int_x;
 		int int_y;
@@ -22,9 +22,6 @@ static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, cons
 		float dr_6;
 		float dr_12;
 		float ene_lin = 0.;
-		int x, y;
-		int atom_pair_LJ_type;
-
 
 		int_x = r2.uint_x - r1.uint_x;
 		int_y = r2.uint_y - r1.uint_y;
@@ -39,24 +36,16 @@ static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, cons
 		dr_6 = dr_4*dr_2;
 		dr_12 = dr_6*dr_6;
 
-		y = (r2.LJ_type - r1.LJ_type);
-		x = y >> 31;
-		y = (y^x) - x;
-		x = r2.LJ_type + r1.LJ_type;
-		r2.LJ_type = (x + y) >> 1;
-		x = (x - y) >> 1;
-		atom_pair_LJ_type = (r2.LJ_type*(r2.LJ_type + 1) >> 1) + x;
 
-		ene_lin = 0.08333333*LJ_type_A[atom_pair_LJ_type] * dr_12
-			- 0.1666666*LJ_type_B[atom_pair_LJ_type] * dr_6;//LJ的A,B系数已经乘以12和6因此要反乘
-		ene_lin *= lj_scale_factor[dihedral_14_i];
+		ene_lin = 0.08333333*lj_A[dihedral_14_i] * dr_12
+			- 0.1666666*lj_B[dihedral_14_i] * dr_6;//LJ的A,B系数已经乘以12和6因此要反乘
 
 		ene[dihedral_14_i] = ene_lin;
 	}
 }
 
 
-static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR boxlength,
+static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR boxlength,
 	const int *a_14, const int *b_14, const float *cf_scale_factor, float *ene)
 {
 	int dihedral_14_i = blockDim.x*blockIdx.x + threadIdx.x;
@@ -65,8 +54,8 @@ static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, cons
 		int atom_i = a_14[dihedral_14_i];
 		int atom_j = b_14[dihedral_14_i];
 
-		UINT_VECTOR_LJ_TYPE r1 = uint_crd[atom_i];
-		UINT_VECTOR_LJ_TYPE r2 = uint_crd[atom_j];
+		UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i];
+		UNSIGNED_INT_VECTOR r2 = uint_crd[atom_j];
 
 		int int_x;
 		int int_y;
@@ -83,7 +72,7 @@ static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, cons
 		dr.z = boxlength.z*int_z;
 		r_1 = rnorm3df(dr.x, dr.y, dr.z);
 
-		ene_lin = r1.charge*r2.charge*r_1;
+		ene_lin = charge[atom_i] * charge[atom_j] * r_1;
 
 		ene_lin *= cf_scale_factor[dihedral_14_i];
 
@@ -92,17 +81,13 @@ static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, cons
 }
 
 
-static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(const int dihedral_14_numbers, const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler,
-	const int *a_14, const int *b_14, const float *lj_scale_factor, const float *cf_scale_factor, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc,
-	float *atom_energy, float *atom_virial)
+static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(const int dihedral_14_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
+	const int *a_14, const int *b_14, const float *cf_scale_factor, const float *charge, const float *lj_A, const float *lj_B, VECTOR *frc,	float *atom_energy, float *atom_virial)
 {
 	int dihedral_14_i = blockDim.x*blockIdx.x + threadIdx.x;
 	if (dihedral_14_i < dihedral_14_numbers)
 	{
-		//int int_x;
-		//int int_y;
-		//int int_z;
-		UINT_VECTOR_LJ_TYPE r1, r2;
+		UNSIGNED_INT_VECTOR r1, r2;
 		VECTOR dr;
 		float dr_abs;
 		float dr2;
@@ -116,9 +101,6 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 
 		float ene_lin;
 		float ene_lin2;
-
-		int x, y;
-		int atom_pair_LJ_type;
 
 		int atom_i = a_14[dihedral_14_i];
 		int atom_j = b_14[dihedral_14_i];
@@ -138,23 +120,14 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 		dr_1 = 1. / dr_abs;
 
 		//CF
-		float charge_i = r1.charge;
-		float charge_j = r2.charge;
+		float charge_i = charge[atom_i];
+		float charge_j = charge[atom_j];
 		float frc_cf_abs;
 		frc_cf_abs = cf_scale_factor[dihedral_14_i] * dr_2 *dr_1;
 		frc_cf_abs = -charge_i * charge_j*frc_cf_abs;
 		//LJ
-		y = (r2.LJ_type - r1.LJ_type);
-		x = y >> 31;
-		y = (y^x) - x;
-		x = r2.LJ_type + r1.LJ_type;
-		r2.LJ_type = (x + y) >> 1;
-		x = (x - y) >> 1;
-		atom_pair_LJ_type = (r2.LJ_type*(r2.LJ_type + 1) >> 1) + x;
-
-		frc_abs = -LJ_type_A[atom_pair_LJ_type] * dr_14
-			+ LJ_type_B[atom_pair_LJ_type] * dr_8;
-		frc_abs *= lj_scale_factor[dihedral_14_i];
+		frc_abs = -lj_A[dihedral_14_i] * dr_14
+			+ lj_B[dihedral_14_i] * dr_8;
 
 		frc_abs += frc_cf_abs;
 		temp_frc.x = frc_abs*dr.x;
@@ -171,11 +144,10 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 		atomicAdd(&frc[atom_i].z, temp_frc.z);
 
 		//能量
-		ene_lin = r1.charge*r2.charge*dr_1;
+		ene_lin = charge_i*charge_j*dr_1;
 		ene_lin *= cf_scale_factor[dihedral_14_i];
-		ene_lin2 = 0.08333333*LJ_type_A[atom_pair_LJ_type] * dr_4*dr_8
-			- 0.1666666*LJ_type_B[atom_pair_LJ_type] * dr_4*dr_2;//LJ的A,B系数已经乘以12和6因此要反乘
-		ene_lin2 *= lj_scale_factor[dihedral_14_i];
+		ene_lin2 = 0.08333333*lj_A[dihedral_14_i] * dr_4*dr_8
+			- 0.1666666*lj_B[dihedral_14_i] * dr_4*dr_2;//LJ的A,B系数已经乘以12和6因此要反乘
 
 		atomicAdd(&atom_energy[atom_i], ene_lin + ene_lin2);
 
@@ -184,7 +156,7 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 	}
 }
 
-void NON_BOND_14::Initial(CONTROLLER *controller, char *module_name)
+void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, char *module_name)
 {	
 	if (module_name == NULL)
 	{
@@ -195,31 +167,61 @@ void NON_BOND_14::Initial(CONTROLLER *controller, char *module_name)
 		strcpy(this->module_name, module_name);
 	}
 
-	char file_name_suffix[CHAR_LENGTH_MAX];
+	char file_name_suffix[CHAR_LENGTH_MAX], file_name_suffix2[CHAR_LENGTH_MAX];
+	FILE *fp = NULL, *fp2 = NULL;
+	float h_lj_scale_factor = 0;
+
 	sprintf(file_name_suffix, "in_file");
-
-
 	if (controller[0].Command_Exist(this->module_name, file_name_suffix))
 	{
-		controller[0].printf("START INITIALIZING NB14 (%s_%s):\n", this->module_name, file_name_suffix);
-		FILE *fp = NULL;
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, file_name_suffix), "r");
-
 		int scanf_ret = fscanf(fp, "%d", &nb14_numbers);
+	}
+
+	int extra_numbers = 0;
+	sprintf(file_name_suffix2, "extra_in_file");
+	if (controller[0].Command_Exist(this->module_name, file_name_suffix2))
+	{
+		Open_File_Safely(&fp2, controller[0].Command(this->module_name, file_name_suffix2), "r");
+		int scanf_ret = fscanf(fp2, "%d", &extra_numbers);
+	}
+	nb14_numbers += extra_numbers;
+	if (nb14_numbers > 0)
+	{
+		controller[0].printf("START INITIALIZING NB14 (%s_%s):\n", this->module_name, file_name_suffix);
 		controller[0].printf("    non-bond 14 numbers is %d\n", nb14_numbers);
 		Memory_Allocate();
-		for (int i = 0; i < nb14_numbers; i++)
+		int smallertype, biggertype, temp;
+		for (int i = extra_numbers; i < nb14_numbers; i++)
 		{
-			scanf_ret = fscanf(fp, "%d %d %f %f", h_atom_a + i, h_atom_b + i, h_lj_scale_factor + i, h_cf_scale_factor + i);
+			int scanf_ret = fscanf(fp, "%d %d %f %f", h_atom_a + i, h_atom_b + i, &h_lj_scale_factor, h_cf_scale_factor + i);
+			smallertype = lj_atom_type[h_atom_a[i]];
+			biggertype = lj_atom_type[h_atom_b[i]];
+			if (smallertype > biggertype)
+			{
+				temp = smallertype;
+				smallertype = biggertype;
+				biggertype = temp;
+			}
+			temp = smallertype * (smallertype + 1) / 2 + biggertype;
+			h_A[i] = h_lj_scale_factor * LJ_type_A[temp];
+			h_B[i] = h_lj_scale_factor * LJ_type_B[temp];
 		}
-		fclose(fp);
+		for (int i = 0; i < extra_numbers; i++)
+		{
+			int scanf_ret = fscanf(fp, "%d %d %f %f %f", h_atom_a + i, h_atom_b + i, h_A + i, h_B + i, h_cf_scale_factor + i);
+			h_A[i] *= 12;
+			h_B[i] *= 6;
+		}
+		if (fp != NULL)  fclose(fp);
+		if (fp2 != NULL) fclose(fp2);
 		Parameter_Host_To_Device();
 		is_initialized = 1;
 	}
 	else if (controller[0].Command_Exist("amber_parm7"))
 	{
 		controller[0].printf("START INITIALIZING NB14 (amber_parm7):\n");
-		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0]);
+		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0], LJ_type_A, LJ_type_B, lj_atom_type, extra_numbers);
 		if (nb14_numbers > 0)
 			is_initialized = 1;
 	}
@@ -227,6 +229,8 @@ void NON_BOND_14::Initial(CONTROLLER *controller, char *module_name)
 	{
 		controller[0].printf("NB14 IS NOT INITIALIZED\n\n");
 	}
+
+
 	if (is_initialized && !is_controller_printf_initialized)
 	{
 		controller[0].Step_Print_Initial("nb14_LJ", "%.2f");
@@ -244,7 +248,8 @@ void NON_BOND_14::Parameter_Host_To_Device()
 {
 	cudaMemcpy(this->d_atom_a, this->h_atom_a, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_atom_b, this->h_atom_b, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
-	cudaMemcpy(this->d_lj_scale_factor, this->h_lj_scale_factor, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(this->d_A, this->h_A, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
+	cudaMemcpy(this->d_B, this->h_B, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_cf_scale_factor, this->h_cf_scale_factor, sizeof(int)*this->nb14_numbers, cudaMemcpyHostToDevice);
 }
 
@@ -259,12 +264,16 @@ void NON_BOND_14::Memory_Allocate()
 	if (!Cuda_Malloc_Safely((void**)&this->d_atom_b, sizeof(int)* this->nb14_numbers))
 		printf("Error occurs when malloc NON_BOND_14::d_atom_b in NON_BOND_14::Nb14_Initial");
 
-	if (!Malloc_Safely((void**)&this->h_lj_scale_factor, sizeof(float)* this->nb14_numbers))
-		printf("Error occurs when malloc NON_BOND_14::h_lj_scale_factor in NON_BOND_14::Nb14_Initial");
+	if (!Malloc_Safely((void**)&this->h_A, sizeof(float)* this->nb14_numbers))
+		printf("Error occurs when malloc NON_BOND_14::h_A in NON_BOND_14::Nb14_Initial");
+	if (!Malloc_Safely((void**)&this->h_B, sizeof(float)* this->nb14_numbers))
+		printf("Error occurs when malloc NON_BOND_14::h_B in NON_BOND_14::Nb14_Initial");
 	if (!Malloc_Safely((void**)&this->h_cf_scale_factor, sizeof(float)* this->nb14_numbers))
 		printf("Error occurs when malloc NON_BOND_14::h_cf_scale_factor in NON_BOND_14::Nb14_Initial");
-	if (!Cuda_Malloc_Safely((void**)&this->d_lj_scale_factor, sizeof(float)* this->nb14_numbers))
-		printf("Error occurs when malloc NON_BOND_14::d_lj_scale_factor in NON_BOND_14::Nb14_Initial");
+	if (!Cuda_Malloc_Safely((void**)&this->d_A, sizeof(float)* this->nb14_numbers))
+		printf("Error occurs when malloc NON_BOND_14::d_A in NON_BOND_14::Nb14_Initial");
+	if (!Cuda_Malloc_Safely((void**)&this->d_B, sizeof(float)* this->nb14_numbers))
+		printf("Error occurs when malloc NON_BOND_14::d_B in NON_BOND_14::Nb14_Initial");
 	if (!Cuda_Malloc_Safely((void**)&this->d_cf_scale_factor, sizeof(float)* this->nb14_numbers))
 		printf("Error occurs when malloc NON_BOND_14::d_cf_scale_factor in NON_BOND_14::Nb14_Initial");
 	if (!Cuda_Malloc_Safely((void**)&this->d_nb14_energy, sizeof(float)* this->nb14_numbers))
@@ -283,12 +292,14 @@ void NON_BOND_14::Clear()
 
 		free(h_atom_a);
 		free(h_atom_b);
-		free(h_lj_scale_factor);
+		free(h_A);
+		free(h_B);
 		free(h_cf_scale_factor);
 
 		cudaFree(d_atom_a);
 		cudaFree(d_atom_b);
-		cudaFree(d_lj_scale_factor);
+		free(d_A);
+		free(d_B);
 		cudaFree(d_cf_scale_factor);
 		cudaFree(d_nb14_energy);
 		cudaFree(d_nb14_lj_energy_sum);
@@ -297,12 +308,14 @@ void NON_BOND_14::Clear()
 
 		h_atom_a = NULL;
 		h_atom_b = NULL;
-		h_lj_scale_factor = NULL;
+		h_A = NULL;
+		h_B = NULL;
 		h_cf_scale_factor = NULL;
 
 		d_atom_a = NULL;
 		d_atom_b = NULL;
-		d_lj_scale_factor = NULL;
+		d_A = NULL;
+		d_B = NULL;
 		d_cf_scale_factor = NULL;
 		d_nb14_energy = NULL;
 		d_nb14_lj_energy_sum = NULL;
@@ -310,7 +323,7 @@ void NON_BOND_14::Clear()
 	}
 }
 
-void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller)
+void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const int extra_numbers)
 {
 	int dihedral_numbers, dihedral_type_numbers, dihedral_with_hydrogen;
 	FILE *parm = NULL;
@@ -349,9 +362,9 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 			scanf_ret = fscanf(parm, "%d", &dihedral_type_numbers);
 
 
-			nb14_numbers = dihedral_numbers;
+			nb14_numbers = dihedral_numbers + extra_numbers;
 			Memory_Allocate();
-			nb14_numbers = 0;
+			nb14_numbers = extra_numbers;
 			Malloc_Safely((void**)&cf_scale_type_cpu, sizeof(float)* dihedral_type_numbers);
 			Malloc_Safely((void**)&lj_scale_type_cpu, sizeof(float)* dihedral_type_numbers);
 		}
@@ -379,6 +392,8 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "DIHEDRALS_INC_HYDROGEN") == 0)
 		{
+			float h_lj_scale_factor;
+			int smallertype, biggertype, temptype;
 			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			for (i = 0; i < dihedral_with_hydrogen; i++)
 			{
@@ -393,17 +408,29 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 				{
 					h_atom_a[nb14_numbers] = tempa / 3;
 					h_atom_b[nb14_numbers] = abs(tempb / 3);
-					h_lj_scale_factor[nb14_numbers] = lj_scale_type_cpu[tempi];
+					h_lj_scale_factor = lj_scale_type_cpu[tempi];
 
-					if (h_lj_scale_factor[nb14_numbers] != 0)
+					if (h_lj_scale_factor != 0)
 					{
-						h_lj_scale_factor[nb14_numbers] = 1.0f / h_lj_scale_factor[nb14_numbers];
+						h_lj_scale_factor = 1.0f / h_lj_scale_factor;
 					}
 					h_cf_scale_factor[nb14_numbers] = cf_scale_type_cpu[tempi];
 					if (h_cf_scale_factor[nb14_numbers] != 0)
 						h_cf_scale_factor[nb14_numbers] = 1.0f / h_cf_scale_factor[nb14_numbers];
 					
 					nb14_numbers += 1;
+
+					smallertype = lj_atom_type[h_atom_a[nb14_numbers]];
+					biggertype = lj_atom_type[h_atom_b[nb14_numbers]];
+					if (smallertype > biggertype)
+					{
+						temptype = smallertype;
+						smallertype = biggertype;
+						biggertype = temptype;
+					}
+					temptype = smallertype * (smallertype + 1) / 2 + biggertype;
+					h_A[nb14_numbers] = h_lj_scale_factor * LJ_type_A[temptype];
+					h_B[nb14_numbers] = h_lj_scale_factor * LJ_type_B[temptype];
 				}
 			}
 		}
@@ -411,6 +438,8 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 			&& strcmp(temp_second_str, "DIHEDRALS_WITHOUT_HYDROGEN") == 0)
 		{
 			char *get_ret = fgets(temps, CHAR_LENGTH_MAX, parm);
+			float h_lj_scale_factor;
+			int smallertype, biggertype, temptype;
 			for (i = dihedral_with_hydrogen; i < dihedral_numbers; i++)
 			{
 				int scanf_ret = fscanf(parm, "%d\n", &tempa);
@@ -424,10 +453,25 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 				{
 					h_atom_a[nb14_numbers] = tempa / 3;
 					h_atom_b[nb14_numbers] = abs(tempb / 3);
-					h_lj_scale_factor[nb14_numbers] = lj_scale_type_cpu[tempi];
+					h_lj_scale_factor = lj_scale_type_cpu[tempi];
 
-					if (h_lj_scale_factor[nb14_numbers] != 0)
-						h_lj_scale_factor[nb14_numbers] = 1.0f / h_lj_scale_factor[nb14_numbers];
+					if (h_lj_scale_factor != 0)
+					{
+						h_lj_scale_factor = 1.0f / h_lj_scale_factor;
+					}
+					
+					smallertype = lj_atom_type[h_atom_a[nb14_numbers]];
+					biggertype = lj_atom_type[h_atom_b[nb14_numbers]];
+					if (smallertype > biggertype)
+					{
+						temptype = smallertype;
+						smallertype = biggertype;
+						biggertype = temptype;
+					}
+					temptype = smallertype * (smallertype + 1) / 2 + biggertype;
+					h_A[nb14_numbers] = h_lj_scale_factor * LJ_type_A[temptype];
+					h_B[nb14_numbers] = h_lj_scale_factor * LJ_type_B[temptype];
+
 
 					h_cf_scale_factor[nb14_numbers] = cf_scale_type_cpu[tempi];
 					if (h_cf_scale_factor[nb14_numbers] != 0)
@@ -447,13 +491,13 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 }
 
 
-float NON_BOND_14::Get_14_LJ_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, int is_download)
+float NON_BOND_14::Get_14_LJ_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download)
 {
 	if (is_initialized)
 	{
 		Dihedral_14_LJ_Energy << <(unsigned int)ceilf((float)nb14_numbers / threads_per_block), threads_per_block >> >
 			(nb14_numbers, uint_crd, scaler,
-			d_atom_a, d_atom_b, d_lj_scale_factor, LJ_type_A, LJ_type_B,
+			d_atom_a, d_atom_b, d_A, d_B,
 			d_nb14_energy);
 		Sum_Of_List << <1, 1024 >> >
 			(nb14_numbers, d_nb14_energy, d_nb14_lj_energy_sum);
@@ -471,12 +515,12 @@ float NON_BOND_14::Get_14_LJ_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const V
 }
 
 
-float NON_BOND_14::Get_14_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, int is_download)
+float NON_BOND_14::Get_14_CF_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, int is_download)
 {
 	if (is_initialized)
 	{
 		Dihedral_14_CF_Energy << <(unsigned int)ceilf((float)nb14_numbers / threads_per_block), threads_per_block >> >
-			(nb14_numbers, uint_crd, scaler,
+			(nb14_numbers, uint_crd, charge, scaler,
 			d_atom_a, d_atom_b, d_cf_scale_factor,
 			d_nb14_energy);
 		Sum_Of_List << <1, 1024 >> >
@@ -495,13 +539,12 @@ float NON_BOND_14::Get_14_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const V
 }
 
 
-void NON_BOND_14::Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc,
-	float *atom_energy, float *atom_virial)
+void NON_BOND_14::Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, VECTOR *frc, float *atom_energy, float *atom_virial)
 {
 	if (is_initialized)
 	{
 		Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda << <(unsigned int)ceilf((float)nb14_numbers / threads_per_block), threads_per_block >> >(nb14_numbers, uint_crd, scaler,
-			d_atom_a, d_atom_b, d_lj_scale_factor, d_cf_scale_factor, LJ_type_A, LJ_type_B, frc, atom_energy, atom_virial);
+			d_atom_a, d_atom_b, d_cf_scale_factor, charge, d_A, d_B, frc, atom_energy, atom_virial);
 	}
 }
 

@@ -34,6 +34,7 @@ struct MD_INFORMATION
 	int mode = 0; //md的模式(-1: 最小化, 0: NVE, 1: NVT, 2: NPT)
 	enum MD_MODE
 	{
+		RERUN = -2,
 		MINIMIZATION = -1,
 		NVE = 0,
 		NVT = 1,
@@ -162,6 +163,7 @@ struct MD_INFORMATION
 		int is_molecule_map_output = 0;
 		int amber_irest = -1;
 		int write_trajectory_interval = 1000; //打印轨迹内容的所隔步数
+		int write_mdout_interval = 1000; //打印能量信息的所隔步数
 		int write_restart_file_interval = 1000; //restart文件重新创建的所隔步数
 		FILE *crd_traj = NULL;
 		FILE *box_traj = NULL;
@@ -199,6 +201,15 @@ struct MD_INFORMATION
 		void Gradient_Descent();
 		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
 	} min;
+
+	struct RERUN_information
+	{
+		MD_INFORMATION *md_info = NULL; //指向自己主结构体的指针，以方便调用主结构体的信息
+		FILE *traj_file = NULL;
+		FILE *box_file = NULL;
+		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
+		void Iteration();
+	} rerun;
 
 	struct residue_information
 	{
@@ -255,12 +266,16 @@ struct MD_INFORMATION
 		VECTOR *d_center_of_mass = NULL;//分子质心
 
 		void Molecule_Crd_Map(VECTOR *no_wrap_crd, float scaler = 1.0f); //将坐标质心映射到盒子中，且如果scaler>0则乘上scaler
+		void Molecule_Crd_Map(VECTOR *no_wrap_crd, VECTOR scaler); //将坐标质心映射到盒子中，且如果scaler>0则乘上scaler
 
 		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
 	} mol;  //分子信息
 
 	//体积变化一个因子
 	void Update_Volume(double factor);
+
+	//体积变化一个因子
+	void Update_Box_Length(VECTOR factor);
 
 	//用来将原子的真实坐标转换为unsigned int坐标,注意factor需要乘以0.5（保证越界坐标自然映回box）
 	void MD_Information_Crd_To_Uint_Crd();

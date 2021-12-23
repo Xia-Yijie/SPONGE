@@ -890,8 +890,6 @@ float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const
 
 void Particle_Mesh_Ewald::Update_Volume(VECTOR box_length)
 {
-	//大约每10000步，重新更新BC系数，其他时候直接也同时对beta放缩，只用乘一个因子即可。后续这个步数可能可以让别人调节。
-	beta = Get_Beta(cutoff, tolerance);
 	Update_Box_Length(boxlength);
 }
 

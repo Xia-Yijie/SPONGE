@@ -1,13 +1,13 @@
-﻿#include "Berendsen_barostat.cuh"
+﻿#include "andersen_barostat.cuh"
 
 
 
-void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name)
+void ANDERSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name)
 {
-	controller->printf("START INITIALIZING BERENDSEN BAROSTAT:\n");
+	controller->printf("START INITIALIZING ANDERSEN BAROSTAT:\n");
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "berendsen_barostat");
+		strcpy(this->module_name, "andersen_barostat");
 	}
 	else
 	{
@@ -15,47 +15,43 @@ void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float targe
 	}
 	controller->printf("    The target pressure is %.2f bar\n", target_pressure*CONSTANT_PRES_CONVERTION);
 
-	VECTOR boxlength = box_length;
-	V0 = boxlength.x * boxlength.y * boxlength.z;
-	newV = V0;
+	V0 = box_length.x * box_length.y * box_length.z;
+	new_V = V0;
 
-	dt = 1e-3f;
-	if (controller[0].Command_Exist("dt"))
-		dt = atof(controller[0].Command("dt"));
-	controller->printf("    The dt is %f ps\n", dt);
-
-	taup = 1.0f;
+	float taup = 1.0f;
 	if (controller[0].Command_Exist(this->module_name, "tau"))
 		taup = atof(controller[0].Command(this->module_name, "tau"));
 	controller->printf("    The time constant tau is %f ps\n", taup);
+	
 
-	compressibility = 4.5e-5f;
+	float compressibility = 4.5e-5f;
 	if (controller[0].Command_Exist(this->module_name, "compressibility"))
 		compressibility = atof(controller[0].Command(this->module_name, "compressibility"));
 	controller->printf("    The compressibility constant is %f bar^-1\n", compressibility);
-	compressibility *= CONSTANT_PRES_CONVERTION;
+	
 
-	update_interval = 10;
-	if (controller[0].Command_Exist(this->module_name, "update_interval"))
-		update_interval = atoi(controller[0].Command(this->module_name, "update_interval"));
-	controller->printf("    The update_interval is %d\n", update_interval);
+	h_mass_inverse = taup * taup / V0 / compressibility;
+	controller->printf("    The piston mass is %f bar·ps^2·A^-3\n", h_mass_inverse);
+
+	taup *= CONSTANT_TIME_CONVERTION;
+	compressibility *= CONSTANT_PRES_CONVERTION;
+	h_mass_inverse = V0 * compressibility / taup / taup;
+
+
+	dV_dt = 0;
+	if (controller[0].Command_Exist(this->module_name, "dV/dt"))
+		dV_dt = atof(controller[0].Command(this->module_name, "dV/dt"));
+	controller->printf("    The initial dV/dt is %f A^3/(20.455 fs)\n", dV_dt);
 
 	is_initialized = 1;
 	if (is_initialized && !is_controller_printf_initialized)
 	{
 		controller->Step_Print_Initial("density", "%.4f");
 		controller->Step_Print_Initial("pressure", "%.2f");
+		controller->Step_Print_Initial("dV/dt", "%.2f");
 		is_controller_printf_initialized = 1;
 		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 	}
 
 	controller->printf("END INITIALIZING BERENDSEN BAROSTAT\n\n");
-}
-
-void BERENDSEN_BAROSTAT_INFORMATION::Ask_For_Calculate_Pressure(int steps, int *need_pressure)
-{
-	if (is_initialized && steps % update_interval == 0)
-	{
-		*need_pressure += 1;
-	}
 }
