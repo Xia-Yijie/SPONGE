@@ -9,7 +9,6 @@ VECTOR *test_frc)
 	if (pair_i < constrain_pair_numbers)
 	{
 		CONSTRAIN_PAIR cp = constrain_pair[pair_i];
-		float r_1;
 		VECTOR dr;
 		float frc_abs;
 		
@@ -17,7 +16,7 @@ VECTOR *test_frc)
 		dr.x = ((int)(uint_crd[cp.atom_i_serial].uint_x - uint_crd[cp.atom_j_serial].uint_x)) * scaler.x;
 		dr.y = ((int)(uint_crd[cp.atom_i_serial].uint_y - uint_crd[cp.atom_j_serial].uint_y)) * scaler.y;
 		dr.z = ((int)(uint_crd[cp.atom_i_serial].uint_z - uint_crd[cp.atom_j_serial].uint_z)) * scaler.z;
-		r_1 = rnorm3df(dr.x, dr.y, dr.z);
+		float r_1 = rnorm3df(dr.x, dr.y, dr.z);
 		frc_abs = 0.5 * (dr * dr - cp.constant_r*cp.constant_r) / (dr * dr0)*cp.constrain_k;
 
 		VECTOR frc_lin = frc_abs * dr0;

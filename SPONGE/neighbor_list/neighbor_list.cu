@@ -281,7 +281,7 @@ static __global__ void Find_atom_neighbors_gridly(
 		}
 	}
 }
-
+/*
 static __global__ void Find_atom_neighbors(
 	const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
 	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
@@ -332,7 +332,7 @@ static __global__ void Find_atom_neighbors(
 		}//125 grid cycle
 	}
 }
-
+*/
 static __global__ void Is_need_refresh_neighbor_list_cuda(const int atom_numbers,const VECTOR *crd, const VECTOR *old_crd,
 	const VECTOR box_length, const float half_skin_square,int *need_refresh_flag)
 {

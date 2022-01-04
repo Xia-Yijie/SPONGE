@@ -20,7 +20,7 @@ void UREY_BRADLEY::Initial(CONTROLLER* controller, char* module_name)
 		FILE* fp = NULL;
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
 
-		fscanf(fp, "%d", &Urey_Bradley_numbers);
+		int ret = fscanf(fp, "%d", &Urey_Bradley_numbers);
 		controller[0].printf("    Urey_Bradley_numbers is %d\n", Urey_Bradley_numbers);
 
 		bond.bond_numbers = Urey_Bradley_numbers;
@@ -28,10 +28,10 @@ void UREY_BRADLEY::Initial(CONTROLLER* controller, char* module_name)
 
 		bond.Memory_Allocate();
 		angle.Memory_Allocate();
-
+ 
 		for (int i = 0; i < Urey_Bradley_numbers; i++)
 		{
-			fscanf(fp, "%d %d %d %f %f %f %f",
+			ret = fscanf(fp, "%d %d %d %f %f %f %f",
 				angle.h_atom_a + i, angle.h_atom_b + i, angle.h_atom_c + i, angle.h_angle_k + i, angle.h_angle_theta0 + i,
 				bond.h_k+i,bond.h_r0+i);
 			bond.h_atom_a[i] = angle.h_atom_a[i];

@@ -37,13 +37,13 @@ void CMAP::Initial(CONTROLLER *controller, char *module_name)
 		FILE *fp = NULL;
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
 
-		fscanf(fp, "%d", &(this->tot_cmap_num));
-		fscanf(fp, "%d", &(this->uniq_cmap_num));
+		int ret = fscanf(fp, "%d", &(this->tot_cmap_num));
+		ret = fscanf(fp, "%d", &(this->uniq_cmap_num));
 		controller->printf("        total CMAP number is %d\n        unique CMAP number is %d\n", this->tot_cmap_num, this->uniq_cmap_num);
 		this->Memory_Allocate();
 		for (int i = 0; i < (this->uniq_cmap_num); i++)
 		{
-			fscanf(fp, "%d", &cmap_resolution[i]);
+			ret = fscanf(fp, "%d", &cmap_resolution[i]);
 			uniq_gridpoint_num += cmap_resolution[i] * cmap_resolution[i];
 		}
 
@@ -54,7 +54,7 @@ void CMAP::Initial(CONTROLLER *controller, char *module_name)
 		{
 			for (int i = 0; i < pow(this->cmap_resolution[count], 2); i++)
 			{
-				fscanf(fp, "%f", &grid_value[i + temp]);
+				ret = fscanf(fp, "%f", &grid_value[i + temp]);
 			}
 			temp += pow(this->cmap_resolution[count], 2);
 		}
@@ -62,12 +62,12 @@ void CMAP::Initial(CONTROLLER *controller, char *module_name)
 		for (int i = 0; i < (this->tot_cmap_num); i++)
 		{
 			//数组原子编号从0记
-			fscanf(fp, "%d", &this->h_atom_a[i]);
-			fscanf(fp, "%d", &this->h_atom_b[i]);
-			fscanf(fp, "%d", &this->h_atom_c[i]);
-			fscanf(fp, "%d", &this->h_atom_d[i]);
-			fscanf(fp, "%d", &this->h_atom_e[i]);
-			fscanf(fp, "%d", &this->cmap_type[i]);
+			ret = fscanf(fp, "%d", &this->h_atom_a[i]);
+			ret = fscanf(fp, "%d", &this->h_atom_b[i]);
+			ret = fscanf(fp, "%d", &this->h_atom_c[i]);
+			ret = fscanf(fp, "%d", &this->h_atom_d[i]);
+			ret = fscanf(fp, "%d", &this->h_atom_e[i]);
+			ret = fscanf(fp, "%d", &this->cmap_type[i]);
 		}
 		
 		for (int i = 0; i < (this->tot_cmap_num); i++)
@@ -134,13 +134,13 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 		{
 			
 			//读取parm7中的"COMMENT ..."(如果存在)以及"%FORMAT(2I8)" 两行
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *get_value = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				get_value = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 			//读取CMAP个数
-			fscanf(parm, "%d", &(this->tot_cmap_num));
-			fscanf(parm, "%d", &(this->uniq_cmap_num));
+			int ret = fscanf(parm, "%d", &(this->tot_cmap_num));
+			ret = fscanf(parm, "%d", &(this->uniq_cmap_num));
 
 			controller.printf("        total CMAP number is %d\n        unique CMAP number is %d\n", this->tot_cmap_num, this->uniq_cmap_num);
 			this->Memory_Allocate();
@@ -150,13 +150,13 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 			&& strcmp(temp_second_str, "CMAP_RESOLUTION") == 0 || strcmp(temp_second_str, "CHARMM_CMAP_RESOLUTION") == 0)
 		{
 			//读取到"%FORMAT(20I4)"一行
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char* ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 			for (int i = 0; i < (this->uniq_cmap_num); i++)
 			{
-				fscanf(parm, "%d", &cmap_resolution[i]);
+				int ret2 = fscanf(parm, "%d", &cmap_resolution[i]);
 				uniq_gridpoint_num += cmap_resolution[i] * cmap_resolution[i];
 			}
 			//读入全部双二面角信息并选择使用到的进行插值
@@ -171,14 +171,14 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& (strncmp(temp_second_str, "CMAP_PARAMETER", 14) == 0 || strncmp(temp_second_str, "CHARMM_CMAP_PARAMETER", 15) == 0))
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char* ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			
 		////将所有格点值读取到一个数组中
 			for (int i = 0; i < pow(this->cmap_resolution[count],2); i++)
 			{
-				fscanf(parm,"%f",&grid_value[i+temp]);
+				int ret2 = fscanf(parm,"%f",&grid_value[i+temp]);
 			}
 
 			temp += pow(this->cmap_resolution[count], 2);
@@ -189,24 +189,24 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "CMAP_INDEX") == 0 || strcmp(temp_second_str, "CHARMM_CMAP_INDEX") == 0)
 		{
-			fgets(temps, CHAR_LENGTH_MAX, parm);
+			char *ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
-				fgets(temps, CHAR_LENGTH_MAX, parm);
+				ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 
 			for (int i = 0; i < (this->tot_cmap_num); i++)
 			{
 				//数组原子编号从0记
-				fscanf(parm, "%d", &this->h_atom_a[i]);
+				int ret2 = fscanf(parm, "%d", &this->h_atom_a[i]);
 				h_atom_a[i] -= 1;
-				fscanf(parm, "%d", &this->h_atom_b[i]);
+				ret2 = fscanf(parm, "%d", &this->h_atom_b[i]);
 				h_atom_b[i] -= 1;
-				fscanf(parm, "%d", &this->h_atom_c[i]);
+				ret2 = fscanf(parm, "%d", &this->h_atom_c[i]);
 				h_atom_c[i] -= 1;
-				fscanf(parm, "%d", &this->h_atom_d[i]);
+				ret2 = fscanf(parm, "%d", &this->h_atom_d[i]);
 				h_atom_d[i] -= 1;
-				fscanf(parm, "%d", &this->h_atom_e[i]);
+				ret2 = fscanf(parm, "%d", &this->h_atom_e[i]);
 				h_atom_e[i] -= 1;
-				fscanf(parm, "%d", &this->cmap_type[i]);
+				ret2 = fscanf(parm, "%d", &this->cmap_type[i]);
 				cmap_type[i] -= 1;
 			}
 		}
@@ -524,8 +524,8 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 
 		float r1_1_phi = rnorm3df(r1_phi.x, r1_phi.y, r1_phi.z);
 		float r2_1_phi = rnorm3df(r2_phi.x, r2_phi.y, r2_phi.z);
-		float r1_2_phi = r1_1_phi * r1_1_phi;
-		float r2_2_phi = r2_1_phi * r2_1_phi;
+		//float r1_2_phi = r1_1_phi * r1_1_phi;
+		//float r2_2_phi = r2_1_phi * r2_1_phi;
 		float r1_1_r2_1_phi = r1_1_phi * r2_1_phi;
 
 		float phi = r1_phi * r2_phi * r1_1_r2_1_phi;
@@ -553,8 +553,8 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 
 		float r1_1_psi = rnorm3df(r1_psi.x, r1_psi.y, r1_psi.z);
 		float r2_1_psi = rnorm3df(r2_psi.x, r2_psi.y, r2_psi.z);
-		float r1_2_psi = r1_1_psi * r1_1_psi;
-		float r2_2_psi = r2_1_psi * r2_1_psi;
+		//float r1_2_psi = r1_1_psi * r1_1_psi;
+		//float r2_2_psi = r2_1_psi * r2_1_psi;
 		float r1_1_r2_1_psi = r1_1_psi * r2_1_psi;
 
 		float psi = r1_psi * r2_psi * r1_1_r2_1_psi;
@@ -702,8 +702,8 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 
 		float r1_1_phi = rnorm3df(r1_phi.x, r1_phi.y, r1_phi.z);
 		float r2_1_phi = rnorm3df(r2_phi.x, r2_phi.y, r2_phi.z);
-		float r1_2_phi = r1_1_phi * r1_1_phi;
-		float r2_2_phi = r2_1_phi * r2_1_phi;
+		//float r1_2_phi = r1_1_phi * r1_1_phi;
+		//float r2_2_phi = r2_1_phi * r2_1_phi;
 		float r1_1_r2_1_phi = r1_1_phi * r2_1_phi;
 
 		float phi = r1_phi * r2_phi * r1_1_r2_1_phi;
@@ -733,8 +733,8 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 
 		float r1_1_psi = rnorm3df(r1_psi.x, r1_psi.y, r1_psi.z);
 		float r2_1_psi = rnorm3df(r2_psi.x, r2_psi.y, r2_psi.z);
-		float r1_2_psi = r1_1_psi * r1_1_psi;
-		float r2_2_psi = r2_1_psi * r2_1_psi;
+		//float r1_2_psi = r1_1_psi * r1_1_psi;
+		//float r2_2_psi = r2_1_psi * r2_1_psi;
 		float r1_1_r2_1_psi = r1_1_psi * r2_1_psi;
 
 		float psi = r1_psi * r2_psi * r1_1_r2_1_psi;
@@ -809,6 +809,7 @@ float CMAP::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
 			return 0;
 		}
 	}
+	return NAN;
 }
 
 void CMAP::CMAP_Force_with_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float *atom_energy)

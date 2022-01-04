@@ -1,5 +1,5 @@
 ﻿#include "improper_dihedral.cuh"
-
+ 
 static __global__ void Dihedral_Energy_CUDA(const int dihedral_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
 	const int *atom_a, const int *atom_b, const int *atom_c, const int *atom_d, const float *pk, const float *phi0, float *ene)
 {
@@ -153,15 +153,14 @@ void IMPROPER_DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
 		FILE *fp = NULL;
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, file_name_suffix), "r");
 
-		fscanf(fp, "%d", &dihedral_numbers);
+		int ret = fscanf(fp, "%d", &dihedral_numbers);
 		controller[0].printf("    dihedral_numbers is %d\n", dihedral_numbers);
 		Memory_Allocate();
 
 		
-		float temp;
 		for (int i = 0; i < dihedral_numbers; i++)
 		{
-			fscanf(fp, "%d %d %d %d %f %f", h_atom_a + i, h_atom_b + i, h_atom_c + i, h_atom_d + i, h_pk + i, h_phi0 + i);
+			ret = fscanf(fp, "%d %d %d %d %f %f", h_atom_a + i, h_atom_b + i, h_atom_c + i, h_atom_d + i, h_pk + i, h_phi0 + i);
 		}
 		fclose(fp);
 		Parameter_Host_To_Device();

@@ -3,6 +3,8 @@
 *.suo
 *.vcxproj
 *.vcxproj.*
+*.o
+SPONGE/SPONGE
 SPONGE/mdbox.txt
 SPONGE/mdcrd.dat
 SPONGE/mdinfo.txt

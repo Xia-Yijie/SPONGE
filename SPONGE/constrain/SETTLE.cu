@@ -1,4 +1,4 @@
-#include "settle.cuh"
+#include "SETTLE.cuh"
 
 //对几何信息进行转化
 //输入：rAB、rAC、rBC：三角形三边长

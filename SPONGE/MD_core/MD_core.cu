@@ -1662,7 +1662,7 @@ void MD_INFORMATION::RERUN_information::Iteration()
 	cudaMemcpy(this->md_info->crd, this->md_info->coordinate, sizeof(VECTOR)* this->md_info->atom_numbers, cudaMemcpyHostToDevice);
 	if (box_file != NULL)
 	{
-		fscanf(box_file, "%f %f %f %*f %*f %*f", &md_info->sys.box_length.x, &md_info->sys.box_length.y, &md_info->sys.box_length.z);
+		int ret = fscanf(box_file, "%f %f %f %*f %*f %*f", &md_info->sys.box_length.x, &md_info->sys.box_length.y, &md_info->sys.box_length.z);
 	}
 }
 
