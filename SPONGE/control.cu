@@ -55,7 +55,6 @@ bool CONTROLLER::Command_Exist(const char *key)
 	command_check[key] = 0;
 	if (temp != NULL && strcmp(temp, "in_file") == 0)
 	{
-		
 		if (commands.count(key))
 		{
 			return true;
@@ -95,7 +94,7 @@ bool CONTROLLER::Command_Exist(const char *prefix, const char *key)
 	strcpy(temp, prefix);
 	strcat(temp, "_");
 	strcat(temp, key);
-	return (bool)commands.count(temp);
+	return Command_Exist(temp);
 }
 
 bool CONTROLLER::Command_Choice(const char *key, const char *value, bool case_sensitive)

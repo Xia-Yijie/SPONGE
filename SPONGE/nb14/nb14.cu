@@ -203,7 +203,7 @@ void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const 
 				smallertype = biggertype;
 				biggertype = temp;
 			}
-			temp = smallertype * (smallertype + 1) / 2 + biggertype;
+			temp = biggertype * (biggertype + 1) / 2 + smallertype;
 			h_A[i] = h_lj_scale_factor * LJ_type_A[temp];
 			h_B[i] = h_lj_scale_factor * LJ_type_B[temp];
 		}
@@ -426,7 +426,7 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 						smallertype = biggertype;
 						biggertype = temptype;
 					}
-					temptype = smallertype * (smallertype + 1) / 2 + biggertype;
+					temptype = biggertype * (biggertype + 1) / 2 + smallertype;
 					h_A[nb14_numbers] = h_lj_scale_factor * LJ_type_A[temptype];
 					h_B[nb14_numbers] = h_lj_scale_factor * LJ_type_B[temptype];
 					nb14_numbers += 1;
@@ -467,7 +467,7 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 						smallertype = biggertype;
 						biggertype = temptype;
 					}
-					temptype = smallertype * (smallertype + 1) / 2 + biggertype;
+					temptype = biggertype * (biggertype + 1) / 2 + smallertype;
 					h_A[nb14_numbers] = h_lj_scale_factor * LJ_type_A[temptype];
 					h_B[nb14_numbers] = h_lj_scale_factor * LJ_type_B[temptype];
 
