@@ -1,5 +1,7 @@
 #include "control.cuh"
 
+#define SPONGE_VERSION "v1.2.3 ALPHA 2022-01-04"
+
 #define MDIN_DEFAULT_FILENAME "mdin.txt"
 #define MDOUT_DEFAULT_FILENAME "mdout.txt"
 #define MDINFO_DEFAULT_FILENAME "mdinfo.txt"
@@ -308,7 +310,7 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 	{
 		Open_File_Safely(&mdout, MDOUT_DEFAULT_FILENAME, "w");
 	}
-	fprintf(mdinfo, "SPONGE Version:\n    v1.2.3alpha 2022-01-04\n\n");
+	printf("SPONGE Version:\n    %s\n\n", SPONGE_VERSION);
 	fprintf(mdinfo, "Citation:\n    %s\n", "Huang, Y. - P., Xia, Y., Yang, L., Wei, J., Yang, Y.I.and Gao, Y.Q. (2022), SPONGE: A GPU - Accelerated Molecular Dynamics Package with Enhanced Sampling and AI - Driven Algorithms.Chin.J.Chem., 40 : 160 - 168. https ://doi.org/10.1002/cjoc.202100456\n\n");
 	printf("MD TASK NAME:\n    %s\n\n", commands["md_name"].c_str());
 	int scanf_ret = fprintf(mdinfo, "Terminal Commands:\n    ");

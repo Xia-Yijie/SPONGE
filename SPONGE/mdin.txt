@@ -39,7 +39,7 @@ neighbor_list
 #热浴相关
 target_temperature = 300.0 #模拟的目标平衡温度，单位为开
 thermostat = andersen_thermostat #可选热浴见下
-middle_langevin #居中图示的langevin算法
+##middle_langevin #居中图示的langevin算法
 {
     seed = 1  #随机数种子，不填随机生成
     gamma = 1 #摩擦系数（碰撞频率），单位为ps^-1
