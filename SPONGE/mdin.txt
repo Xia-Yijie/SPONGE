@@ -140,12 +140,14 @@ LJ
 #输入输出参数
     #输入
         #坐标和速度
+        
         coordinate_in_file = covid-tip4p/npt_coordinate.txt
         velocity_in_file = covid-tip4p/npt_velocity.txt
         #amber_rst7 = xxx.rst7 #AMBER格式
         
         #拓扑信息
-        #amber_parm7 = xxx.parm7 #AMBER格式
+        
+       #amber_parm7 = xxx.parm7 #AMBER格式
         mass_in_file = covid-tip4p/covid-tip4p_mass.txt
         charge_in_file = covid-tip4p/covid-tip4p_charge.txt
         bond_in_file = covid-tip4p/covid-tip4p_bond.txt
@@ -155,6 +157,7 @@ LJ
         exclude_in_file = covid-tip4p/covid-tip4p_exclude.txt
         residue_in_file = covid-tip4p/covid-tip4p_residue.txt
         virtual_atom_in_file = covid-tip4p/covid-tip4p_vatom.txt
+
     #输出
         mdout = mdout.txt   #记录能量轨迹的文件
         mdinfo = mdinfo.txt #记录参数相关的文件

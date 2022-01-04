@@ -521,7 +521,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 				skin, box_length,
 				grid_info, grid_info.gpointer,
 				grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_square, max_atom_in_grid_numbers);
+				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square, max_atom_in_grid_numbers);
 		}
 		else if (refresh_interval > 0 && !forced_check) //如果是恒步长更新且不强制要求检查是否更新
 		{
@@ -534,7 +534,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 					skin, box_length,
 					grid_info, grid_info.gpointer,
 					grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-					d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_square, max_atom_in_grid_numbers);
+					d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square, max_atom_in_grid_numbers);
 			}
 			refresh_count += 1;
 		}

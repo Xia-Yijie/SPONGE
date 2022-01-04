@@ -49,8 +49,42 @@ bool is_str_equal(const char* a_str, const char *b_str, int case_sensitive)
 }
 bool CONTROLLER::Command_Exist(const char *key)
 {
+	const char *temp = strstr(key, "in_file");
 	command_check[key] = 0;
-	return (bool)commands.count(key);
+	if (temp != NULL && strcmp(temp, "in_file") == 0)
+	{
+		
+		if (commands.count(key))
+		{
+			return true;
+		}
+		else if (Command_Exist("default_in_file_prefix"))
+		{
+			
+			char buffer[CHAR_LENGTH_MAX], buffer2[CHAR_LENGTH_MAX];
+			strcpy(buffer, key);
+			
+			buffer[strlen(key) - strlen(temp) - 1] = 0;
+			sprintf(buffer2, "%s_%s.txt", Command("default_in_file_prefix"), buffer);
+			FILE *ftemp = fopen(buffer2, "r");
+			if (ftemp != NULL)
+			{
+				commands[key] = buffer2;
+				fclose(ftemp);
+				return true;
+			}
+			return false;
+
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		return (bool)commands.count(key);
+	}
 }
 
 bool CONTROLLER::Command_Exist(const char *prefix, const char *key)
@@ -274,6 +308,8 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 	{
 		Open_File_Safely(&mdout, MDOUT_DEFAULT_FILENAME, "w");
 	}
+	fprintf(mdinfo, "SPONGE Version:\n    v1.2.3alpha 2022-01-04\n\n");
+	fprintf(mdinfo, "Citation:\n    %s\n", "Huang, Y. - P., Xia, Y., Yang, L., Wei, J., Yang, Y.I.and Gao, Y.Q. (2022), SPONGE: A GPU - Accelerated Molecular Dynamics Package with Enhanced Sampling and AI - Driven Algorithms.Chin.J.Chem., 40 : 160 - 168. https ://doi.org/10.1002/cjoc.202100456\n\n");
 	printf("MD TASK NAME:\n    %s\n\n", commands["md_name"].c_str());
 	int scanf_ret = fprintf(mdinfo, "Terminal Commands:\n    ");
 	for (int i = 0; i < argc; i++)
@@ -306,7 +342,7 @@ void CONTROLLER::Set_Command(const char *Flag, const char *Value, int Check, con
 		strcat(temp, "_");
 	}
 	strcat(temp, Flag);
-	if (Command_Exist(temp))
+	if (commands.count(temp))
 	{
 		fprintf(stderr, "\nError: %s is set more than once.\n", temp);
 		getchar();

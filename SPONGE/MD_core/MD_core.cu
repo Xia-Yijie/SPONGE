@@ -567,16 +567,16 @@ void MD_INFORMATION::trajectory_output::Initial(CONTROLLER *controller, MD_INFOR
 	if (md_info->mode != md_info->RERUN)
 	{
 		write_trajectory_interval = 1000;
-		write_mdout_interval = write_trajectory_interval;
-		write_restart_file_interval = write_trajectory_interval;
 		if (controller[0].Command_Exist("write_information_interval"))
 		{
 			write_trajectory_interval = atoi(controller[0].Command("write_information_interval"));
 		}
+		write_mdout_interval = write_trajectory_interval;
 		if (controller[0].Command_Exist("write_mdout_interval"))
 		{
 			write_mdout_interval = atoi(controller[0].Command("write_mdout_interval"));
 		}
+		write_restart_file_interval = write_trajectory_interval;
 		if (controller[0].Command_Exist("write_restart_file_interval"))
 		{
 			write_restart_file_interval = atoi(controller[0].Command("write_restart_file_interval"));

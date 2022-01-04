@@ -221,7 +221,7 @@ void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const 
 	else if (controller[0].Command_Exist("amber_parm7"))
 	{
 		controller[0].printf("START INITIALIZING NB14 (amber_parm7):\n");
-		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0], LJ_type_A, LJ_type_B, lj_atom_type, extra_numbers);
+		Read_Information_From_AMBERFILE(controller[0].Command("amber_parm7"), controller[0], LJ_type_A, LJ_type_B, lj_atom_type);
 		if (nb14_numbers > 0)
 			is_initialized = 1;
 	}
@@ -323,7 +323,7 @@ void NON_BOND_14::Clear()
 	}
 }
 
-void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const int extra_numbers)
+void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type)
 {
 	int dihedral_numbers, dihedral_type_numbers, dihedral_with_hydrogen;
 	FILE *parm = NULL;
@@ -362,9 +362,9 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 			scanf_ret = fscanf(parm, "%d", &dihedral_type_numbers);
 
 
-			nb14_numbers = dihedral_numbers + extra_numbers;
+			nb14_numbers = dihedral_numbers;
 			Memory_Allocate();
-			nb14_numbers = extra_numbers;
+			nb14_numbers = 0;
 			Malloc_Safely((void**)&cf_scale_type_cpu, sizeof(float)* dihedral_type_numbers);
 			Malloc_Safely((void**)&lj_scale_type_cpu, sizeof(float)* dihedral_type_numbers);
 		}
@@ -418,8 +418,6 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 					if (h_cf_scale_factor[nb14_numbers] != 0)
 						h_cf_scale_factor[nb14_numbers] = 1.0f / h_cf_scale_factor[nb14_numbers];
 					
-					nb14_numbers += 1;
-
 					smallertype = lj_atom_type[h_atom_a[nb14_numbers]];
 					biggertype = lj_atom_type[h_atom_b[nb14_numbers]];
 					if (smallertype > biggertype)
@@ -431,6 +429,7 @@ void NON_BOND_14::Read_Information_From_AMBERFILE(const char *file_name, CONTROL
 					temptype = smallertype * (smallertype + 1) / 2 + biggertype;
 					h_A[nb14_numbers] = h_lj_scale_factor * LJ_type_A[temptype];
 					h_B[nb14_numbers] = h_lj_scale_factor * LJ_type_B[temptype];
+					nb14_numbers += 1;
 				}
 			}
 		}

@@ -1,0 +1,13 @@
+*.sdf
+*.sln
+*.suo
+*.vcxproj
+*.vcxproj.*
+SPONGE/mdbox.txt
+SPONGE/mdcrd.dat
+SPONGE/mdinfo.txt
+SPONGE/mdout.txt
+SPONGE/restart_coordinate.txt
+SPONGE/restart_velocity.txt
+SPONGE/vc120.pdb
+SPONGE/x64/*
