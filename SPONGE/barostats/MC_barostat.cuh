@@ -36,7 +36,7 @@ struct MC_BAROSTAT_INFORMATION
 		YZ = 3,
 		XYZ = 4
 	} couple_dimension;
-
+        int only_direction = 0;
 	int surface_number = 0;
 	float surface_tension = 0.0f;
 

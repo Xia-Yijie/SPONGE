@@ -29,7 +29,10 @@ void MC_BAROSTAT_INFORMATION::Volume_Change_Attempt(VECTOR boxlength)
 	switch (couple_dimension)
 	{
 		case NO:
-			xyz = rand() % 3;
+                        if (only_direction > 0)
+                            xyz = only_direction - 1;
+                        else
+    			    xyz = rand() % 3;
 			if (xyz == 0)
 			{
 				Delta_Box_Length.x = nrand * Delta_Box_Length_Max[xyz];
@@ -44,7 +47,10 @@ void MC_BAROSTAT_INFORMATION::Volume_Change_Attempt(VECTOR boxlength)
 			}
 			break;
 		case XY:
-			xyz = rand() % 2;
+                        if (only_direction > 0)
+                            xyz = only_direction - 1;
+                        else
+			    xyz = rand() % 2;
 			if (xyz == 0)
 			{
 				Delta_Box_Length.z = nrand * Delta_Box_Length_Max[xyz];
@@ -56,7 +62,10 @@ void MC_BAROSTAT_INFORMATION::Volume_Change_Attempt(VECTOR boxlength)
 			}
 			break;
 		case XZ:
-			xyz = rand() % 2;
+			if (only_direction > 0)
+                            xyz = only_direction - 1;
+                        else
+			    xyz = rand() % 2;
 			if (xyz == 0)
 			{
 				Delta_Box_Length.y = nrand * Delta_Box_Length_Max[xyz];
@@ -68,7 +77,10 @@ void MC_BAROSTAT_INFORMATION::Volume_Change_Attempt(VECTOR boxlength)
 			}
 			break;
 		case YZ:
-			xyz = rand() % 2;
+			if (only_direction > 0)
+                            xyz = only_direction - 1;
+                        else
+			    xyz = rand() % 2;
 			if (xyz == 0)
 			{
 				Delta_Box_Length.x = nrand * Delta_Box_Length_Max[xyz];
@@ -216,6 +228,10 @@ void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers,
 		controller->printf("    The couple dimension is %s (index %d)\n", "XYZ", couple_dimension);
 	else
 		controller->printf("    The couple dimension is %s (index %d)\n", controller->Command(this->module_name, "couple_dimension"), couple_dimension);
+        if (controller->Command_Exist(this->module_name, "only_direction"))
+        {
+            only_direction = atoi(controller->Command(this->module_name, "only_direction"));
+        }
 	if (couple_dimension != NO && couple_dimension != XYZ)
 	{
 		surface_number = 0;
