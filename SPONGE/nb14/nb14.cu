@@ -209,7 +209,7 @@ void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const 
 		}
 		for (int i = 0; i < extra_numbers; i++)
 		{
-			int scanf_ret = fscanf(fp, "%d %d %f %f %f", h_atom_a + i, h_atom_b + i, h_A + i, h_B + i, h_cf_scale_factor + i);
+			int scanf_ret = fscanf(fp2, "%d %d %f %f %f", h_atom_a + i, h_atom_b + i, h_A + i, h_B + i, h_cf_scale_factor + i);
 			h_A[i] *= 12;
 			h_B[i] *= 6;
 		}

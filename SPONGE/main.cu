@@ -200,10 +200,10 @@ void Main_Iteration()
 		md_info.rerun.Iteration();
 		return;
 	}
-	//该括号属于mc控压部分
+	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8压\B2\BF\B7\D6
 	if (mc_baro.is_initialized && md_info.sys.steps % mc_baro.update_interval == 0)
 	{
-		//旧能量
+		//\BE\C9\C4\DC\C1\BF
 		mc_baro.energy_old = md_info.sys.h_potential;
 		cudaMemcpy(mc_baro.frc_backup, md_info.frc, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
 		cudaMemcpy(mc_baro.crd_backup, md_info.crd, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
@@ -211,7 +211,7 @@ void Main_Iteration()
 		mc_baro.Volume_Change_Attempt(md_info.sys.box_length);
 
 
-		//改变坐标
+		//\B8谋\E4\D7\F8\B1\EA
 		if (mc_baro.scale_coordinate_by_molecule)
 		{
 			mol_map.Calculate_No_Wrap_Crd(md_info.crd);
@@ -224,14 +224,14 @@ void Main_Iteration()
 		}
 
 		
-		//改变体积
+		//\B8谋\E4\CC\E5\BB\FD
 		Main_Box_Length_Change(mc_baro.crd_scale_factor);
 
-		//新能量
+		//\D0\C2\C4\DC\C1\BF
 		Main_Calculate_Force();
 		mc_baro.energy_new = md_info.sys.h_potential;
 
-		//计算接受概率
+		//\BC\C6\CB\E3\BD\D3\CA芨\C5\C2\CA
 		if (mc_baro.scale_coordinate_by_molecule)
 			mc_baro.extra_term = md_info.sys.target_pressure * mc_baro.DeltaV - md_info.mol.molecule_numbers * CONSTANT_kB * md_info.sys.target_temperature * logf(mc_baro.VDevided);
 		else
@@ -243,24 +243,24 @@ void Main_Iteration()
 		mc_baro.accept_possibility = mc_baro.energy_new - mc_baro.energy_old + mc_baro.extra_term;
 		mc_baro.accept_possibility = expf(-mc_baro.accept_possibility / (CONSTANT_kB * md_info.sys.target_temperature));
 
-		//判断是否接受
+		//\C5卸\CF\CA欠\F1\BD\D3\CA\DC
 		if (mc_baro.Check_MC_Barostat_Accept())
 		{
-			//被拒绝了就还原
+			//\B1\BB\BE芫\F8\C1司突\B9原
 			mc_baro.crd_scale_factor = 1.0 / mc_baro.crd_scale_factor;
 			cudaMemcpy(md_info.crd, mc_baro.crd_backup, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
 			Main_Box_Length_Change(mc_baro.crd_scale_factor);
 			neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 			cudaMemcpy(md_info.frc, mc_baro.frc_backup, sizeof(VECTOR)*md_info.atom_numbers, cudaMemcpyDeviceToDevice);
 		}
-		//接受后体积变化过大或对体积操作次数太多（~1 ns）以后，重新对部分模块初始化
+		//\BD\D3\CA芎\F3\CC\E5\BB\FD\B1浠痋B9\FD\B4\F3\BB\F2\B6\D4\CC\E5\BB\FD\B2\D9\D7\F7\B4\CE\CA\FD太\B6啵▇1 ns\A3\A9\D2院\F3\A3\AC\D6\D8\D0露圆\BF\B7\D6模\BF\E9\B3\F5始\BB\AF
 		if ((!mc_baro.reject && (mc_baro.newV > 1.331 * mc_baro.V0 || mc_baro.newV < 0.729 * mc_baro.V0)))
 		{
 			Main_Volume_Change_Largely();
 			mc_baro.V0 = mc_baro.newV;
 		}
 
-		//对最大变化值进行迭代
+		//\B6\D4\D7\EE\B4\F3\B1浠礬BD\F8\D0械\FC\B4\FA
 		mc_baro.Delta_Box_Length_Max_Update();
 	}
 	
@@ -356,7 +356,7 @@ void Main_Iteration()
 	}
 
 	md_info.MD_Information_Crd_To_Uint_Crd();
-	vatom.Coordinate_Refresh(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.crd);//注意更新uint crd
+	vatom.Coordinate_Refresh(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.crd);//注\D2\E2\B8\FC\D0\C2uint crd
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers);
 	mol_map.Refresh_BoxMapTimes(md_info.crd);
 }
@@ -376,7 +376,7 @@ void Main_Print()
 		controller.Step_Print("nb14_EE", nb14.Get_14_CF_Energy(md_info.uint_crd, md_info.d_charge, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("bond", bond.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("angle", angle.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
-		controller.Step_Print("Urey_Bradley", urey_bradley.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
+		controller.Step_Print("urey_bradley", urey_bradley.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("restrain", restrain.Get_Energy(md_info.crd, md_info.sys.box_length));
 		controller.Step_Print("dihedral", dihedral.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("improper_dihedral", improper.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
@@ -397,7 +397,7 @@ void Main_Print()
 		}
 		md_info.output.Append_Crd_Traj_File();
 		md_info.output.Append_Box_Traj_File();
-		// 20210827用于输出速度和力
+		// 20210827\D3\C3\D3\DA\CA\E4\B3\F6\CB俣群\CD\C1\A6
 		if (md_info.output.is_vel_traj)
 		{
 			md_info.output.Append_Vel_Traj_File();

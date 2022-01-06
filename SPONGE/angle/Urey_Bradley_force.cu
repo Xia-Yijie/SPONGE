@@ -4,7 +4,7 @@ void UREY_BRADLEY::Initial(CONTROLLER* controller, char* module_name)
 {
 	if (module_name == NULL)
 	{
-		strcpy(this->module_name, "Urey_Bradley");
+		strcpy(this->module_name, "urey_bradley");
 	}
 	else
 	{
@@ -21,7 +21,7 @@ void UREY_BRADLEY::Initial(CONTROLLER* controller, char* module_name)
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
 
 		int ret = fscanf(fp, "%d", &Urey_Bradley_numbers);
-		controller[0].printf("    Urey_Bradley_numbers is %d\n", Urey_Bradley_numbers);
+		controller[0].printf("    urey_bradley_numbers is %d\n", Urey_Bradley_numbers);
 
 		bond.bond_numbers = Urey_Bradley_numbers;
 		angle.angle_numbers = Urey_Bradley_numbers;

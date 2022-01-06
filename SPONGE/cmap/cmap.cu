@@ -39,7 +39,7 @@ void CMAP::Initial(CONTROLLER *controller, char *module_name)
 
 		int ret = fscanf(fp, "%d", &(this->tot_cmap_num));
 		ret = fscanf(fp, "%d", &(this->uniq_cmap_num));
-		controller->printf("        total CMAP number is %d\n        unique CMAP number is %d\n", this->tot_cmap_num, this->uniq_cmap_num);
+		controller->printf("    total CMAP number is %d\n    unique CMAP number is %d\n", this->tot_cmap_num, this->uniq_cmap_num);
 		this->Memory_Allocate();
 		for (int i = 0; i < (this->uniq_cmap_num); i++)
 		{
@@ -93,12 +93,19 @@ void CMAP::Initial(CONTROLLER *controller, char *module_name)
 		is_controller_printf_initialized = 1;
 		controller[0].printf("    structure last modify date is %d\n", last_modify_date);
 	}
-
-	//完成插值系数计算，完成初始化
-	this->Interpolation(this->cmap_resolution,this->grid_value,controller[0]);
+	if (is_initialized)
+	{
+	    //完成插值系数计算，完成初始化
+	    this->Interpolation(this->cmap_resolution,this->grid_value,controller[0]);
 		
-	Parameter_Host_to_Device();
-	controller[0].printf("END INITIALIZING CMAP\n\n");
+	    Parameter_Host_to_Device();
+            controller[0].printf("END INITIALIZING CMAP\n\n");
+	}
+        else
+        {
+            controller[0].printf("CMAP IS NOT INITIALIZED\n\n");
+        }
+	
 }
 
 

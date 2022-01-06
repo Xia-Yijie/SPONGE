@@ -35,8 +35,9 @@ static __global__ void Dihedral_Energy_CUDA(const int dihedral_numbers, const UN
 		phi=copysignf(phi, sign);
 
 		phi = CONSTANT_Pi - phi;
-
+                //printf("%f\n", phi / 3.1415926 * 180);
 		float delta_phi = phi - temp_phi0;
+                
 		if (delta_phi > CONSTANT_Pi)
 		{
 			delta_phi -= 2.0f * CONSTANT_Pi;
@@ -77,7 +78,7 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 		float r1_2 = r1_1 * r1_1;
 		float r2_2 = r2_1 * r2_1;
 		float r1_1_r2_1 = r1_1 * r2_1;
-
+                //PHI, pay attention to the var NAME
 		float phi = r1 * r2 * r1_1_r2_1;
 		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
 		phi = acosf(phi);
@@ -86,7 +87,7 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 		phi=copysignf(phi, sign);
 
 		phi = CONSTANT_Pi - phi;
-
+                
 		float delta_phi = phi - temp_phi0;
 		if (delta_phi > CONSTANT_Pi)
 		{
@@ -101,8 +102,12 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 
 		float sin_phi = sinf(phi);
 		float cos_phi = cosf(phi);
-
-		float dE_dphi = -2.0f * temp_pk *  delta_phi / sin_phi;
+                
+                //Here and folloing var name "phi" corespongding to the declaration of phi
+                //aka, the var with the comment line "PHI, pay attention to the var NAME" 
+                //The real dihedral = Pi - ArcCos(so-called "phi")
+                //d(real dihedral) = 1/sin(real dihedral) * d(so-called  "phi")
+		float dE_dphi = -2.0f * temp_pk *  delta_phi / sin_phi; 
 
 		VECTOR dphi_dr1 = r1_1_r2_1 * r2 + cos_phi * r1_2 * r1;
 		VECTOR dphi_dr2 = r1_1_r2_1 * r1 + cos_phi * r2_2 * r2;
