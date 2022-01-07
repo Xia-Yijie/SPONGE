@@ -3,11 +3,11 @@
 #本文本文件内的所有参数指令均可通过加"-"前缀在命令行里输入，例如 -cutoff 8.0 -skin 2.0
 
 #分子模拟最基本相关设置
-mode = NPT #可选Minimization, NVE, NVT, NPT
+mode = NPT #可选Rerun, Minimization, NVE, NVT, NPT
 
-dt = 4e-3 #模拟步长，单位ps
+dt = 1e-3 #模拟步长，单位ps
 step_limit = 10000 #模拟总步数
-write_information_interval = 2500 #保存中间信息的间隔
+write_information_interval = 1000 #保存中间信息的间隔
 write_restart_file_interval = 5000  #保存重启坐标和速度的间隔
 molecule_map_output = 1 #保存的坐标按分子整体进行周期性映射
 
@@ -31,18 +31,18 @@ skin = 2.0   #截断半径的外延半径
 neighbor_list
 {
     refresh_interval = 0 #更新间隔，0表示有原子距上次更新近邻表移动超过skin_permit * skin后自动更新，其他整数则每隔对应步数更新
-    skin_permit = 0.5 #自动更新时的参数
+    skin_permit = 1 #自动更新时的参数
     max_atom_in_grid_numbers = 128 #近邻表中每个空间格点中存储的最大原子数
     max_neighbor_numbers = 1200 #每个原子的最大近邻数
 }
 
 #热浴相关
 target_temperature = 300.0 #模拟的目标平衡温度，单位为开
-thermostat = langevin #可选热浴见下
-langevin #居中图示的langevin算法
+thermostat = andersen_thermostat #可选热浴见下
+##middle_langevin #居中图示的langevin算法
 {
     seed = 1  #随机数种子，不填随机生成
-    gamma = 10.0  #摩擦系数（碰撞频率），单位为ps^-1
+    gamma = 1 #摩擦系数（碰撞频率），单位为ps^-1
     velocity_max = 20.0 #迭代时速度的最大值，单位为埃每皮秒
 }
 
@@ -75,22 +75,24 @@ langevin #居中图示的langevin算法
 }
 
 #压浴相关
-barostat = monte_carlo_barostat #可选monte_carlo_barostat 和berendsen_barostat
+barostat =  andersen_barostat #可选monte_carlo_barostat, berendsen_barostat和andersen_barostat
 target_pressure = 1.0 #模拟的目标平衡温度，单位为巴
 ##berendsen_barostat  #两个##可以直接注释掉整个大括号内的内容
 {
     tau = 1.0 #弛豫时间，单位为ps
     compressibility = 4.5e-5 #压缩系数，单位为bar^-1
-    update_interval = 10 #压浴更新间隔
+    update_interval = 1 #压浴更新间隔
+    stochastic_term = 1
 }
-monte_carlo_barostat 
+##monte_carlo_barostat 
 {
     update_interval = 100 #压浴更新间隔
-    initial_ratio = 0.01 #初始体积最大变化百分数
+    initial_ratio = 0.001 #初始体积最大变化百分数
     check_interval = 20 #每尝试check_interval次后更新体积最大变化率
     molecule_scale = 1 #按照分子内相对坐标不变控压
     accept_rate_low = 30 #改变体积的接受概率百分比最低值
     accept_rate_high = 40 #改变体积的接受概率百分比最高值
+    couple_dimension = NO
 }
 
 #限制参数
@@ -102,16 +104,24 @@ monte_carlo_barostat
     #amber_rst7 = temp.rst7 #AMBER格式的参考坐标，不填默认初始坐标
 }
 #约束参数
-constrain_mode = simple_constrain #目前只支持simple_constrain，简单的类shake算法
-simple_constrain
+constrain
 {
-    iteration_numbers = 30 #迭代次数
-    step_length = 0.9 #迭代步长
-    mass = 33  #约束原子质量小于该值的原子的键
-    angle_constrain = 0 #是否约束键角
+    mode = SHAKE #目前支持simple_constrain和shake
+    mass = 3.3  #约束原子质量小于该值的原子的键
+    angle = 0 #是否约束键角
     #in_file = xxx.txt #用文件指定需要约束的键长
 }
-
+#settle_disable = 1
+##simple_constrain
+{
+    iteration_numbers = 25 #迭代次数
+    step_length = 1 #迭代步长
+}
+##shake
+{
+    iteration_numbers = 25 #迭代次数
+    step_length = 1 #迭代步长
+}
 #PME参数
 PME
 {
@@ -130,12 +140,14 @@ LJ
 #输入输出参数
     #输入
         #坐标和速度
+        
         coordinate_in_file = covid-tip4p/npt_coordinate.txt
         velocity_in_file = covid-tip4p/npt_velocity.txt
         #amber_rst7 = xxx.rst7 #AMBER格式
         
         #拓扑信息
-        #amber_parm7 = xxx.parm7 #AMBER格式
+        
+       #amber_parm7 = xxx.parm7 #AMBER格式
         mass_in_file = covid-tip4p/covid-tip4p_mass.txt
         charge_in_file = covid-tip4p/covid-tip4p_charge.txt
         bond_in_file = covid-tip4p/covid-tip4p_bond.txt
@@ -145,6 +157,7 @@ LJ
         exclude_in_file = covid-tip4p/covid-tip4p_exclude.txt
         residue_in_file = covid-tip4p/covid-tip4p_residue.txt
         virtual_atom_in_file = covid-tip4p/covid-tip4p_vatom.txt
+
     #输出
         mdout = mdout.txt   #记录能量轨迹的文件
         mdinfo = mdinfo.txt #记录参数相关的文件

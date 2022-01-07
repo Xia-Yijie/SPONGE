@@ -78,7 +78,7 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 		float r1_2 = r1_1 * r1_1;
 		float r2_2 = r2_1 * r2_1;
 		float r1_1_r2_1 = r1_1 * r2_1;
-
+                //PHI, pay attention to the var NAME
 		float phi = r1 * r2 * r1_1_r2_1;
 		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
 		phi = acosf(phi);
@@ -95,6 +95,10 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 		float cos_nphi = cosf(nphi);
 		float sin_nphi = sinf(nphi);
 
+                //Here and folloing var name "phi" corespongding to the declaration of phi
+                //aka, the var with the comment line "PHI, pay attention to the var NAME" 
+                //The real dihedral = Pi - ArcCos(so-called "phi")
+                //d(real dihedral) = 1/sin(real dihedral) * d(so-called  "phi")
 		float dE_dphi;
 		if (fabsf(sin_phi) < 1e-6)
 		{

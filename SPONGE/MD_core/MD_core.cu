@@ -147,6 +147,29 @@ static __global__ void Map_Center_Of_Mass(const int residue_numbers, const int *
 	}
 }
 
+static __global__ void Map_Center_Of_Mass(const int residue_numbers, const int *start, const int *end,
+	const VECTOR scaler, const VECTOR *center_of_mass, const VECTOR box_length, const VECTOR *no_wrap_crd, VECTOR *crd)
+{
+	VECTOR trans_vec;
+	VECTOR com;
+	for (int residue_i = blockDim.x*blockIdx.x + threadIdx.x; residue_i < residue_numbers; residue_i += gridDim.x * blockDim.x)
+	{
+		com = center_of_mass[residue_i];
+
+		trans_vec.x = com.x - floorf(com.x / box_length.x) * box_length.x;
+		trans_vec.y = com.y - floorf(com.y / box_length.y) * box_length.y;
+		trans_vec.z = com.z - floorf(com.z / box_length.z) * box_length.z;
+		trans_vec.x = scaler.x * trans_vec.x - com.x;
+		trans_vec.y = scaler.y * trans_vec.y - com.y;
+		trans_vec.z = scaler.z * trans_vec.z - com.z;
+
+		for (int atom_i = start[residue_i] + threadIdx.y; atom_i < end[residue_i]; atom_i += blockDim.y)
+		{
+			crd[atom_i] = no_wrap_crd[atom_i] + trans_vec;
+		}
+	}
+}
+
 static __global__ void Add_Sum_List(int n, float *atom_virial, float *sum_virial)
 {
 	float temp = 0;
@@ -490,6 +513,11 @@ void MD_INFORMATION::Read_Mode(CONTROLLER *controller)
 			controller->printf("    Mode set to NVE\n");
 			mode = 0;
 		}
+		else if (is_str_equal(controller[0].Command("mode"), "RERUN"))
+		{
+			controller->printf("    Mode set to RERUN\n");
+			mode = -2;
+		}
 		else
 		{
 			controller->printf("    Warning: Mode '%s' not match. Set to NVE as default\n", controller[0].Command("mode"));
@@ -536,31 +564,49 @@ void MD_INFORMATION::trajectory_output::Initial(CONTROLLER *controller, MD_INFOR
 	{
 		is_molecule_map_output = atoi(controller[0].Command("molecule_map_output"));
 	}
-	write_trajectory_interval = 1000;
-	if (controller[0].Command_Exist("write_information_interval"))
+	if (md_info->mode != md_info->RERUN)
 	{
-		write_trajectory_interval = atoi(controller[0].Command("write_information_interval"));
-	}
-	write_restart_file_interval = write_trajectory_interval;
-	if (controller[0].Command_Exist("write_restart_file_interval"))
-	{
-		write_restart_file_interval = atoi(controller[0].Command("write_restart_file_interval"));
-	}
-	if (controller->Command_Exist(TRAJ_COMMAND))
-	{
-		Open_File_Safely(&crd_traj, controller->Command(TRAJ_COMMAND), "wb");
-	}
-	else
-	{
-		Open_File_Safely(&crd_traj, TRAJ_DEFAULT_FILENAME, "wb");
-	}
-	if (controller->Command_Exist(BOX_TRAJ_COMMAND))
-	{
-		Open_File_Safely(&box_traj, controller->Command(BOX_TRAJ_COMMAND), "w");
+		write_trajectory_interval = 1000;
+		if (controller[0].Command_Exist("write_information_interval"))
+		{
+			write_trajectory_interval = atoi(controller[0].Command("write_information_interval"));
+		}
+		write_mdout_interval = write_trajectory_interval;
+		if (controller[0].Command_Exist("write_mdout_interval"))
+		{
+			write_mdout_interval = atoi(controller[0].Command("write_mdout_interval"));
+		}
+		write_restart_file_interval = write_trajectory_interval;
+		if (controller[0].Command_Exist("write_restart_file_interval"))
+		{
+			write_restart_file_interval = atoi(controller[0].Command("write_restart_file_interval"));
+		}
 	}
 	else
 	{
-		Open_File_Safely(&box_traj, BOX_TRAJ_DEFAULT_FILENAME, "w");
+		write_trajectory_interval = 0;
+		write_mdout_interval = 1;
+		write_restart_file_interval = 0;
+	}
+
+	if (write_trajectory_interval != 0)
+	{
+		if (controller->Command_Exist(TRAJ_COMMAND))
+		{
+			Open_File_Safely(&crd_traj, controller->Command(TRAJ_COMMAND), "wb");
+		}
+		else
+		{
+			Open_File_Safely(&crd_traj, TRAJ_DEFAULT_FILENAME, "wb");
+		}
+		if (controller->Command_Exist(BOX_TRAJ_COMMAND))
+		{
+			Open_File_Safely(&box_traj, controller->Command(BOX_TRAJ_COMMAND), "w");
+		}
+		else
+		{
+			Open_File_Safely(&box_traj, BOX_TRAJ_DEFAULT_FILENAME, "w");
+		}
 	}
 	if (controller->Command_Exist(RESTART_COMMAND))
 	{
@@ -1131,6 +1177,8 @@ void MD_INFORMATION::Initial(CONTROLLER *controller)
 	
 	min.Initial(controller, this);
 
+	rerun.Initial(controller, this);
+
 	res.Initial(controller, this);
 
 	mol.Initial(controller, this);
@@ -1448,6 +1496,16 @@ void MD_INFORMATION::Update_Volume(double factor)
 	MD_Information_Crd_To_Uint_Crd();
 }
 
+void MD_INFORMATION::Update_Box_Length(VECTOR factor)
+{
+	sys.box_length.x = factor.x * sys.box_length.x;
+	sys.box_length.y = factor.y * sys.box_length.y;
+	sys.box_length.z = factor.z * sys.box_length.z;
+	pbc.crd_to_uint_crd_cof = CONSTANT_UINT_MAX_FLOAT / sys.box_length;
+	pbc.quarter_crd_to_uint_crd_cof = 0.25 * pbc.crd_to_uint_crd_cof;
+	pbc.uint_dr_to_dr_cof = 1.0f / pbc.crd_to_uint_crd_cof;
+	MD_Information_Crd_To_Uint_Crd();
+}
 
 float MD_INFORMATION::system_information::Get_Density()
 {
@@ -1565,7 +1623,48 @@ void MD_INFORMATION::MINIMIZATION_iteration::Gradient_Descent()
 	}
 }
 
+void MD_INFORMATION::RERUN_information::Initial(CONTROLLER *controller, MD_INFORMATION *md_info)
+{
+	this->md_info = md_info;
+	if (md_info->mode == RERUN)
+	{
+		controller->printf("    Start initializing rerun:\n");
+		if (!Open_File_Safely(&traj_file, controller->Command(TRAJ_COMMAND), "rb"))
+		{
+			
+			controller->printf("        Rerun need trajectory!\n");
+			exit(1);
+		}
+		else
+		{
+			controller->printf("        Open rerun coordinate trajectory\n");
+		}
+		if (!Open_File_Safely(&box_file, controller->Command(BOX_TRAJ_COMMAND), "r"))
+		{
+			box_file = NULL;
+		}
+		else
+		{
+			controller->printf("        Open rerun box trajectory\n");
+		}
 
+		controller->printf("    End initializing rerun\n\n");
+	}
+}
+
+void MD_INFORMATION::RERUN_information::Iteration()
+{
+	int n = fread(this->md_info->coordinate, sizeof(VECTOR), this->md_info->atom_numbers, traj_file);
+	if (n != this->md_info->atom_numbers)
+	{
+		md_info->sys.step_limit = 0;
+	}
+	cudaMemcpy(this->md_info->crd, this->md_info->coordinate, sizeof(VECTOR)* this->md_info->atom_numbers, cudaMemcpyHostToDevice);
+	if (box_file != NULL)
+	{
+		int ret = fscanf(box_file, "%f %f %f %*f %*f %*f", &md_info->sys.box_length.x, &md_info->sys.box_length.y, &md_info->sys.box_length.z);
+	}
+}
 
 void MD_INFORMATION::NVE_iteration::Velocity_Verlet_1()
 {
@@ -1881,6 +1980,17 @@ void MD_INFORMATION::molecule_information::Initial(CONTROLLER *controller, MD_IN
 }
 
 void MD_INFORMATION::molecule_information::Molecule_Crd_Map(VECTOR *no_wrap_crd, float scaler)
+{
+	//为了有一个分子有很多残基，而其他分子都很小这种情况的并行，先求残基的质心
+	Get_Center_Of_Mass << <64, 128 >> >(md_info->res.residue_numbers, md_info->res.d_res_start, md_info->res.d_res_end, no_wrap_crd, md_info->d_mass, md_info->res.d_mass_inverse, md_info->res.d_center_of_mass);
+	//再用残基的质心求分子的质心
+	Get_Center_Of_Mass << <32, 64 >> >(molecule_numbers, d_residue_start, d_residue_end, md_info->res.d_center_of_mass, md_info->res.d_mass, d_mass_inverse, d_center_of_mass);
+
+	Map_Center_Of_Mass << <20, { 32, 4 } >> >(molecule_numbers, d_atom_start, d_atom_end, scaler, d_center_of_mass, md_info->sys.box_length, no_wrap_crd, md_info->crd);
+}
+
+
+void MD_INFORMATION::molecule_information::Molecule_Crd_Map(VECTOR *no_wrap_crd, VECTOR scaler)
 {
 	//为了有一个分子有很多残基，而其他分子都很小这种情况的并行，先求残基的质心
 	Get_Center_Of_Mass << <64, 128 >> >(md_info->res.residue_numbers, md_info->res.d_res_start, md_info->res.d_res_end, no_wrap_crd, md_info->d_mass, md_info->res.d_mass_inverse, md_info->res.d_center_of_mass);

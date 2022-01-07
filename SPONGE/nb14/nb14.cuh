@@ -44,10 +44,10 @@ struct NON_BOND_14
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210825;
+	int last_modify_date = 20211222;
 
 	//r = ab原子的距离
-	//E_lj_energy = lj_scale_factor * (lj_A/12 * r^-12 - lj_B/6 * r^-6) 
+	//E_lj_energy = (A/12 * r^-12 - B/6 * r^-6) 
 	//E_cf_energy = cf_scale_factor * charge_a * charge_b / r
 	//lj_A、lj_B、charge从外部传入，lj_A、lj_B参考LJ，charge参考md_core
 	int nb14_numbers = 0;
@@ -55,8 +55,10 @@ struct NON_BOND_14
 	int *h_atom_b = NULL;
 	int *d_atom_a = NULL;
 	int *d_atom_b = NULL;
-	float *h_lj_scale_factor = NULL;
-	float *d_lj_scale_factor = NULL;
+	float *h_A = NULL;
+	float *d_A = NULL;
+	float *h_B = NULL;
+	float *d_B = NULL;
 	float *h_cf_scale_factor = NULL;
 	float *d_cf_scale_factor = NULL;
 
@@ -68,18 +70,18 @@ struct NON_BOND_14
 
 	int threads_per_block = 128;
 
-	void Initial(CONTROLLER *controller, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, char *module_name = NULL);
 	void Clear();
 	void Memory_Allocate();
-	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller);
+	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type);
 	void Parameter_Host_To_Device();
 
 	//同时计算原子的力、能量和维里
-	void Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, VECTOR *frc, float *atom_energy, float *atom_virial);
+	void Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, VECTOR *frc, float *atom_energy, float *atom_virial);
 
 	//获得能量
-	float Get_14_LJ_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, const float *LJ_type_A, const float *LJ_type_B, int is_download = 1);
-	float Get_14_CF_Energy(const UINT_VECTOR_LJ_TYPE *uint_crd, const VECTOR scaler, int is_download = 1);
+	float Get_14_LJ_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download = 1);
+	float Get_14_CF_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, int is_download = 1);
 
 	
 };

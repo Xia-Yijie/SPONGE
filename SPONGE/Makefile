@@ -5,11 +5,11 @@ compiler=nvcc
 COMMON_COMMAND=-arch=sm_50 -rdc=true -lcudadevrt -lcufft --use_fast_math -O4 -std=c++11
 BIN_NAME=SPONGE
 
-install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o  thermostats/Middle_Langevin_MD.o thermostats/Andersen_thermostat.o thermostats/Berendsen_thermostat.o thermostats/nose_hoover_chain.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+install: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o angle/Urey_Bradley_force.o dihedral/dihedral.o dihedral/improper_dihedral.o cmap/cmap.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o  thermostats/Langevin_MD.o thermostats/Middle_Langevin_MD.o thermostats/Andersen_thermostat.o thermostats/Berendsen_thermostat.o thermostats/nose_hoover_chain.o barostats/MC_barostat.o barostats/Berendsen_barostat.o barostats/andersen_barostat.o restrain/restrain.o constrain/constrain.o constrain/simple_constrain.o constrain/SETTLE.o constrain/SHAKE.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	$(compiler) -o $(BIN_NAME)  $^ $(COMMON_COMMAND)
 
 
-all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o thermostats/Middle_Langevin_MD.o MC_barostat/MC_barostat.o Berendsen_barostat/Berendsen_barostat.o restrain/restrain.o simple_constrain/simple_constrain.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
+all: main.o common.o control.o MD_core/MD_core.o bond/bond.o angle/angle.o dihedral/dihedral.o nb14/nb14.o neighbor_list/neighbor_list.o Lennard_Jones_force/Lennard_Jones_force.o PME_force/PME_force.o  thermostats/Middle_Langevin_MD.o thermostats/Andersen_thermostat.o thermostats/Berendsen_thermostat.o thermostats/nose_hoover_chain.o barostats/MC_barostat.o barostats/Berendsen_barostat.o barostats/andersen_barostat.o restrain/restrain.o constrain/constrain.o constrain/simple_constrain.o constrain/SETTLE.o constrain/SHAKE.o virtual_atoms/virtual_atoms.o crd_molecular_map/crd_molecular_map.o
 	
 
 
@@ -36,10 +36,17 @@ bond/bond.o: bond/bond.cu bond/bond.cuh common.cuh control.cuh
 angle/angle.o: angle/angle.cu angle/angle.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
+angle/Urey_Bradley_force.o: angle/Urey_Bradley_force.cu angle/Urey_Bradley_force.cuh bond/bond.cuh angle/angle.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 dihedral/dihedral.o: dihedral/dihedral.cu dihedral/dihedral.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
+dihedral/improper_dihedral.o: dihedral/improper_dihedral.cu dihedral/improper_dihedral.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
+
+cmap/cmap.o: cmap/cmap.cu cmap/cmap.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 nb14/nb14.o: nb14/nb14.cu nb14/nb14.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
@@ -56,6 +63,8 @@ Lennard_Jones_force/Lennard_Jones_force.o: Lennard_Jones_force/Lennard_Jones_for
 PME_force/PME_force.o: PME_force/PME_force.cu PME_force/PME_force.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
+thermostats/Langevin_MD.o: thermostats/Langevin_MD.cu thermostats/Langevin_MD.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 thermostats/Middle_Langevin_MD.o: thermostats/Middle_Langevin_MD.cu thermostats/Middle_Langevin_MD.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
@@ -73,21 +82,30 @@ thermostats/nose_hoover_chain.o: thermostats/nose_hoover_chain.cu thermostats/no
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-MC_barostat/MC_barostat.o: MC_barostat/MC_barostat.cu MC_barostat/MC_barostat.cuh common.cuh control.cuh
+barostats/MC_barostat.o: barostats/MC_barostat.cu barostats/MC_barostat.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 
-Berendsen_barostat/Berendsen_barostat.o: Berendsen_barostat/Berendsen_barostat.cu Berendsen_barostat/Berendsen_barostat.cuh common.cuh control.cuh
+barostats/Berendsen_barostat.o: barostats/Berendsen_barostat.cu barostats/Berendsen_barostat.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
+barostats/andersen_barostat.o: barostats/andersen_barostat.cu barostats/andersen_barostat.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 restrain/restrain.o: restrain/restrain.cu restrain/restrain.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
-
-simple_constrain/simple_constrain.o: simple_constrain/simple_constrain.cu simple_constrain/simple_constrain.cuh common.cuh control.cuh
+constrain/constrain.o: constrain/constrain.cu constrain/constrain.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
+constrain/SETTLE.o: constrain/SETTLE.cu constrain/SETTLE.cuh constrain/constrain.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
+
+constrain/SHAKE.o: constrain/SHAKE.cu constrain/SHAKE.cuh constrain/constrain.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
+
+constrain/simple_constrain.o: constrain/simple_constrain.cu constrain/simple_constrain.cuh constrain/constrain.cuh common.cuh control.cuh
+	$(compiler) -o $@ -c $< $(COMMON_COMMAND)
 
 virtual_atoms/virtual_atoms.o: virtual_atoms/virtual_atoms.cu virtual_atoms/virtual_atoms.cuh common.cuh control.cuh
 	$(compiler) -o $@ -c $< $(COMMON_COMMAND)

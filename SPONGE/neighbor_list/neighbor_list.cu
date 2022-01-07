@@ -24,17 +24,17 @@ static void Initial_Neighbor_Grid(
 	grid_info[0].Nxy = grid_info[0].Nx*grid_info[0].Ny;
 	grid_info[0].grid_numbers = grid_info[0].Nz*grid_info[0].Nxy;
 
-	Cuda_Malloc_Safely((void **)&atom_numbers_in_grid_bucket[0], sizeof(int)*grid_info[0].grid_numbers);
-	Reset_List << <ceilf((float)grid_info[0].grid_numbers / 32), 32 >> >(grid_info[0].grid_numbers, atom_numbers_in_grid_bucket[0], 0);
+	Cuda_Malloc_Safely((void **)&atom_numbers_in_grid_bucket[0], sizeof(int)*(grid_info[0].grid_numbers+1));
+	Reset_List << <ceilf(((float)grid_info[0].grid_numbers + 1 ) / 32), 32 >> >(grid_info[0].grid_numbers+1, atom_numbers_in_grid_bucket[0], 0);
 
-	Malloc_Safely((void**)&grid_info[0].h_bucket,sizeof(GRID_BUCKET)*grid_info[0].grid_numbers); 
-	for (int i = 0; i < grid_info[0].grid_numbers; i = i + 1)
+	Malloc_Safely((void**)&grid_info[0].h_bucket,sizeof(GRID_BUCKET)*(grid_info[0].grid_numbers+1)); 
+	for (int i = 0; i < grid_info[0].grid_numbers + 1; i = i + 1)
 	{
 		Cuda_Malloc_Safely((void**)&grid_info[0].h_bucket[i].atom_serial, sizeof(int)* in_bucket_atom_numbers_max);
 		Reset_List << <ceilf((float)in_bucket_atom_numbers_max/32), 32 >> >(in_bucket_atom_numbers_max, grid_info[0].h_bucket[i].atom_serial, -1);
 	}
-	Cuda_Malloc_Safely((void**)&bucket[0], sizeof(GRID_BUCKET)*grid_info[0].grid_numbers);
-	cudaMemcpy(bucket[0], grid_info[0].h_bucket, sizeof(GRID_BUCKET)*grid_info[0].grid_numbers, cudaMemcpyHostToDevice);
+	Cuda_Malloc_Safely((void**)&bucket[0], sizeof(GRID_BUCKET)*(grid_info[0].grid_numbers+1));
+	cudaMemcpy(bucket[0], grid_info[0].h_bucket, sizeof(GRID_BUCKET)*(grid_info[0].grid_numbers+1), cudaMemcpyHostToDevice);
 	//free(h_bucket);
 
 	GRID_POINTER lin_pointer;
@@ -46,6 +46,7 @@ static void Initial_Neighbor_Grid(
 	int yy;
 	int zz;
 	int count;
+	int small_out;
 	Malloc_Safely((void**)&grid_info[0].h_pointer, sizeof(GRID_POINTER)*grid_info[0].grid_numbers);
 	for (int i = 0; i < grid_info[0].grid_numbers; i = i + 1)
 	{
@@ -59,34 +60,82 @@ static void Initial_Neighbor_Grid(
 			{
 				for (int n = -2; n <= 2; n = n + 1)
 				{
+					small_out = 0;
 					xx = Nx + l;
-					if (xx < 0)
+					//处理小盒子越边界
+					//盒子大小大于5、未超过边界、等于4且只超出一个边界的，不处理
+					if (grid_info->Nx >= 5 || (xx >= 0 && xx < grid_info->Nx) || (grid_info->Nx == 4 && ((Nx == 0 && l == -1) || (Nx == 3 && l == 1))))
 					{
-						xx = xx + grid_info[0].Nx;
+
 					}
-					else if (xx >= grid_info[0].Nx)
+					else
 					{
-						xx = xx - grid_info[0].Nx;
+						small_out = 1;
+					}
+					if (!small_out)
+					{
+						if (xx < 0)
+						{
+							xx = xx + grid_info[0].Nx;
+						}
+						else if (xx >= grid_info[0].Nx)
+						{
+							xx = xx - grid_info[0].Nx;
+						}
 					}
 					yy = Ny + m;
-					if (yy < 0)
+					//处理小盒子越边界
+					if (grid_info->Ny >= 5 || (yy >= 0 && yy < grid_info->Ny) || (grid_info->Ny == 4 && ((Ny == 0 && m == -1) || (Ny == 3 && m == 1))))
 					{
-						yy = yy + grid_info[0].Ny;
+
 					}
-					else if (yy >= grid_info[0].Ny)
+					else
 					{
-						yy = yy - grid_info[0].Ny;
+						small_out = 1;
 					}
+					if (!small_out)
+					{
+						if (yy < 0)
+						{
+							yy = yy + grid_info[0].Ny;
+						}
+						else if (yy >= grid_info[0].Ny)
+						{
+							yy = yy - grid_info[0].Ny;
+						}
+					}
+					
 					zz = Nz + n;
-					if (zz < 0)
+					//处理小盒子越边界
+					if (grid_info->Nz >= 5 || (zz >= 0 && zz < grid_info->Nz) || (grid_info->Nz == 4 && ((Nz == 0 && n == -1) || (Nz == 3 && n == 1))))
 					{
-						zz = zz + grid_info[0].Nz;
+
 					}
-					else if (zz >= grid_info[0].Nz)
+					else
 					{
-						zz = zz - grid_info[0].Nz;
+						small_out = 1;
 					}
-					lin_pointer.grid_serial[count] = zz*grid_info[0].Nxy + yy*grid_info[0].Nx + xx;
+					if (!small_out)
+					{
+						if (zz < 0)
+						{
+							zz = zz + grid_info[0].Nz;
+						}
+						else if (zz >= grid_info[0].Nz)
+						{
+							zz = zz - grid_info[0].Nz;
+						}
+					}
+
+					if (!small_out)
+					{
+						lin_pointer.grid_serial[count] = zz*grid_info[0].Nxy + yy*grid_info[0].Nx + xx;
+						
+					}
+					else
+					{
+						lin_pointer.grid_serial[count] = grid_info->grid_numbers;
+					}
 					count = count + 1;
 				}
 			}
@@ -171,59 +220,119 @@ static __global__ void Put_Atom_In_Grid_Bucket(const int atom_numbers, const int
 	}
 }
 
+static __global__ void Find_atom_neighbors_gridly(
+	const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
+	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
+	ATOM_GROUP *nl, const float cutoff_skin_square, const int max_atom_numbers_in_gird)
+{
+	if (threadIdx.y < 125)
+	{
+		int grid_i = blockIdx.x;
+		int grid_j = gpointer[grid_i].grid_serial[threadIdx.y];
+		int atom_i, atom_j;
+		VECTOR dr;
+		float dr2;
+		extern __shared__ char shared_memory[];
+
+		UNSIGNED_INT_VECTOR *uints = (UNSIGNED_INT_VECTOR *)shared_memory;
+		int *sm_bucket_i = (int*)(shared_memory + sizeof(UNSIGNED_INT_VECTOR)* max_atom_numbers_in_gird);
+		ATOM_GROUP *sm_nl = (ATOM_GROUP *)(shared_memory + (sizeof(UNSIGNED_INT_VECTOR)+sizeof(int))* max_atom_numbers_in_gird);
+
+		int *bucket_i = bucket[grid_i].atom_serial;
+		int *bucket_j = bucket[grid_j].atom_serial;
+		int atom_numbers_in_grid_i = atom_numbers_in_grid_bucket[grid_i];
+		int atom_numbers_in_grid_j = atom_numbers_in_grid_bucket[grid_j];
+		if (threadIdx.x == 0)
+		{
+			for (int i = threadIdx.y; i < atom_numbers_in_grid_i; i += blockDim.y)
+			{
+				atom_i = bucket_i[i];
+				uints[i] = uint_crd[atom_i];
+				sm_bucket_i[i] = atom_i;		
+				sm_nl[i] = nl[atom_i];
+				nl[atom_i].atom_numbers = 0;
+			}
+		}
+		__syncthreads();
+	
+		UNSIGNED_INT_VECTOR uint_crd_j;
+		ATOM_GROUP nl_i;
+		for (int j = threadIdx.x; j < atom_numbers_in_grid_j; j += blockDim.x)
+		{
+			atom_j = bucket_j[j];
+			uint_crd_j = uint_crd[atom_j];
+
+			for (int i = 0; i < atom_numbers_in_grid_i; i++)
+			{
+				atom_i = sm_bucket_i[i];
+				nl_i = sm_nl[i];
+
+				if (atom_j > atom_i)
+				{			
+					dr = Get_Periodic_Displacement(uint_crd_j, uints[i], uint_dr_to_dr_cof);
+					dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
+					if (dr2 < cutoff_skin_square)
+					{
+						nl_i.atom_numbers = atomicAdd(&nl[atom_i].atom_numbers, 1);
+						nl_i.atom_serial[nl_i.atom_numbers] = atom_j;
+					}
+				}
+			}
+		}
+	}
+}
+/*
 static __global__ void Find_atom_neighbors(
 	const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR uint_dr_to_dr_cof,
 	const int *atom_in_grid_serial, const GRID_POINTER *gpointer, const GRID_BUCKET *bucket, const int *atom_numbers_in_grid_bucket,
 	ATOM_GROUP *nl, const float cutoff_skin_square)
 {
-	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	int atom_i = blockDim.y*blockIdx.y + threadIdx.y;
 	if (atom_i < atom_numbers)
 	{
 		int grid_serial = atom_in_grid_serial[atom_i];
 		int grid_serial2;
-		int atom_numbers_in_nl_lin = 0;
+		
 		int atom_j;
 		int int_x;
 		int int_y;
 		int int_z;
-		UNSIGNED_INT_VECTOR uint_crd_i = uint_crd[atom_i];
+		UNSIGNED_INT_VECTOR uint_crd_i = uint_crd[atom_i], uint_crd_j;
 		ATOM_GROUP nl_i = nl[atom_i];
+		int *atom_numbers_address = &nl[atom_i].atom_numbers;
+		*atom_numbers_address = 0;
+		__syncthreads();
 		GRID_POINTER gpointer_i = gpointer[grid_serial];
 		VECTOR dr;
 		float dr2;
-		for (int grid_cycle = 0; grid_cycle < 125; grid_cycle = grid_cycle + 1)
+		for (int grid_cycle = threadIdx.x; grid_cycle < 125; grid_cycle = grid_cycle + blockDim.x)
 		{
 			grid_serial2 = gpointer_i.grid_serial[grid_cycle];
 			GRID_BUCKET bucket_i = bucket[grid_serial2];
-			for (int i = 0; i < atom_numbers_in_grid_bucket[grid_serial2]; i = i + 1)
+			for (int j = 0; j < atom_numbers_in_grid_bucket[grid_serial2]; j = j + 1)
 			{
-				atom_j = bucket_i.atom_serial[i];
+				atom_j = bucket_i.atom_serial[j];
+				uint_crd_j = uint_crd[atom_j];
 				if (atom_j > atom_i)
 				{
-					int_x = uint_crd[atom_j].uint_x - uint_crd_i.uint_x;
-					int_y = uint_crd[atom_j].uint_y - uint_crd_i.uint_y;
-					int_z = uint_crd[atom_j].uint_z - uint_crd_i.uint_z;
+					int_x = uint_crd_j.uint_x - uint_crd_i.uint_x;
+					int_y = uint_crd_j.uint_y - uint_crd_i.uint_y;
+					int_z = uint_crd_j.uint_z - uint_crd_i.uint_z;
 					dr.x = uint_dr_to_dr_cof.x*int_x;
 					dr.y = uint_dr_to_dr_cof.y*int_y;
 					dr.z = uint_dr_to_dr_cof.z*int_z;
 					dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
 					if (dr2 < cutoff_skin_square)
 					{
-						//20210417 debug
-						//if (atom_numbers_in_nl_lin >= 2000)
-						//{
-						//	break;
-						//}
-						nl_i.atom_serial[atom_numbers_in_nl_lin] = atom_j;
-						atom_numbers_in_nl_lin = atom_numbers_in_nl_lin + 1;
+						nl_i.atom_numbers = atomicAdd(atom_numbers_address, 1);
+						nl_i.atom_serial[nl_i.atom_numbers] = atom_j;
 					}
 				}
 			}
-		}//124 grid cycle
-		nl[atom_i].atom_numbers = atom_numbers_in_nl_lin;
+		}//125 grid cycle
 	}
 }
-
+*/
 static __global__ void Is_need_refresh_neighbor_list_cuda(const int atom_numbers,const VECTOR *crd, const VECTOR *old_crd,
 	const VECTOR box_length, const float half_skin_square,int *need_refresh_flag)
 {
@@ -292,6 +401,7 @@ static __global__ void Delete_Excluded_Atoms_Serial_In_Neighbor_List
 		}//if need excluded
 	}
 }
+
 static __global__ void Refresh_Neighbor_List
 (int *refresh_sign, const int thread,
 const int atom_numbers, VECTOR *crd, VECTOR *old_crd, UNSIGNED_INT_VECTOR *uint_crd,
@@ -300,7 +410,7 @@ int *atom_in_grid_serial,
 const float skin, const VECTOR box_length,
 const GRID_INFORMATION grid_info, const GRID_POINTER *gpointer,
 GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket,
-ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_numbers,float cutoff_skin_square)
+ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_numbers, float cutoff_skin_square, const int max_atom_in_grid_numbers)
 {
 	if (refresh_sign[0] == 1)
 	{
@@ -321,11 +431,18 @@ ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_
 
 		Crd_To_Uint_Crd << <ceilf((float)atom_numbers / thread), thread >> >
 			(atom_numbers, quarter_crd_to_uint_crd_cof, crd, uint_crd);
-
-		Find_atom_neighbors << <ceilf((float)atom_numbers / thread), thread >> >
+		
+		Find_atom_neighbors_gridly << < {(unsigned int)ceilf((float)grid_info.grid_numbers)}, { 8, 128 }, (sizeof(int)+sizeof(UNSIGNED_INT_VECTOR)+sizeof(ATOM_GROUP))*max_atom_in_grid_numbers >> >
+			(atom_numbers, uint_crd, uint_dr_to_dr_cof,
+			atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
+			d_nl, cutoff_skin_square, max_atom_in_grid_numbers);
+		
+		/*Find_atom_neighbors << < {1, (unsigned int)ceilf((float)atom_numbers / 125)}, { 8, 125 } >> >
 			(atom_numbers, uint_crd, uint_dr_to_dr_cof,
 			atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
 			d_nl, cutoff_skin_square);
+*/
+		
 
 		Delete_Excluded_Atoms_Serial_In_Neighbor_List << <ceilf((float)atom_numbers / thread), thread >> >
 			(atom_numbers, d_nl, excluded_list_start, excluded_list, excluded_numbers);
@@ -341,7 +458,7 @@ int *atom_in_grid_serial,
 const float skin, const VECTOR box_length,
 const GRID_INFORMATION grid_info, const GRID_POINTER *gpointer,
 GRID_BUCKET *bucket, int *atom_numbers_in_grid_bucket,
-ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_numbers, float cutoff_skin_square)
+ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_numbers, float cutoff_skin_square, const int max_atom_in_grid_numbers)
 {
 	Clear_Grid_Bucket << <ceilf((float)grid_info.grid_numbers / 32), 32 >> >
 		(grid_info.grid_numbers, grid_info.atom_numbers_in_grid_bucket, grid_info.bucket);
@@ -358,11 +475,32 @@ ATOM_GROUP *d_nl, int *excluded_list_start, int * excluded_list, int * excluded_
 
 	Crd_To_Uint_Crd << <ceilf((float)atom_numbers / 32), 32 >> >
 		(atom_numbers, quarter_crd_to_uint_crd_cof, crd, uint_crd);
-	Find_atom_neighbors << <ceilf((float)atom_numbers / 32), 32 >> >
+
+	
+	Find_atom_neighbors_gridly << < {(unsigned int)ceilf((float)grid_info.grid_numbers)}, { 8, 128 }, (sizeof(int)+sizeof(UNSIGNED_INT_VECTOR)+sizeof(ATOM_GROUP))*max_atom_in_grid_numbers >> >
 		(atom_numbers, uint_crd, uint_dr_to_dr_cof,
 		atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
-		d_nl, cutoff_skin_square);
+		d_nl, cutoff_skin_square, max_atom_in_grid_numbers);
 
+	/*
+	Find_atom_neighbors << < {1, (unsigned int)ceilf((float)atom_numbers / 125)}, { 8, 125 } >> >
+		(atom_numbers, uint_crd, uint_dr_to_dr_cof,
+		atom_in_grid_serial, gpointer, bucket, atom_numbers_in_grid_bucket,
+		d_nl, cutoff_skin_square);*/
+/*	ATOM_GROUP *temp;
+	int *atom_temp;
+	Malloc_Safely((void**)&temp, sizeof(ATOM_GROUP));
+	Malloc_Safely((void**)&atom_temp, sizeof(int) * 800);
+	for (int i = 98274; i < atom_numbers; i++)
+	{
+		cudaMemcpy(temp, d_nl + i, sizeof(ATOM_GROUP), cudaMemcpyDeviceToHost);
+		cudaMemcpy(atom_temp, temp->atom_serial, sizeof(int) * 800, cudaMemcpyDeviceToHost);
+		for (int j = 0; j < temp->atom_numbers; j++)
+		{
+			printf("%d %d %d\n", i, j, atom_temp[j]);
+		}
+	}
+	getchar();*/	
 	Delete_Excluded_Atoms_Serial_In_Neighbor_List << <ceilf((float)atom_numbers / 32), 32 >> >
 		(atom_numbers, d_nl, excluded_list_start, excluded_list, excluded_numbers);
 }
@@ -383,7 +521,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 				skin, box_length,
 				grid_info, grid_info.gpointer,
 				grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_square);
+				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square, max_atom_in_grid_numbers);
 		}
 		else if (refresh_interval > 0 && !forced_check) //如果是恒步长更新且不强制要求检查是否更新
 		{
@@ -396,7 +534,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 					skin, box_length,
 					grid_info, grid_info.gpointer,
 					grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-					d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_square);
+					d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square, max_atom_in_grid_numbers);
 			}
 			refresh_count += 1;
 		}
@@ -412,7 +550,7 @@ void NEIGHBOR_LIST::Neighbor_List_Update(VECTOR *crd, int *d_excluded_list_start
 				skin, box_length,
 				grid_info, grid_info.gpointer,
 				grid_info.bucket, grid_info.atom_numbers_in_grid_bucket,
-				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square);
+				d_nl, d_excluded_list_start, d_excluded_list, d_excluded_numbers, cutoff_with_skin_square, max_atom_in_grid_numbers);
 		}
 	}
 }
