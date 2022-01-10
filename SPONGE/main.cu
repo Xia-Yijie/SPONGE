@@ -8,6 +8,7 @@ ANDERSEN_THERMOSTAT_INFORMATION ad_thermo;
 BERENDSEN_THERMOSTAT_INFORMATION bd_thermo;
 NOSE_HOOVER_CHAIN_INFORMATION nhc;
 BOND bond;
+BOND_SOFT bond_soft;
 ANGLE angle;
 UREY_BRADLEY urey_bradley;
 DIHEDRAL dihedral;
@@ -16,6 +17,7 @@ NON_BOND_14 nb14;
 CMAP cmap;
 NEIGHBOR_LIST neighbor_list;
 LENNARD_JONES_INFORMATION lj;
+LJ_SOFT_CORE lj_soft;
 Particle_Mesh_Ewald pme;
 RESTRAIN_INFORMATION restrain;
 CONSTRAIN constrain;
@@ -73,10 +75,12 @@ void Main_Initial(int argc, char *argv[])
 	neighbor_list.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff, md_info.nb.skin);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.FORCED_UPDATE);
 	lj.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length);
+        lj_soft.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length, md_info.d_subsys_division);
 	pme.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff);
 	
 	nb14.Initial(&controller, lj.h_LJ_A, lj.h_LJ_B, lj.h_atom_LJ_type);
 	bond.Initial(&controller);
+        bond_soft.Initial(&controller);
 	angle.Initial(&controller);
 	urey_bradley.Initial(&controller);
 	dihedral.Initial(&controller);
@@ -172,6 +176,10 @@ void Main_Calculate_Force()
 	lj.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
 		md_info.need_potential, md_info.sys.d_potential);
 	
+	lj_soft.LJ_Soft_Core_PME_Direct_Force_With_Atom_Energy_And_Virial(md_info.atom_numbers, md_info.uint_crd, md_info.d_charge, md_info.frc,
+		neighbor_list.d_nl, pme.beta, md_info.need_potential, md_info.d_atom_energy, md_info.need_pressure, md_info.d_atom_virial, pme.d_direct_atom_energy);
+	lj_soft.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
+		md_info.need_potential, md_info.sys.d_potential);
 	pme.PME_Excluded_Force_With_Atom_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.d_charge,
 		md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, md_info.frc, pme.d_correction_atom_energy);
 
@@ -180,6 +188,7 @@ void Main_Calculate_Force()
 	nb14.Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(md_info.uint_crd, md_info.d_charge, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy, md_info.d_atom_virial);
 
 	bond.Bond_Force_With_Atom_Energy_And_Virial(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy, md_info.d_atom_virial);
+	bond_soft.Soft_Bond_Force_With_Atom_Energy_And_Virial(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy, md_info.d_atom_virial);
 	angle.Angle_Force_With_Atom_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy);
 	urey_bradley.Urey_Bradley_Force_With_Atom_Energy_And_Virial(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy, md_info.d_atom_virial);
 	dihedral.Dihedral_Force_With_Atom_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.frc, md_info.d_atom_energy);
@@ -198,6 +207,7 @@ void Main_Iteration()
 	if (md_info.mode == md_info.RERUN)
 	{
 		md_info.rerun.Iteration();
+		neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers);
 		return;
 	}
 	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8ѹ\B2\BF\B7\D6
@@ -372,9 +382,13 @@ void Main_Print()
 		controller.Step_Print("PME", pme.Get_Energy(md_info.uint_crd, md_info.d_charge, neighbor_list.d_nl, md_info.pbc.uint_dr_to_dr_cof,
 			md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers));
 		controller.Step_Print("LJ", lj.Get_Energy(md_info.uint_crd, neighbor_list.d_nl));
+		lj_soft.Get_Energy(md_info.uint_crd, neighbor_list.d_nl, pme.beta, md_info.d_charge, pme.d_direct_ene);
+		controller.Step_Print("LJ(sc.)", lj_soft.h_LJ_energy_sum);
+		controller.Step_Print("LR_corr(sc.)", lj_soft.long_range_correction);
 		controller.Step_Print("nb14_LJ", nb14.Get_14_LJ_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("nb14_EE", nb14.Get_14_CF_Energy(md_info.uint_crd, md_info.d_charge, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("bond", bond.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
+		controller.Step_Print("bond_soft", bond_soft.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("angle", angle.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("urey_bradley", urey_bradley.Get_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof));
 		controller.Step_Print("restrain", restrain.Get_Energy(md_info.crd, md_info.sys.box_length));

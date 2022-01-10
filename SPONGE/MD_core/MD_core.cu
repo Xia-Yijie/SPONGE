@@ -1048,6 +1048,58 @@ void MD_INFORMATION::Read_Mass(CONTROLLER *controller)
 	}
 }
 
+void MD_INFORMATION::Read_Subsys_Division(CONTROLLER * controller)
+{
+	if (controller[0].Command_Exist("subsys_division_in_file"))
+	{
+		FILE * fp = NULL;
+		controller->printf("	Start reading subsystem division information:\n");
+		Open_File_Safely(&fp, controller[0].Command("subsys_division_in_file"), "r");
+		int atom_numbers = 0;
+		char lin[CHAR_LENGTH_MAX];
+		char* toget = fgets(lin, CHAR_LENGTH_MAX, fp);
+		int scanf_ret = sscanf(lin, "%d", &atom_numbers);
+		if (this->atom_numbers > 0 && this->atom_numbers != atom_numbers)
+		{
+			controller->printf("        Error: atom_numbers is not equal: %d %d\n", this->atom_numbers, atom_numbers);
+			getchar();
+			exit(1);
+		}
+		else if (this->atom_numbers == 0)
+		{
+			this->atom_numbers = atom_numbers;
+		}
+		Malloc_Safely((void**)&h_subsys_division, sizeof(int)* atom_numbers);
+		Cuda_Malloc_Safely((void**)&d_subsys_division, sizeof(int)* atom_numbers);
+		for (int i = 0; i < atom_numbers; i++)
+		{
+			int toscan = fscanf(fp, "%d", &h_subsys_division[i]);
+		}
+		controller->printf("    End reading subsystem division information\n\n");
+		fclose(fp);
+	}
+	else if (atom_numbers > 0)
+	{
+		controller[0].printf("    subsystem mask is set to 0 as default\n");
+		Malloc_Safely((void**)&h_subsys_division, sizeof(int)* atom_numbers);
+		Cuda_Malloc_Safely((void**)&d_subsys_division, sizeof(int)* atom_numbers);
+		for (int i = 0; i < atom_numbers; i++)
+		{
+			h_subsys_division[i] = 0;
+		}
+	}
+	else
+	{
+		controller[0].printf("    Error: failed to initialze subsystem mask information, because no atom_numbers found\n");
+		getchar();
+		exit(1);
+	}
+	if (atom_numbers > 0)
+	{
+		cudaMemcpy(d_subsys_division, h_subsys_division, sizeof(int)* atom_numbers, cudaMemcpyHostToDevice);
+	}
+}
+
 void MD_INFORMATION::Read_Charge(CONTROLLER *controller)
 {
 	if (controller[0].Command_Exist("charge_in_file"))
@@ -1167,7 +1219,7 @@ void MD_INFORMATION::Initial(CONTROLLER *controller)
 	
 	Read_Mass(controller);
 	Read_Charge(controller);
-    
+        Read_Subsys_Division(controller);
 	sys.Initial(controller, this);  //!需要先初始化坐标和速度
 	nb.Initial(controller, this);
 	
