@@ -29,9 +29,14 @@ struct BOND_SOFT
 	float *d_sigma_of_soft_bond_ene=NULL;
 	float *h_sigma_of_soft_bond_ene=NULL;
 
+	float *h_soft_bond_dH_dlambda = NULL;
+	float *d_soft_bond_dH_dlambda = NULL;
+	float *h_sigma_of_dH_dlambda = NULL;
+	float *d_sigma_of_dH_dlambda = NULL;
+
     int threads_per_block = 128;
 
-    void Initial(CONTROLLER *controller, char *module_name = NULL);
+    void Initial(CONTROLLER *controller, const char *module_name = NULL);
 
 	void Clear();
 
@@ -42,6 +47,8 @@ struct BOND_SOFT
 	void Soft_Bond_Force_With_Atom_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float * atom_energy, float *atom_virial);
 
 	float Get_Energy(const UNSIGNED_INT_VECTOR *unit_crd, const VECTOR scaler, int is_download = 1);
+
+	float Get_Partial_H_Partial_Lambda(const UNSIGNED_INT_VECTOR * uint_crd, const VECTOR scaler, int is_download = 1);
 };
 
 

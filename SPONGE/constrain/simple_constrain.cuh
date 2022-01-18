@@ -48,7 +48,7 @@ struct SIMPLE_CONSTRAIN
 	//在加入各种constrain_pair后初始化
 	//最后的exp_gamma为朗之万刘剑热浴的exp_gamma
 	void Initial_Simple_Constrain
-		(CONTROLLER *controller, CONSTRAIN *constrain, char *module_name = NULL);
+		(CONTROLLER *controller, CONSTRAIN *constrain, const char *module_name = NULL);
 	
 	//清除内存
 	void Clear();

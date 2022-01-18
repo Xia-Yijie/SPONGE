@@ -1,17 +1,17 @@
 ﻿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
-* NOFEPCE TO LICENSEE:
+* NOTICE TO LICENSEE:
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
 * http://www.apache.org/licenses/LICENSE-2.0
-* Unless required by applicable law or agreed to in wriFEPng, software
+* Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANFEPES OR CONDIFEPONS OF ANY KIND, either express or implied.
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
-* limitaFEPons under the License.
+* limitations under the License.
 */
 
 
@@ -19,10 +19,6 @@
 #define FEP_CORE_CUH
 #include "../common.cuh"
 #include "../control.cuh"
-
-#define FCRESULT_DEFAULT_FILE_NAME "fcresult.dat"
-#define FCRESULT_COMMAND "fcresult"
-
 
 struct partition_energy_data
 {
@@ -65,20 +61,19 @@ struct FEP_CORE
 	UNSIGNED_INT_VECTOR *uint_crd = NULL;//用于快速周期性映射
 
 	int charge_pertubated = 0;
-	int bond_pertubated = 0;
-	int angle_pertubated = 0;
-	int dihedral_pertubated = 0;
-	int nb14_pertubated = 0;
-	int lj_pertubated = 0;
-	int need_nbl = 0;
 
 	float * h_charge;
 	float * d_charge;
-	float * h_charge_A;
-	float * h_charge_B;
 	int * h_subsys_division;
 	int * d_subsys_division;
-	FILE * fcresult;
+
+	float *d_direct_atom_energy_intersys = NULL;
+	float *d_direct_atom_energy_intrasys = NULL;
+	float *d_direct_ene_intersys = NULL;
+	float *d_direct_ene_intrasys = NULL;
+
+	FILE * float32ene_file;
+
 	struct non_bond_information
 	{
 		float cutoff = 10.0;
@@ -93,7 +88,7 @@ struct FEP_CORE
 		void Initial(CONTROLLER *controller, FEP_CORE *FEP_core);	
 	} nb; // 非键信息
 
-	struct periodic_box_condiFEPon_information
+	struct periodic_box_condition_information
 	{
 		VECTOR crd_to_uint_crd_cof;//实坐标到整数坐标
 		VECTOR quarter_crd_to_uint_crd_cof;//实坐标到0.25倍整数坐标
@@ -134,7 +129,9 @@ struct FEP_CORE
 
 	void FEP_Core_Crd_Device_To_Host();
 
-	void Print_Pure_Ene_To_Result_File(FILE * fcresult);
+	void Print_Pure_Ene_To_Result_File();
+
+	void Seperate_Direct_Atom_Energy(ATOM_GROUP * nl, const float pme_beta);
 
 	//释放空间
 	void Clear();

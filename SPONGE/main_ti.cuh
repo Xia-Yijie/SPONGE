@@ -4,7 +4,7 @@
 
 #include "common.cuh"
 #include "control.cuh"
-#include "MD_core/FEP_core.cuh"
+#include "TI_core/TI_core.cuh"
 #include "bond/bond.cuh"
 #include "bond/bond_soft.cuh"
 #include "angle/angle.cuh"

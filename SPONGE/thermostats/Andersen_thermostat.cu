@@ -70,7 +70,7 @@ VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, VECTOR *random_vel, const fl
 }
 
 
-void ANDERSEN_THERMOSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, int atom_numbers, float *h_mass, char *module_name)
+void ANDERSEN_THERMOSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, int atom_numbers, float *h_mass, const char *module_name)
 {
 	controller->printf("START INITIALIZING ANDERSEN THERMOSTAT:\n");
 	if (module_name == NULL)

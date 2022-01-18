@@ -53,7 +53,7 @@ struct BOND
 	int threads_per_block=128;
 
 	//初始化模块
-	void Initial(CONTROLLER *controller, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, const char *module_name = NULL);
 	//清空模块
 	void Clear();
 

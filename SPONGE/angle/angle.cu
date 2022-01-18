@@ -89,7 +89,7 @@ __global__ void Angle_Force_With_Atom_Energy_CUDA(const int angle_numbers,
 	}
 }
 
-void ANGLE::Initial(CONTROLLER *controller, char *module_name)
+void ANGLE::Initial(CONTROLLER *controller, const char *module_name)
 {
 	if (module_name == NULL)
 	{

@@ -209,7 +209,7 @@ __global__ void v3_Force_Redistribute(const int virtual_numbers, const VIRTUAL_T
 }
 
 
-void VIRTUAL_INFORMATION::Initial( CONTROLLER *controller, int atom_numbers, int *system_freedom, char *module_name)
+void VIRTUAL_INFORMATION::Initial( CONTROLLER *controller, int atom_numbers, int *system_freedom, const char *module_name)
 {
 	if (module_name == NULL)
 	{

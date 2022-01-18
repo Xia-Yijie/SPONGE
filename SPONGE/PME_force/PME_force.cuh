@@ -83,8 +83,17 @@ struct Particle_Mesh_Ewald
 	float correction_ene = 0;
 	float ee_ene;
 
+	enum PME_ENERGY_PART
+	{
+		TOTAL = 0,
+		DIRECT = 1,
+		RECIPROCAL = 2,
+		CORRECTION = 3,
+		SELF = 4,	
+	};
+
 	//初始化PME系统（PME信息）
-	void Initial(CONTROLLER *controller, int atom_numbers, VECTOR boxlength,float cutoff, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, int atom_numbers, VECTOR boxlength,float cutoff, const char *module_name = NULL);
 	//清除内存
 	void Clear();
 
@@ -99,15 +108,34 @@ struct Particle_Mesh_Ewald
 	//计算倒空间力，并计算自能和倒空间的能量，并结合其他部分计算出PME部分给出的总维里（需要先计算其他部分）
 	void PME_Reciprocal_Force_With_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 		VECTOR* force, int need_virial, int need_energy, float *d_virial, float *d_potential);
+	
+	//float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
+	//	const ATOM_GROUP *nl, const VECTOR scaler,
+	//	const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int is_download = 1);
+
 	float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 		const ATOM_GROUP *nl, const VECTOR scaler,
-		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int is_download = 1);
+		const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int which_part = 0, int is_download = 1);
 
 	void Update_Volume(VECTOR boxlength);
 	void Update_Box_Length(VECTOR boxlength);
 
 };
 
+
+__global__ void PME_Atom_Near(const UNSIGNED_INT_VECTOR *uint_crd, int **PME_atom_near, const int PME_Nin,
+	const float periodic_factor_inverse_x, const float periodic_factor_inverse_y, const float periodic_factor_inverse_z,
+	const int atom_numbers, const int fftx, const int ffty, const int fftz,
+	const UNSIGNED_INT_VECTOR *PME_kxyz, UNSIGNED_INT_VECTOR *PME_uxyz, VECTOR *PME_frxyz);
+
+__global__ void PME_Q_Spread
+(int **PME_atom_near, const float *charge, const VECTOR *PME_frxyz, 
+float *PME_Q, const UNSIGNED_INT_VECTOR *PME_kxyz, const int atom_numbers);
+
+
+__global__ void PME_Energy_Product(const int element_number, const float* list1, const float* list2, float *sum);
+
+__global__ void PME_BCFQ(cufftComplex *PME_FQ, float *PME_BC, int PME_Nfft);
 
 
 

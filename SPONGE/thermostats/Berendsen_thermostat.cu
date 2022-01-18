@@ -2,7 +2,7 @@
 
 
 
-void BERENDSEN_THERMOSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, char *module_name)
+void BERENDSEN_THERMOSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, const char *module_name)
 {
 	controller->printf("START INITIALIZING BERENDSEN THERMOSTAT:\n");
 	if (module_name == NULL)

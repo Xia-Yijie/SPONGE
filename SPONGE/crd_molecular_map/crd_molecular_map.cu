@@ -117,7 +117,7 @@ void CoordinateMolecularMap::Record_Box_Map_Times_Host(int atom_numbers, VECTOR 
 }
 
 void CoordinateMolecularMap::Initial(int atom_numbers, VECTOR box_length, VECTOR *crd, 
-	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, char *module_name)
+	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, const char *module_name)
 {
 	if (module_name == NULL)
 	{

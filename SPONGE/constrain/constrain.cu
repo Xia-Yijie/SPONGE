@@ -91,7 +91,7 @@ void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers
 
 void CONSTRAIN::Add_HBond_To_Constrain_Pair
 (CONTROLLER *controller, const int bond_numbers, const int *atom_a, const int *atom_b, const float *bond_r,
-const float *atom_mass, char *module_name)
+const float *atom_mass, const char *module_name)
 {
 	controller[0].printf("START INITIALIZING CONSTRAIN:\n");
 	if (module_name == NULL)

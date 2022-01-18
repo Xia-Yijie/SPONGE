@@ -20,7 +20,7 @@ static const float A_inv[16][16] =
 { 4, -4, -4, 4, 2, 2, -2, -2, 2, -2, 2, -2, 1, 1, 1, 1 } };
 
 
-void CMAP::Initial(CONTROLLER *controller, char *module_name)
+void CMAP::Initial(CONTROLLER *controller, const char *module_name)
 {
 	controller[0].printf("START INITIALIZING CMAP:\n");
 	if (module_name == NULL)

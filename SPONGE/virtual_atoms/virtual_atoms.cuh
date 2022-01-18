@@ -133,7 +133,7 @@ struct VIRTUAL_INFORMATION
     
     std::vector<VIRTUAL_LAYER_INFORMATION> virtual_layer_info; //记录每个层级的信息
     
-	void Initial(CONTROLLER *controller, int atom_numbers, int *system_freedom, char *module_name = NULL);  //初始化
+	void Initial(CONTROLLER *controller, int atom_numbers, int *system_freedom, const char *module_name = NULL);  //初始化
 	void Clear();  //清除内存
     void Force_Redistribute(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *force);  //进行力重分配
     

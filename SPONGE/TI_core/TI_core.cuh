@@ -19,6 +19,7 @@
 #define TI_CORE_CUH
 #include "../common.cuh"
 #include "../control.cuh"
+#include "../PME_force/PME_force.cuh"
 
 //普通分子模拟所涉及的大部分信息
 struct TI_CORE
@@ -43,14 +44,9 @@ struct TI_CORE
 	VECTOR *crd = NULL;
 	UNSIGNED_INT_VECTOR *uint_crd = NULL;//用于快速周期性映射
 
-	int mass_pertubated = 0;
+	FILE * ti_result;
+
 	int charge_pertubated = 0;
-	int bond_pertubated = 0;
-	int angle_pertubated = 0;
-	int dihedral_pertubated = 0;
-	int nb14_pertubated = 0;
-	int lj_pertubated = 0;
-	int need_nbl = 0;
 
 	float * h_charge;
 	float * d_charge;
@@ -60,6 +56,23 @@ struct TI_CORE
 	float * h_charge_B_A;
 	int * h_subsys_division;
 	int * d_subsys_division;
+
+	struct cross_pme
+	{
+		float * PME_Q_B_A;
+		float * d_cross_reciprocal_ene;
+		float * d_cross_self_ene;
+		float * charge_sum_B_A;
+		float * d_cross_correction_atom_energy;
+		float * d_cross_correction_ene;
+		float * d_cross_direct_ene;
+		float dH_dlambda;
+		float cross_reciprocal_ene;
+		float cross_self_ene;
+		float cross_direct_ene;
+		float cross_correction_ene;
+		void Initial(const int atom_numbers, const int PME_Nall);
+	} cross_pme;
 
 	struct non_bond_information
 	{
@@ -132,7 +145,10 @@ struct TI_CORE
 
 	void TI_Core_Crd_Device_To_Host();
 
-	void Print_dH_dlambda_Average_To_Screen_And_Result_File(FILE * fcresult);
+	float Get_Cross_PME_Partial_H_Partial_Lambda(Particle_Mesh_Ewald * pme, const ATOM_GROUP
+		* nl, int lj_pertubated, int is_download = 1);
+
+	void Print_dH_dlambda_Average_To_Screen_And_Result_File();
 
 	//释放空间
 	void Clear();

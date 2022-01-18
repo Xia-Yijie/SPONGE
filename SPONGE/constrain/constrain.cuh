@@ -78,7 +78,7 @@ struct CONSTRAIN
 	//传入的指针指向HOST内存
 	void Add_HBond_To_Constrain_Pair
 		(CONTROLLER *controller, const int bond_numbers, const int *atom_a, const int *atom_b, const float *bond_r,
-		const float *atom_mass, char *module_name = NULL);//要求均是指向host上内存的指针
+		const float *atom_mass, const char *module_name = NULL);//要求均是指向host上内存的指针
 
 	//需要在先运行Add_HBond_To_Constrain_Pair之后再运行
 	//传入的指针指向HOST内存

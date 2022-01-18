@@ -63,7 +63,34 @@ static __global__ void Soft_Bond_Energy_CUDA(const int bond_numbers, const UNSIG
 	}
 }
 
-void BOND_SOFT::Initial(CONTROLLER *controller, char *module_name)
+static __global__ void Soft_Bond_dH_dlambda_CUDA(const int bond_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, const int * atom_a, const int *atom_b, const float *bond_k, const float * bond_r0, const int * AB_mask, float * dH_dlambda, const float lambda, const float alpha)
+{
+	int bond_i = blockDim.x * blockIdx.x + threadIdx.x;
+	if (bond_i < bond_numbers)
+	{
+		int atom_i = atom_a[bond_i];
+		int atom_j = atom_b[bond_i];
+		
+		float k = bond_k[bond_i];
+		float r0 = bond_r0[bond_i];
+		int ABmask = AB_mask[bond_i];
+		
+		VECTOR dr = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
+
+		float r1 = norm3df(dr.x, dr.y, dr.z);
+		float tmp_lambda = (ABmask == 0 ? 1.0 - lambda : lambda);
+		float tmp_sign = (ABmask == 0 ? -1.0 : 1.0);
+		float tmp_lambda_ = 1.0 - tmp_lambda;
+		float tempf = r1 - r0;
+		float tempf2 = tempf * tempf;
+		float temp_denominator = 1.0 / (1 + alpha * tmp_lambda_ * tempf2);
+		float dH_dlambda_abs = k * tempf2 * temp_denominator * temp_denominator * (1 + alpha * tempf2);
+
+		dH_dlambda[bond_i] = dH_dlambda_abs * tmp_sign;
+	}
+}
+
+void BOND_SOFT::Initial(CONTROLLER *controller, const char *module_name)
 {
 	controller[0].printf("START INITIALIZING BOND SOFT:\n");
 	if (module_name == NULL)
@@ -134,6 +161,10 @@ void BOND_SOFT::Memory_Allocate()
 		printf("        Error occurs when malloc BOND_SOFT::h_soft_bond_ene in BOND_SOFT::Memory_Allocate");
 	if (!Malloc_Safely((void**)&(this->h_sigma_of_soft_bond_ene), sizeof(float)))
 		printf("        Error occurs when malloc BOND_SOFT::h_sigma_of_soft_bond_ene in BOND_SOFT::Memory_Allocate");
+	if (!Malloc_Safely((void**)&(this->h_soft_bond_dH_dlambda), sizeof(float)*this->soft_bond_numbers))
+		printf("		Error occurs when malloc BOND_SOFT::h_soft_bond_dH_dlambda in BOND_SOFT::Memory_Allocate");
+	if (!Malloc_Safely((void**)&(this->h_sigma_of_dH_dlambda), sizeof(float)))
+		printf("		Error occurs when malloc BOND_SOFT::h_sigma_of_dH_dlambda in BOND_SOFT::Memory_Allocate");
 
 	if (!Cuda_Malloc_Safely((void**)&this->d_atom_a, sizeof(int)*this->soft_bond_numbers))
 		printf("        Error occurs when CUDA malloc BOND_SOFT::d_atom_a in BOND_SOFT::Memory_Allocate");
@@ -149,6 +180,10 @@ void BOND_SOFT::Memory_Allocate()
 		printf("        Error occurs when CUDA malloc BOND_SOFT::d_bond_ene in BOND_SOFT::Memory_Allocate");
 	if (!Cuda_Malloc_Safely((void**)&this->d_sigma_of_soft_bond_ene, sizeof(float)))
 		printf("        Error occurs when CUDA malloc BOND_SOFT::d_sigma_of_bond_ene in BOND_SOFT::Memory_Allocate");
+	if (!Cuda_Malloc_Safely((void**)&this->d_soft_bond_dH_dlambda, sizeof(float)*this->soft_bond_numbers))
+		printf("		Error occurs when CUDA malloc BOND_SOFT::d_soft_bond_dH_dlambda in BOND_SOFT::Memory_Allocate");
+	if (!Cuda_Malloc_Safely((void**)&this->d_sigma_of_dH_dlambda, sizeof(float)))
+		printf("		Error occurs when CUDA malloc BOND_SOFT::d_sigma_of_dH_dlambda in BOND_SOFT::Memory_Allocate");	
 }
 
 void BOND_SOFT::Parameter_Host_To_Device()
@@ -231,4 +266,29 @@ float BOND_SOFT::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sc
 		}
 	}
         return NAN;
+}
+
+float BOND_SOFT::Get_Partial_H_Partial_Lambda(const UNSIGNED_INT_VECTOR * uint_crd, const VECTOR scaler, int is_download)
+{
+	if (is_initialized)
+	{
+		Soft_Bond_dH_dlambda_CUDA << <(unsigned int)ceilf((float)this->soft_bond_numbers / this->threads_per_block), this->threads_per_block >> >
+			(this->soft_bond_numbers, uint_crd, scaler,
+			this->d_atom_a, this->d_atom_b, this->d_k, this->d_r0, this->d_ABmask, this->d_soft_bond_dH_dlambda, this->lambda, this->alpha);
+
+		Sum_Of_List << <1, 1024 >> >(this->soft_bond_numbers, this->d_soft_bond_dH_dlambda, this->d_sigma_of_dH_dlambda);
+		if (is_download)
+		{
+			cudaMemcpy(this->h_sigma_of_dH_dlambda, this->d_sigma_of_dH_dlambda, sizeof(float), cudaMemcpyDeviceToHost);
+			return this->h_sigma_of_dH_dlambda[0];
+		}
+		else
+		{
+			return 0.0;
+		}
+	}
+	else
+	{
+		return NAN;
+	}
 }

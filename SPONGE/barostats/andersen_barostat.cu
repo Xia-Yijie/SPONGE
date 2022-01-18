@@ -2,7 +2,7 @@
 
 
 
-void ANDERSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name)
+void ANDERSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name)
 {
 	controller->printf("START INITIALIZING ANDERSEN BAROSTAT:\n");
 	if (module_name == NULL)

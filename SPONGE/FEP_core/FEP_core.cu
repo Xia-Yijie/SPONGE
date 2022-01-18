@@ -4,6 +4,67 @@
 #define TRAJ_DEFAULT_FILENAME "mdcrd.dat"
 #define BOX_COMMAND "box"
 #define BOX_DEFAULT_FILENAME "box.txt"
+#define FLOAT32ENE_COMMAND "float32ene"
+#define FLOAT32ENE_DEFAULT_FILENAME "float32ene.dat"
+
+
+
+static __global__ void Seperate_Direct_Atom_Energy_CUDA(
+	const int atom_numbers, const ATOM_GROUP *nl,
+	const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength, const float *charge, const int *subsys_mask,
+	const float beta, const float cutoff_square, float *direct_ene_intersys, float * direct_ene_intrasys)
+{
+	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	if (atom_i < atom_numbers)
+	{
+		ATOM_GROUP nl_i = nl[atom_i];
+		int N = nl_i.atom_numbers;
+		int atom_j;
+		int int_x;
+		int int_y;
+		int int_z;
+		UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i], r2;
+		VECTOR dr;
+		float dr2;
+		float dr_abs;
+		float ene_temp;
+		float charge_i = charge[atom_i];
+		int mask_i = subsys_mask[atom_i], mask_j;
+		float ene_lin_intersys = 0., ene_lin_intrasys = 0.;
+
+		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		{
+
+			atom_j = nl_i.atom_serial[j];
+			r2 = uint_crd[atom_j];
+			mask_j = subsys_mask[atom_j];
+			
+
+			int_x = r2.uint_x - r1.uint_x;
+			int_y = r2.uint_y - r1.uint_y;
+			int_z = r2.uint_z - r1.uint_z;
+			dr.x = boxlength.x*int_x;
+			dr.y = boxlength.y*int_y;
+			dr.z = boxlength.z*int_z;
+
+			dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
+			if (dr2 < cutoff_square)
+			{
+
+				dr_abs = norm3df(dr.x, dr.y, dr.z);
+				ene_temp = charge_i * charge[atom_j] * erfcf(beta * dr_abs) / dr_abs;
+				
+				if (mask_i == mask_j)
+					ene_lin_intrasys += ene_temp;
+				else
+					ene_lin_intersys += ene_temp;
+			}
+
+		}//atom_j cycle
+		atomicAdd(&direct_ene_intersys[atom_i], ene_lin_intersys);
+		atomicAdd(&direct_ene_intrasys[atom_i], ene_lin_intrasys);
+	}
+}
 
 
 void FEP_CORE::non_bond_information::Initial(CONTROLLER *controller, FEP_CORE *FEP_core )
@@ -207,7 +268,7 @@ void FEP_CORE::non_bond_information::Initial(CONTROLLER *controller, FEP_CORE *F
 	}
 }
 
-void FEP_CORE::periodic_box_condiFEPon_information::Update_Volume(VECTOR box_length)
+void FEP_CORE::periodic_box_condition_information::Update_Volume(VECTOR box_length)
 {
 	crd_to_uint_crd_cof = CONSTANT_UINT_MAX_FLOAT / box_length;
 	quarter_crd_to_uint_crd_cof = 0.25 * crd_to_uint_crd_cof;
@@ -280,67 +341,24 @@ void FEP_CORE::Initial(CONTROLLER *controller)
 		printf("	Warning: missing value of charge pertubated, set to default 0.\n");
 		charge_pertubated = 0;
 	}
-	if (controller[0].Command_Exist("bond_pertubated"))
-	{
-		bond_pertubated = atoi(controller[0].Command("bond_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of bond pertubated, set to default 0.\n");
-		bond_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("angle_pertubated"))
-	{
-		angle_pertubated = atoi(controller[0].Command("angle_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of angle pertubated, set to default 0.\n");
-		angle_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("dihedral_pertubated"))
-	{
-		dihedral_pertubated = atoi(controller[0].Command("dihedral_pertuabted"));
-	}
-	else
-	{
-		printf("	Warning: missing value of dihedral pertubated, set to default 0.\n");
-		dihedral_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("nb14_pertubated"))
-	{
-		nb14_pertubated = atoi(controller[0].Command("nb14_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of nb14 pertubated, set to default 0.\n");
-		nb14_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("lj_pertubated"))
-	{
-		lj_pertubated = atoi(controller[0].Command("lj_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of lj pertubated, set to default 0.\n");
-		lj_pertubated = 0;
-	}
 
 	Malloc_Safely((void**)&h_charge, sizeof(float) * atom_numbers);
-	Malloc_Safely((void**)&h_charge_A, sizeof(float) * atom_numbers);
-	Malloc_Safely((void**)&h_charge_B, sizeof(float) * atom_numbers);
 	Malloc_Safely((void**)&h_subsys_division, sizeof(int) * atom_numbers);
 	Cuda_Malloc_Safely((void**)&d_charge, sizeof(float) * atom_numbers);
 	Cuda_Malloc_Safely((void**)&d_subsys_division, sizeof(int) * atom_numbers);
 	
-	need_nbl = ((charge_pertubated > 0) || (lj_pertubated) > 0);
-	if (controller->Command_Exist(FCRESULT_COMMAND))
+	Cuda_Malloc_Safely((void**)&d_direct_atom_energy_intersys, sizeof(float)*atom_numbers);
+	Cuda_Malloc_Safely((void**)&d_direct_atom_energy_intrasys, sizeof(float)*atom_numbers);
+	Cuda_Malloc_Safely((void**)&d_direct_ene_intersys, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_direct_ene_intrasys, sizeof(float));
+	
+	if (controller->Command_Exist(FLOAT32ENE_COMMAND))
 	{
-		Open_File_Safely(&fcresult, controller->Command(FCRESULT_COMMAND), "ab");
+		Open_File_Safely(&float32ene_file, controller->Command(FLOAT32ENE_COMMAND), "ab");
 	}
 	else
 	{
-		Open_File_Safely(&fcresult, FCRESULT_DEFAULT_FILE_NAME, "ab");
+		Open_File_Safely(&float32ene_file, FLOAT32ENE_DEFAULT_FILENAME, "ab");
 	}
 	if (controller[0].Command_Exist("charge_in_file"))
 	{
@@ -464,8 +482,6 @@ void FEP_CORE::Clear()
 	cudaFree(crd);
 	cudaFree(uint_crd);
 
-	free(h_charge_A);
-	free(h_charge_B);
 	free(h_charge);
 	free(h_subsys_division);
 	cudaFree(d_charge);
@@ -474,8 +490,6 @@ void FEP_CORE::Clear()
 	coordinate = NULL;
 	crd = NULL;
 	uint_crd = NULL;
-	h_charge_A = NULL;
-	h_charge_B = NULL;
 	h_charge = NULL;
 	d_charge = NULL;
 	h_subsys_division = NULL;
@@ -514,10 +528,25 @@ void FEP_CORE::FEP_Core_Crd_Device_To_Host()
 	cudaMemcpy(coordinate, crd, sizeof(VECTOR) * atom_numbers, cudaMemcpyDeviceToHost);
 }
 
-void FEP_CORE::Print_Pure_Ene_To_Result_File(FILE * fcresult)
+void FEP_CORE::Print_Pure_Ene_To_Result_File()
 {
 	//fwrite(data.frame_ene, sizeof(float), input.frame_numbers, fcresult);
-	fwrite(data.frame_partition_ene, sizeof(partition_energy_data), input.frame_numbers, fcresult);
+	fwrite(data.frame_partition_ene, sizeof(partition_energy_data), input.frame_numbers, float32ene_file);
+}
+
+void FEP_CORE::Seperate_Direct_Atom_Energy(ATOM_GROUP * nl, const float pme_beta)
+{
+	Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_direct_atom_energy_intersys, 0.0f);
+	Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> > (atom_numbers, d_direct_atom_energy_intrasys, 0.0f);
+	Seperate_Direct_Atom_Energy_CUDA << < atom_numbers / 32 + 1, 32 >> >
+		(atom_numbers, nl,
+		uint_crd, pbc.uint_dr_to_dr_cof, d_charge, d_subsys_division,
+		pme_beta, nb.cutoff*nb.cutoff, d_direct_atom_energy_intersys, d_direct_atom_energy_intrasys);
+	Sum_Of_List << <1, 1024 >> >(atom_numbers, d_direct_atom_energy_intersys, d_direct_ene_intersys);
+	Sum_Of_List << <1, 1024 >> >(atom_numbers, d_direct_atom_energy_intrasys, d_direct_ene_intrasys);
+
+	cudaMemcpy(&(data.partition.coul_direct_intersys_ene), d_direct_ene_intersys, sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&(data.partition.coul_direct_intrasys_ene), d_direct_ene_intrasys, sizeof(float), cudaMemcpyDeviceToHost);
 }
 
 

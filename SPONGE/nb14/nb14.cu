@@ -156,7 +156,7 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 	}
 }
 
-void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, char *module_name)
+void NON_BOND_14::Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const char *module_name)
 {	
 	if (module_name == NULL)
 	{

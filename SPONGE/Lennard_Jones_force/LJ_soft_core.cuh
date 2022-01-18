@@ -54,6 +54,25 @@ struct LJ_SOFT_CORE
 	float *d_LJ_energy_atom = NULL;
 	float *d_LJ_energy_sum = NULL;
 
+	int * d_subsys_division;
+	int * h_subsys_division;
+
+	float *h_LJ_energy_atom_intersys = NULL;
+	float *h_LJ_energy_atom_intrasys = NULL;
+	float h_LJ_energy_sum_intersys = 0;
+	float h_LJ_energy_sum_intrasys = 0;
+	float *d_LJ_energy_atom_intersys = NULL;
+	float *d_LJ_energy_atom_intrasys = NULL;
+	float *d_LJ_energy_sum_intersys = NULL;
+	float *d_LJ_energy_sum_intrasys = NULL;
+
+	float *d_direct_ene_sum_intersys = NULL;
+	float *d_direct_ene_sum_intrasys = NULL;
+	float h_direct_ene_sum = 0.0;
+	float h_direct_ene_sum_intersys = 0.0;
+	float h_direct_ene_sum_intrasys = 0.0;
+
+	float * d_long_range_correction;
 	float long_range_correction = 0.0;
 
     float lambda;
@@ -61,10 +80,22 @@ struct LJ_SOFT_CORE
     float p;
 	float alpha_lambda_p;
 	float alpha_lambda_p_;
+	float alpha_lambda_p_1;
+	float alpha_lambda_p_1_;
 	float sigma_6;
 	float sigma;
 	float sigma_min;
 	float sigma_6_min;
+
+	float pme_tolerance;
+	float pme_beta;
+
+	float *h_sigma_of_dH_dlambda_lj = NULL;
+	float *d_sigma_of_dH_dlambda_lj = NULL;
+	
+	float *h_sigma_of_dH_dlambda_direct = NULL;
+	float *d_sigma_of_dH_dlambda_direct = NULL;
+
 
     dim3 thread_LJ = { 8u, 32u };
 
@@ -74,7 +105,7 @@ struct LJ_SOFT_CORE
 	UINT_VECTOR_LJ_FEP_TYPE *uint_crd_with_LJ = NULL;
 	float long_range_factor = 0.0;
 
-    void Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, int * soft_mask, char *module_name = NULL);
+    void Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, const char *module_name = NULL);
 
 	void LJ_Soft_Core_Malloc();
 
@@ -93,10 +124,19 @@ struct LJ_SOFT_CORE
 
 	float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const ATOM_GROUP *nl, const float pme_beta, const float * charge,float * direct_ene_sum, int is_download = 1);
 
+	float Get_Energy_With_Coulomb_Direct(
+		const UNSIGNED_INT_VECTOR * uint_crd, const ATOM_GROUP * nl, const float * charge, int is_download = 1);
+
 	void Update_Volume(VECTOR box_length);
 
 	void Long_Range_Correction(int need_pressure, float *d_virial, int need_potential, float *d_potential);
 
 	void Long_Range_Correction(float volume);
+	
+	float Long_Range_Correction();
+
+	float Get_Partial_H_Partial_Lambda_With_Columb_Direct(const UNSIGNED_INT_VECTOR * uint_crd, const float * charge, const ATOM_GROUP * nl, const float * charge_B_A, const int charge_pertubated = 0,int is_download = 1);
+
+	float Partial_H_Partial_Lambda_Long_Range_Correction();
 };
 #endif

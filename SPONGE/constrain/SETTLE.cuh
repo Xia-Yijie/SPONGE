@@ -43,7 +43,7 @@ struct SETTLE
 
 	CONSTRAIN *constrain;
 
-	void Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, char* module_name = NULL);
+	void Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, const char* module_name = NULL);
 
 	int triangle_numbers = 0;
 	CONSTRAIN_TRIANGLE* d_triangles = NULL, *h_triangles = NULL;

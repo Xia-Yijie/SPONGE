@@ -44,7 +44,7 @@ struct CoordinateMolecularMap
 	int blocks_per_grid = 20;
 	//注意传入的crd是device上地址，一般初始化的时候总是有这个东西的
 	void Initial(int atom_numbers, VECTOR box_length, VECTOR *crd, 
-		const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, char *module_name = NULL);
+		const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, const char *module_name = NULL);
 	//清除内存
 	void Clear();
 

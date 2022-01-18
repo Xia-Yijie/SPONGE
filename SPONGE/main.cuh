@@ -1,12 +1,11 @@
-#ifndef MAIN_CUH
-#define MAIN_CUH
+#ifndef MAIN_RUN_CUH
+#define MAIN_RUN_CUH
 
 
 #include "common.cuh"
 #include "control.cuh"
 #include "MD_core/MD_core.cuh"
 #include "bond/bond.cuh"
-#include "bond/bond_soft.cuh"
 #include "angle/angle.cuh"
 #include "angle/Urey_Bradley_force.cuh"
 #include "dihedral/dihedral.cuh"
@@ -15,7 +14,6 @@
 #include "cmap/cmap.cuh"
 #include "neighbor_list/neighbor_list.cuh"
 #include "Lennard_Jones_force/Lennard_Jones_force.cuh"
-#include "Lennard_Jones_force/LJ_soft_core.cuh"
 #include "PME_force/PME_force.cuh"
 #include "thermostats/Middle_Langevin_MD.cuh"
 #include "thermostats/Langevin_MD.cuh"
@@ -32,6 +30,8 @@
 #include "constrain/simple_constrain.cuh"
 #include "virtual_atoms/virtual_atoms.cuh"
 #include "crd_molecular_map/crd_molecular_map.cuh"
+#include "Lennard_Jones_force/LJ_soft_core.cuh"
+#include "bond/bond_soft.cuh"
 
 
 void Main_Initial(int argc, char *argv[]);

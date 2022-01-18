@@ -1,11 +1,127 @@
 #include "TI_core.cuh"
 
+#define PI 3.1415926
+
 #define TRAJ_COMMAND "crd"
 #define TRAJ_DEFAULT_FILENAME "mdcrd.dat"
-//#define VEL_COMMAND "vel"
-//#define VEL_DEFAULT_FILENAME "mdvel.dat"
 #define BOX_COMMAND "box"
 #define BOX_DEFAULT_FILENAME "box.txt"
+#define TI_RESULT_COMMAND "TI"
+#define TI_RESULT_DEFUALT_FILENAME "TI.txt"
+
+
+static __global__ void device_add(float * ene, float factor, float * charge_sum1, float * charge_sum2)
+{
+	ene[0] += factor * charge_sum1[0] * charge_sum2[0];
+}
+
+static __global__ void PME_Cross_Direct_Energy(
+	const int atom_numbers, const ATOM_GROUP *nl,
+	const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength, const float *charge, const float *charge2,
+	const float beta, const float cutoff_square, float *direct_ene)
+{
+	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	if (atom_i < atom_numbers)
+	{
+		ATOM_GROUP nl_i = nl[atom_i];
+		int N = nl_i.atom_numbers;
+		int atom_j;
+		int int_x;
+		int int_y;
+		int int_z;
+		UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i], r2;
+		VECTOR dr;
+		float dr2;
+		float dr_abs;
+		float ene_temp;
+		float charge_i = charge[atom_i], charge_i2 = charge2[atom_i];
+		float ene_lin = 0.;
+
+		for (int j = threadIdx.y; j < N; j = j + blockDim.y)
+		{
+
+			atom_j = nl_i.atom_serial[j];
+			r2 = uint_crd[atom_j];
+
+			int_x = r2.uint_x - r1.uint_x;
+			int_y = r2.uint_y - r1.uint_y;
+			int_z = r2.uint_z - r1.uint_z;
+			dr.x = boxlength.x*int_x;
+			dr.y = boxlength.y*int_y;
+			dr.z = boxlength.z*int_z;
+
+			dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
+			if (dr2 < cutoff_square)
+			{
+
+				dr_abs = norm3df(dr.x, dr.y, dr.z);
+				ene_temp = (charge_i * charge2[atom_j] + charge_i2 * charge[atom_j]) * erfcf(beta * dr_abs) / dr_abs;
+				ene_lin = ene_lin + ene_temp;
+				//printf("ene_temp: %f, dr_abs = %f, r1.uint_x, uy, yz: %u %u %u\n", ene_temp, dr_abs, r1.uint_x, r1.uint_y, r1.uint_z);
+			}
+
+		}//atom_j cycle
+		atomicAdd(direct_ene, ene_lin);
+	}
+}
+
+
+static __global__ void PME_Cross_Excluded_Energy_Correction
+(const int atom_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR sacler,
+const float *charge, const float * charge2, const float pme_beta, const float sqrt_pi,
+const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
+float *ene)
+{
+	int atom_i = blockDim.x*blockIdx.x + threadIdx.x;
+	if (atom_i < atom_numbers)
+	{
+		int excluded_number = excluded_atom_numbers[atom_i];
+		if (excluded_number > 0)
+		{
+			int list_start = excluded_list_start[atom_i];
+			int list_end = list_start + excluded_number;
+			int atom_j;
+			int int_x;
+			int int_y;
+			int int_z;
+
+			float charge_i = charge[atom_i];
+			float charge_i2 = charge2[atom_i];
+			float charge_j, charge_j2;
+			float dr_abs;
+			float beta_dr;
+
+			UNSIGNED_INT_VECTOR r1 = uint_crd[atom_i], r2;
+			VECTOR dr;
+			float dr2;
+
+			float ene_lin = 0.;
+
+			for (int i = list_start; i < list_end; i = i + 1)
+			{
+				atom_j = excluded_list[i];
+				r2 = uint_crd[atom_j];
+				charge_j = charge2[atom_j];
+				charge_j2 = charge[atom_j];
+
+				int_x = r2.uint_x - r1.uint_x;
+				int_y = r2.uint_y - r1.uint_y;
+				int_z = r2.uint_z - r1.uint_z;
+				dr.x = sacler.x*int_x;
+				dr.y = sacler.y*int_y;
+				dr.z = sacler.z*int_z;
+				dr2 = dr.x*dr.x + dr.y*dr.y + dr.z*dr.z;
+				//假设剔除表中的原子对距离总是小于cutoff的，正常体系
+				dr_abs = sqrtf(dr2);
+				beta_dr = pme_beta*dr_abs;
+
+				ene_lin -= (charge_i * charge_j + charge_i2 * charge_j2)* erff(beta_dr) / dr_abs;
+
+			}//atom_j cycle
+			atomicAdd(ene + atom_i, ene_lin);
+		}//if need excluded
+	}
+}
 
 
 void TI_CORE::non_bond_information::Initial(CONTROLLER *controller, TI_CORE *TI_core )
@@ -250,29 +366,6 @@ void TI_CORE::trajectory_input::Initial(CONTROLLER *controller, TI_CORE * TI_cor
 		getchar();
 		exit(1);
 	}
-
-	/*if (controller[0].Command_Exist("mass_pertubated"))
-	{
-		TI_core->mass_pertubated = atoi(controller[0].Command("mass_pertubated"));
-	}
-	else
-	{
-		printf("	missing value of mass_pertubated, set to defualt 0.");
-		TI_core->mass_pertubated = 0;
-	}
-	if (TI_core->mass_pertubated != 0)
-	{
-		if (controller[0].Command_Exist(VEL_COMMAND))
-		{
-			Open_File_Safely(&vel_traj, controller[0].Command(VEL_COMMAND), "rb");
-		}
-		else
-		{
-			printf("	Error: missing velocity trajectory file.\n");
-			getchar();
-			exit(1);
-		}
-	}*/
 }
 
 void TI_CORE::Initial(CONTROLLER *controller)
@@ -303,51 +396,6 @@ void TI_CORE::Initial(CONTROLLER *controller)
 		printf("	Warning: missing value of charge pertubated, set to default 0.\n");
 		charge_pertubated = 0;
 	}
-	if (controller[0].Command_Exist("bond_pertubated"))
-	{
-		bond_pertubated = atoi(controller[0].Command("bond_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of bond pertubated, set to default 0.\n");
-		bond_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("angle_pertubated"))
-	{
-		angle_pertubated = atoi(controller[0].Command("angle_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of angle pertubated, set to default 0.\n");
-		angle_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("dihedral_pertubated"))
-	{
-		dihedral_pertubated = atoi(controller[0].Command("dihedral_pertuabted"));
-	}
-	else
-	{
-		printf("	Warning: missing value of dihedral pertubated, set to default 0.\n");
-		dihedral_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("nb14_pertubated"))
-	{
-		nb14_pertubated = atoi(controller[0].Command("nb14_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of nb14 pertubated, set to default 0.\n");
-		nb14_pertubated = 0;
-	}
-	if (controller[0].Command_Exist("lj_pertubated"))
-	{
-		lj_pertubated = atoi(controller[0].Command("lj_pertubated"));
-	}
-	else
-	{
-		printf("	Warning: missing value of lj pertubated, set to default 0.\n");
-		lj_pertubated = 0;
-	}
 
 	Malloc_Safely((void**)&h_charge, sizeof(float) * atom_numbers);
 	Malloc_Safely((void**)&h_charge_A, sizeof(float) * atom_numbers);
@@ -357,8 +405,16 @@ void TI_CORE::Initial(CONTROLLER *controller)
 	Cuda_Malloc_Safely((void**)&d_charge, sizeof(float) * atom_numbers);
 	Cuda_Malloc_Safely((void**)&d_charge_B_A, sizeof(float) * atom_numbers);
 	Cuda_Malloc_Safely((void**)&d_subsys_division, sizeof(int) * atom_numbers);
+
+	if (controller->Command_Exist(TI_RESULT_COMMAND))
+	{
+		Open_File_Safely(&ti_result, controller->Command(TI_RESULT_COMMAND), "wb");
+	}
+	else
+	{
+		Open_File_Safely(&ti_result, TI_RESULT_DEFUALT_FILENAME, "wb");
+	}
 	
-	need_nbl = ((charge_pertubated > 0) || (lj_pertubated) > 0);
 	
 	if (charge_pertubated > 0)
 	{
@@ -530,9 +586,7 @@ void TI_CORE::Read_Next_Frame()
 
 void TI_CORE::Clear()
 {
-	//free(velocity);
 	free(coordinate);
-	//cudaFree(vel);
 	cudaFree(crd);
 	cudaFree(uint_crd);
 
@@ -545,9 +599,8 @@ void TI_CORE::Clear()
 	free(h_subsys_division);
 	cudaFree(d_subsys_division);
 	
-	//velocity = NULL;
+
 	coordinate = NULL;
-	//vel = NULL;
 	crd = NULL;
 	uint_crd = NULL;
 	h_charge_A = NULL;
@@ -573,8 +626,7 @@ void TI_CORE::Clear()
 	nb.d_excluded_list = NULL;
 
 	fclose(input.crd_traj);
-	/*if (mass_pertubated)
-		fclose(input.vel_traj);*/
+
 	fclose(input.box_traj);
 }
 
@@ -590,11 +642,93 @@ void TI_CORE::TI_Core_Crd_Device_To_Host()
 	cudaMemcpy(coordinate, crd, sizeof(VECTOR) * atom_numbers, cudaMemcpyDeviceToHost);
 }
 
-void TI_CORE::Print_dH_dlambda_Average_To_Screen_And_Result_File(FILE * fcresult)
+void TI_CORE::Print_dH_dlambda_Average_To_Screen_And_Result_File()
 {
 	data.average_dH_dlambda = data.total_dH_dlambda/input.frame_numbers;
 	fprintf(stdout, "Ensemble Average <dH/dlambda>: %.6f\n", data.average_dH_dlambda);
-	fprintf(fcresult, "%.6f\n", data.average_dH_dlambda);
+	fprintf(ti_result, "%.6f\n", data.average_dH_dlambda);
+}
+
+void TI_CORE::cross_pme::Initial(const int atom_numbers, const int PME_Nall)
+{
+	Cuda_Malloc_Safely((void**)&PME_Q_B_A, sizeof(float) * PME_Nall);
+	Cuda_Malloc_Safely((void**)&d_cross_reciprocal_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_cross_self_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&charge_sum_B_A, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_cross_correction_atom_energy, sizeof(float) * atom_numbers);
+	Cuda_Malloc_Safely((void**)&d_cross_correction_ene, sizeof(float));
+	Cuda_Malloc_Safely((void**)&d_cross_direct_ene, sizeof(float));
+}
+
+float TI_CORE::Get_Cross_PME_Partial_H_Partial_Lambda(Particle_Mesh_Ewald * pme, const ATOM_GROUP
+	* nl, int lj_pertubated, int is_download)
+{
+   if (charge_pertubated)
+   {
+	   PME_Atom_Near << <atom_numbers / 32 + 1, 32 >> >
+	   (uint_crd, pme->PME_atom_near, pme->PME_Nin,
+	   CONSTANT_UINT_MAX_INVERSED * pme->fftx, CONSTANT_UINT_MAX_INVERSED * pme->ffty, CONSTANT_UINT_MAX_INVERSED * pme->fftz,
+	   atom_numbers, pme->fftx, pme->ffty, pme->fftz,
+	   pme->PME_kxyz, pme->PME_uxyz, pme->PME_frxyz);
+
+	   Reset_List << < pme->PME_Nall / 1024 + 1, 1024 >> >(pme->PME_Nall, pme->PME_Q, 0);
+	   Reset_List << < pme->PME_Nall / 1024 + 1, 1024 >> >(pme->PME_Nall, cross_pme.PME_Q_B_A, 0);
+
+	   PME_Q_Spread << < atom_numbers / pme->thread_PME.x + 1, pme->thread_PME >> >
+			   (pme->PME_atom_near, d_charge, pme->PME_frxyz,
+				pme->PME_Q, pme->PME_kxyz, atom_numbers);
+
+	   PME_Q_Spread << < atom_numbers / pme->thread_PME.x + 1, pme->thread_PME >> >
+			   (pme->PME_atom_near, d_charge_B_A, pme->PME_frxyz, cross_pme.PME_Q_B_A, pme->PME_kxyz, atom_numbers);
+	   
+	   cufftExecR2C(pme->PME_plan_r2c, (float*)pme->PME_Q, (cufftComplex*)pme->PME_FQ);
+
+	   PME_BCFQ << < pme->PME_Nfft / 1024 + 1, 1024 >> > (pme->PME_FQ, pme->PME_BC, pme->PME_Nfft);
+
+	   cufftExecC2R(pme->PME_plan_c2r, (cufftComplex*)pme->PME_FQ, (float*)pme->PME_FBCFQ);
+
+	   PME_Energy_Product << < 1, 1024 >> >(pme->PME_Nall, cross_pme.PME_Q_B_A, pme->PME_FBCFQ, cross_pme.d_cross_reciprocal_ene);
+
+	   PME_Energy_Product << < 1, 1024 >> >(atom_numbers, d_charge, d_charge_B_A, cross_pme.d_cross_self_ene);
+
+	   Scale_List << <1, 1 >> >(1, cross_pme.d_cross_self_ene, -2 * pme->beta / sqrtf(PI));
+
+	   Sum_Of_List << <1, 1024 >> >(atom_numbers, d_charge, pme->charge_sum);
+	   device_add << <1, 1 >> >(cross_pme.d_cross_self_ene, pme->neutralizing_factor, pme->charge_sum, cross_pme.charge_sum_B_A);
+	   
+	   Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, cross_pme.d_cross_correction_atom_energy, 0.0f);
+	   PME_Cross_Excluded_Energy_Correction << < atom_numbers / 32 + 1, 32 >> >
+		   (atom_numbers, uint_crd, pbc.uint_dr_to_dr_cof,
+		   d_charge, d_charge_B_A, pme->beta, sqrtf(PI), nb.d_excluded_list_start, nb.d_excluded_list, nb.d_excluded_numbers, cross_pme.d_cross_correction_atom_energy);
+	   Sum_Of_List << <1, 1024 >> >(atom_numbers, cross_pme.d_cross_correction_atom_energy, cross_pme.d_cross_correction_ene);
+
+	   cudaMemset(cross_pme.d_cross_direct_ene, 0, sizeof(float));
+	   if (!lj_pertubated)
+	   {
+		   PME_Cross_Direct_Energy << < atom_numbers / pme->thread_PME.x + 1,  pme->thread_PME >> >
+		   (atom_numbers, nl,
+		   uint_crd, pbc.uint_dr_to_dr_cof, d_charge, d_charge_B_A, 
+		   pme->beta, nb.cutoff*nb.cutoff, cross_pme.d_cross_direct_ene);
+	   }
+
+	   if (is_download)
+	   {
+		   cudaMemcpy(&cross_pme.cross_reciprocal_ene, cross_pme.d_cross_reciprocal_ene, sizeof(float), cudaMemcpyDeviceToHost);
+		   cudaMemcpy(&cross_pme.cross_self_ene, cross_pme.d_cross_self_ene, sizeof(float), cudaMemcpyDeviceToHost);
+		   cudaMemcpy(&cross_pme.cross_correction_ene, cross_pme.d_cross_correction_ene, sizeof(float), cudaMemcpyDeviceToHost);
+		   cudaMemcpy(&cross_pme.cross_direct_ene, cross_pme.d_cross_direct_ene, sizeof(float), cudaMemcpyDeviceToHost);
+		   cross_pme.dH_dlambda = cross_pme.cross_reciprocal_ene + cross_pme.cross_self_ene + cross_pme.cross_correction_ene;
+		   return cross_pme.dH_dlambda;
+	   }
+	   else
+	   {
+		   return 0.0;
+	   }
+   }
+   else
+   {
+	   return NAN;
+   }
 }
 
 

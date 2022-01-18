@@ -8,7 +8,6 @@ ANDERSEN_THERMOSTAT_INFORMATION ad_thermo;
 BERENDSEN_THERMOSTAT_INFORMATION bd_thermo;
 NOSE_HOOVER_CHAIN_INFORMATION nhc;
 BOND bond;
-BOND_SOFT bond_soft;
 ANGLE angle;
 UREY_BRADLEY urey_bradley;
 DIHEDRAL dihedral;
@@ -17,7 +16,6 @@ NON_BOND_14 nb14;
 CMAP cmap;
 NEIGHBOR_LIST neighbor_list;
 LENNARD_JONES_INFORMATION lj;
-LJ_SOFT_CORE lj_soft;
 Particle_Mesh_Ewald pme;
 RESTRAIN_INFORMATION restrain;
 CONSTRAIN constrain;
@@ -29,6 +27,8 @@ CoordinateMolecularMap mol_map;
 MC_BAROSTAT_INFORMATION mc_baro;
 BERENDSEN_BAROSTAT_INFORMATION bd_baro;
 ANDERSEN_BAROSTAT_INFORMATION ad_baro;
+LJ_SOFT_CORE lj_soft;
+BOND_SOFT bond_soft;
 
 int main(int argc, char *argv[])
 {
@@ -75,12 +75,12 @@ void Main_Initial(int argc, char *argv[])
 	neighbor_list.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff, md_info.nb.skin);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.FORCED_UPDATE);
 	lj.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length);
-        lj_soft.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length, md_info.d_subsys_division);
+	lj_soft.Initial(&controller, md_info.nb.cutoff, md_info.sys.box_length);
 	pme.Initial(&controller, md_info.atom_numbers, md_info.sys.box_length, md_info.nb.cutoff);
 	
 	nb14.Initial(&controller, lj.h_LJ_A, lj.h_LJ_B, lj.h_atom_LJ_type);
 	bond.Initial(&controller);
-        bond_soft.Initial(&controller);
+	bond_soft.Initial(&controller);
 	angle.Initial(&controller);
 	urey_bradley.Initial(&controller);
 	dihedral.Initial(&controller);
@@ -175,11 +175,12 @@ void Main_Calculate_Force()
 		neighbor_list.d_nl, pme.beta, md_info.need_potential, md_info.d_atom_energy, md_info.need_pressure, md_info.d_atom_virial, pme.d_direct_atom_energy);
 	lj.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
 		md_info.need_potential, md_info.sys.d_potential);
-	
+
 	lj_soft.LJ_Soft_Core_PME_Direct_Force_With_Atom_Energy_And_Virial(md_info.atom_numbers, md_info.uint_crd, md_info.d_charge, md_info.frc,
 		neighbor_list.d_nl, pme.beta, md_info.need_potential, md_info.d_atom_energy, md_info.need_pressure, md_info.d_atom_virial, pme.d_direct_atom_energy);
 	lj_soft.Long_Range_Correction(md_info.need_pressure, md_info.sys.d_virial,
 		md_info.need_potential, md_info.sys.d_potential);
+	
 	pme.PME_Excluded_Force_With_Atom_Energy(md_info.uint_crd, md_info.pbc.uint_dr_to_dr_cof, md_info.d_charge,
 		md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, md_info.frc, pme.d_correction_atom_energy);
 
@@ -207,7 +208,6 @@ void Main_Iteration()
 	if (md_info.mode == md_info.RERUN)
 	{
 		md_info.rerun.Iteration();
-		neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers);
 		return;
 	}
 	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8ѹ\B2\BF\B7\D6
@@ -435,6 +435,7 @@ void Main_Volume_Change(double factor)
 	neighbor_list.Update_Volume(md_info.sys.box_length);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 	lj.Update_Volume(md_info.sys.box_length);
+	lj_soft.Update_Volume(md_info.sys.box_length);
 	pme.Update_Volume(md_info.sys.box_length);
 	constrain.Update_Volume(md_info.sys.box_length);
 	mol_map.Update_Volume(md_info.sys.box_length);
@@ -446,6 +447,7 @@ void Main_Box_Length_Change(VECTOR factor)
 	neighbor_list.Update_Volume(md_info.sys.box_length);
 	neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers, neighbor_list.CONDITIONAL_UPDATE, neighbor_list.FORCED_CHECK);
 	lj.Update_Volume(md_info.sys.box_length);
+	lj_soft.Update_Volume(md_info.sys.box_length);
 	pme.Update_Box_Length(md_info.sys.box_length);
 	constrain.Update_Volume(md_info.sys.box_length);
 	mol_map.Update_Volume(md_info.sys.box_length);

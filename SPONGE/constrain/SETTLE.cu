@@ -189,7 +189,7 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	virial_vector.z = rB0d.z * rB0.z + rC0d.z * rC0.z;
 }
 
-void SETTLE::Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, char* module_name)
+void SETTLE::Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, const char* module_name)
 {
 	if (module_name == NULL)
 	{

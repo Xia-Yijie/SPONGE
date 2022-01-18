@@ -122,7 +122,7 @@ static __global__ void Refresh_Crd_Vel(const int atom_numbers, const float dt_in
 	}
 }
 
-void SHAKE::Initial_Simple_Constrain(CONTROLLER *controller, CONSTRAIN *constrain, char *module_name)
+void SHAKE::Initial_Simple_Constrain(CONTROLLER *controller, CONSTRAIN *constrain, const char *module_name)
 {
 
 	//从传入的参数复制基本信息

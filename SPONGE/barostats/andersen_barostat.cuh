@@ -35,7 +35,7 @@ struct ANDERSEN_BAROSTAT_INFORMATION
 	float h_mass_inverse; //拓展自由度的质量的倒数
 
 	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name = NULL);
 };
 
 #endif //ANDERSEN_THERMOSTAT_CUH(Anderson.cuh)

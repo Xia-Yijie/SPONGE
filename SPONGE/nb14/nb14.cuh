@@ -70,7 +70,7 @@ struct NON_BOND_14
 
 	int threads_per_block = 128;
 
-	void Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const char *module_name = NULL);
 	void Clear();
 	void Memory_Allocate();
 	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type);

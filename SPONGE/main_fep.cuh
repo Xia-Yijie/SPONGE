@@ -1,16 +1,15 @@
-#ifndef MAIN_CUH
-#define MAIN_CUH
+#ifndef MAIN_FEP_CUH
+#define MAIN_FEP_CUH
 
 
 #include "common.cuh"
 #include "control.cuh"
-#include "TI_core/TI_core.cuh"
-//#include "kinetic_energy/kinetic_energy.cuh"
+#include "FEP_core/FEP_core.cuh"
 #include "bond/bond.cuh"
-#include "bond_soft/bond_soft.cuh"
+#include "bond/bond_soft.cuh"
 #include "angle/angle.cuh"
 #include "dihedral/dihedral.cuh"
-#include "LJ_soft_core/LJ_soft_core.cuh"
+#include "Lennard_Jones_force/LJ_soft_core.cuh"
 #include "nb14/nb14.cuh"
 #include "neighbor_list/neighbor_list.cuh"
 #include "PME_force/PME_force.cuh"

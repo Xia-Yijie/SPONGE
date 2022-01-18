@@ -67,7 +67,7 @@ static __global__ void Bond_Force_With_Atom_Energy_And_Virial_CUDA(const int bon
 	}
 }
  
-void BOND::Initial(CONTROLLER *controller, char *module_name)
+void BOND::Initial(CONTROLLER *controller, const char *module_name)
 {
 	//给予bond模块一个默认名字：bond
 	if (module_name == NULL)

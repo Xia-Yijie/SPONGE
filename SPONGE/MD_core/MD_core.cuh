@@ -54,7 +54,7 @@ struct MD_INFORMATION
 	float *h_mass = NULL;
 	float *h_mass_inverse = NULL;
 	float *h_charge = NULL;
-        int *h_subsys_division = NULL;
+
 	//每个原子的基本物理测量量，on device
 	VECTOR *vel = NULL;
 	VECTOR *crd = NULL;
@@ -64,7 +64,6 @@ struct MD_INFORMATION
 	float *d_mass = NULL;
 	float *d_mass_inverse = NULL;
 	float *d_charge = NULL;
-        int *d_subsys_division = NULL;
 	//坐标读取处理
 	void Read_Coordinate_And_Velocity(CONTROLLER *controller);
 	//读rst7文件获得坐标、速度（可选）、系统时间、盒子
@@ -75,8 +74,7 @@ struct MD_INFORMATION
 	void Read_Mass(CONTROLLER *controller);
 	//读取电荷
 	void Read_Charge(CONTROLLER *controller);
-	//读取子系统划分信息
-	void Read_Subsys_Division(CONTROLLER * controller);
+
 	//每个原子的能量和维里相关
 	int need_pressure = 0;
 	int need_potential = 0;

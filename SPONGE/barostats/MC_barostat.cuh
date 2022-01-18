@@ -95,7 +95,7 @@ struct MC_BAROSTAT_INFORMATION
         const float TENSION_UNIT_FACTOR = 1.439506e-3f;
 
 	//初始化 
-	void Initial(CONTROLLER *controller, int atom_numbers, float target_pressure, VECTOR boxlength, int res_is_initialized, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, int atom_numbers, float target_pressure, VECTOR boxlength, int res_is_initialized, const char *module_name = NULL);
 	
 	//输入盒子信息，得到坐标变化因子
 	void Volume_Change_Attempt(VECTOR boxlength);
