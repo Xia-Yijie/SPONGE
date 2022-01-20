@@ -1,9 +1,9 @@
-#include "constrain.cuh"
+ï»¿#include "constrain.cuh"
 
 
 void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers, const float dt, const VECTOR box_length, const float exp_gamma, const int is_Minimization, float *atom_mass, int *system_freedom)
 {
-	//´Ó´«ÈëµÄ²ÎÊı¸´ÖÆ»ù±¾ĞÅÏ¢
+	//ä»ä¼ å…¥çš„å‚æ•°å¤åˆ¶åŸºæœ¬ä¿¡æ¯
 	this->atom_numbers = atom_numbers;
 	this->dt = dt;
 	this->dt_inverse = 1.0 / dt;
@@ -12,7 +12,7 @@ void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers
 	this->volume = box_length.x * box_length.y * box_length.z;
 
 
-	//È·¶¨Ê¹ÓÃµÄÀÊÖ®ÍòÈÈÔ¡£¬²¢¸ø¶¨exp_gamma
+	//ç¡®å®šä½¿ç”¨çš„æœ—ä¹‹ä¸‡çƒ­æµ´ï¼Œå¹¶ç»™å®šexp_gamma
 	this->v_factor = exp_gamma;
 	this->x_factor = 0.5*(1. + exp_gamma);
 
@@ -23,7 +23,7 @@ void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers
 
 	int extra_numbers = 0;
 	FILE *fp = NULL;
-	//¶ÁÎÄ¼şµÚÒ»¸öÊıÈ·ÈÏconstrainÊıÁ¿£¬Îª·ÖÅäÄÚ´æ×ö×¼±¸
+	//è¯»æ–‡ä»¶ç¬¬ä¸€ä¸ªæ•°ç¡®è®¤constrainæ•°é‡ï¼Œä¸ºåˆ†é…å†…å­˜åšå‡†å¤‡
 	if (controller[0].Command_Exist(this->module_name, "in_file"))
 	{
 		Open_File_Safely(&fp, controller[0].Command(this->module_name, "in_file"), "r");
@@ -46,7 +46,7 @@ void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers
 		h_constrain_pair[i + bond_constrain_pair_numbers] = h_angle_pair[i];
 		h_constrain_pair[i + bond_constrain_pair_numbers].constrain_k = h_constrain_pair[i + bond_constrain_pair_numbers].constrain_k / this->x_factor;
 	}
-	//¶ÁÎÄ¼ş´æÈë
+	//è¯»æ–‡ä»¶å­˜å…¥
 	if (fp != NULL)
 	{
 		int atom_i, atom_j;
@@ -63,11 +63,11 @@ void CONSTRAIN::Initial_Constrain(CONTROLLER *controller, const int atom_numbers
 		fp = NULL;
 	}
 
-	//ÉÏ´«GPU
+	//ä¸Šä¼ GPU
 	cudaMemcpy(constrain_pair, h_constrain_pair, sizeof(CONSTRAIN_PAIR)*constrain_pair_numbers, cudaMemcpyHostToDevice);
 
 
-	//Çå¿Õ³õÊ¼»¯Ê±Ê¹ÓÃµÄÁÙÊ±±äÁ¿
+	//æ¸…ç©ºåˆå§‹åŒ–æ—¶ä½¿ç”¨çš„ä¸´æ—¶å˜é‡
 	if (h_bond_pair != NULL)
 	{
 		free(h_bond_pair);
@@ -107,7 +107,7 @@ const float *atom_mass, const char *module_name)
 		constrain_mass = 0.0f;
 	if (controller[0].Command_Exist(this->module_name, "mass"))
 		constrain_mass = atof(controller[0].Command(this->module_name, "mass"));
-	//Ô¤ÏÈ·ÖÅäÒ»¸ö×ã¹»´óµÄCONSTRAIN_PAIRÓÃÓÚÁÙÊ±´æ´¢
+	//é¢„å…ˆåˆ†é…ä¸€ä¸ªè¶³å¤Ÿå¤§çš„CONSTRAIN_PAIRç”¨äºä¸´æ—¶å­˜å‚¨
 	Malloc_Safely((void**)&h_bond_pair, sizeof(CONSTRAIN_PAIR)*bond_numbers);
 	int s = 0;
 	float mass_a, mass_b;
@@ -115,7 +115,7 @@ const float *atom_mass, const char *module_name)
 	{
 		mass_a = atom_mass[atom_a[i]];
 		mass_b = atom_mass[atom_b[i]];
-		if ((mass_a <constrain_mass && mass_a > 0) || (mass_b <constrain_mass && mass_b > 0))//º¬ÓĞHÔ­×ÓµÄbond
+		if ((mass_a <constrain_mass && mass_a > 0) || (mass_b <constrain_mass && mass_b > 0))//å«æœ‰HåŸå­çš„bond
 		{
 			h_bond_pair[s].atom_i_serial = atom_a[i];
 			h_bond_pair[s].atom_j_serial = atom_b[i];
@@ -126,7 +126,7 @@ const float *atom_mass, const char *module_name)
 	}
 	bond_constrain_pair_numbers = s;
 
-	//¼ÙÉèÊ¹ÓÃÕß²»»áÔÚµ÷ÓÃAdd_HBond_To_Constrain_PairÓëAdd_HAngle_To_Constrain_PairÖĞÍ¾ÊÍ·Åatom_aµÈÖ¸ÕëÖ¸ÏòµÄ¿Õ¼ä
+	//å‡è®¾ä½¿ç”¨è€…ä¸ä¼šåœ¨è°ƒç”¨Add_HBond_To_Constrain_Pairä¸Add_HAngle_To_Constrain_Pairä¸­é€”é‡Šæ”¾atom_aç­‰æŒ‡é’ˆæŒ‡å‘çš„ç©ºé—´
 	bond_info.bond_numbers = bond_numbers;
 	bond_info.atom_a = atom_a;
 	bond_info.atom_b = atom_b;
@@ -142,9 +142,9 @@ const float *angle_theta, const float *atom_mass)
 		temp = angle_numbers;
 	}
 	
-	//Ä¬ÈÏÈÏÎªÒÑ¾­ÔËĞĞÁËAdd_HBond_To_Constrain_Pair
+	//é»˜è®¤è®¤ä¸ºå·²ç»è¿è¡Œäº†Add_HBond_To_Constrain_Pair
 
-	//Ô¤ÏÈ·ÖÅäÒ»¸ö×ã¹»´óµÄCONSTRAIN_PAIRÓÃÓÚÁÙÊ±´æ´¢
+	//é¢„å…ˆåˆ†é…ä¸€ä¸ªè¶³å¤Ÿå¤§çš„CONSTRAIN_PAIRç”¨äºä¸´æ—¶å­˜å‚¨
 	Malloc_Safely((void**)&h_angle_pair, sizeof(CONSTRAIN_PAIR)*angle_numbers*2);
 	int s = 0;
 	float mass_a, mass_c;
@@ -152,22 +152,22 @@ const float *angle_theta, const float *atom_mass)
 	{
 		mass_a = atom_mass[atom_a[i]];
 		mass_c = atom_mass[atom_c[i]];
-		if ((mass_a <constrain_mass && mass_a > 0) || (mass_c <constrain_mass && mass_c > 0))//º¬ÓĞHÔ­×ÓµÄangle,¼ÙÉèÇâÔ­×Ó²»»áÔÚ½ÇÖĞĞÄ¡£
+		if ((mass_a <constrain_mass && mass_a > 0) || (mass_c <constrain_mass && mass_c > 0))//å«æœ‰HåŸå­çš„angle,å‡è®¾æ°¢åŸå­ä¸ä¼šåœ¨è§’ä¸­å¿ƒã€‚
 		{
-			h_angle_pair[s].atom_i_serial = atom_a[i];//¹Ì¶¨angleÁ½¶ËµÄÁ½¸öµã
+			h_angle_pair[s].atom_i_serial = atom_a[i];//å›ºå®šangleä¸¤ç«¯çš„ä¸¤ä¸ªç‚¹
 			h_angle_pair[s].atom_j_serial = atom_c[i];
 
 			float rab=0., rbc=0.;
 			for (int j = 0; j < bond_info.bond_numbers; j = j + 1)
 			{
-				//ÕÒµ½a£¬bÔ­×ÓµÄÆ½ºâ¾àÀë
+				//æ‰¾åˆ°aï¼ŒbåŸå­çš„å¹³è¡¡è·ç¦»
 				if ((bond_info.atom_a[j] == atom_a[i] && bond_info.atom_b[j] == atom_b[i])
 					|| (bond_info.atom_a[j] == atom_b[i] && bond_info.atom_b[j] == atom_a[i]))
 				{
 					rab = bond_info.bond_r[j];
 				}
 
-				//ÕÒµ½b£¬cÔ­×ÓµÄÆ½ºâ¾àÀë
+				//æ‰¾åˆ°bï¼ŒcåŸå­çš„å¹³è¡¡è·ç¦»
 				if ((bond_info.atom_a[j] == atom_c[i] && bond_info.atom_b[j] == atom_b[i])
 					|| (bond_info.atom_a[j] == atom_b[i] && bond_info.atom_b[j] == atom_c[i]))
 				{
@@ -181,7 +181,7 @@ const float *angle_theta, const float *atom_mass)
 				continue;
 			}
 
-			//ÔËÓÃÓàÏÒ¶¨ÀíµÃµ½Æ½ºâµÄac³¤¶ÈÓÃÓÚconstrain
+			//è¿ç”¨ä½™å¼¦å®šç†å¾—åˆ°å¹³è¡¡çš„acé•¿åº¦ç”¨äºconstrain
 			h_angle_pair[s].constant_r = sqrtf(rab*rab + rbc*rbc - 2.*rab*rbc*cosf(angle_theta[i]));
 			h_angle_pair[s].constrain_k = atom_mass[atom_a[i]] * atom_mass[atom_c[i]] / (atom_mass[atom_a[i]] + atom_mass[atom_c[i]]);
 

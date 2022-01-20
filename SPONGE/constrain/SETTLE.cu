@@ -1,10 +1,10 @@
-#include "SETTLE.cuh"
+ï»¿#include "SETTLE.cuh"
 
-//¶Ô¼¸ºÎĞÅÏ¢½øĞĞ×ª»¯
-//ÊäÈë£ºrAB¡¢rAC¡¢rBC£ºÈı½ÇĞÎÈı±ß³¤
-//ÊäÈë£ºmA¡¢mB¡¢mC£ºABCÈı¸öµÄÖÊÁ¿
-//Êä³ö£ºra rb rc rd re£ºÎ»ÖÃ²ÎÊı£¬µ±¸ÕÌåÈı½ÇĞÎÖÊĞÄ·ÅÖÃÓÚÔ­µãÊ±
-//Aµã·ÅÖÃÓÚ(0,ra,0)£¬Bµã·ÅÖÃÓÚ(rc, rb, 0)£¬Cµã·ÅÖÃÓÚ(rd, re, 0)
+//å¯¹å‡ ä½•ä¿¡æ¯è¿›è¡Œè½¬åŒ–
+//è¾“å…¥ï¼šrABã€rACã€rBCï¼šä¸‰è§’å½¢ä¸‰è¾¹é•¿
+//è¾“å…¥ï¼šmAã€mBã€mCï¼šABCä¸‰ä¸ªçš„è´¨é‡
+//è¾“å‡ºï¼šra rb rc rd reï¼šä½ç½®å‚æ•°ï¼Œå½“åˆšä½“ä¸‰è§’å½¢è´¨å¿ƒæ”¾ç½®äºåŸç‚¹æ—¶
+//Aç‚¹æ”¾ç½®äº(0,ra,0)ï¼ŒBç‚¹æ”¾ç½®äº(rc, rb, 0)ï¼ŒCç‚¹æ”¾ç½®äº(rd, re, 0)
 __device__ __host__ void Get_Rabcde_From_SSS(float rAB, float rAC, float rBC, float mA, float mB, float mC,
 	float &ra, float &rb, float &rc, float &rd, float &re)
 {
@@ -45,11 +45,11 @@ __device__ __host__ void Get_Rabcde_From_SSS(float rAB, float rAC, float rBC, fl
 		re *= -1;
 	}
 }
-//¶Ô¼¸ºÎĞÅÏ¢½øĞĞ×ª»¯
-//ÊäÈë£ºrAB¡¢rAC£ºÈı½ÇĞÎÁ½±ß³¤£¬ angle_BAC£ºABºÍACµÄ¼Ğ½Ç(»¡¶È)
-//ÊäÈë£ºmA¡¢mB¡¢mC£ºABCÈı¸öµÄÖÊÁ¿
-//Êä³ö£ºra rb rc rd re£ºÎ»ÖÃ²ÎÊı£¬µ±¸ÕÌåÈı½ÇĞÎÖÊĞÄ·ÅÖÃÓÚÔ­µãÊ±
-//Aµã·ÅÖÃÓÚ(0,ra,0)£¬Bµã·ÅÖÃÓÚ(rc, rb, 0)£¬Cµã·ÅÖÃÓÚ(rd, re, 0)
+//å¯¹å‡ ä½•ä¿¡æ¯è¿›è¡Œè½¬åŒ–
+//è¾“å…¥ï¼šrABã€rACï¼šä¸‰è§’å½¢ä¸¤è¾¹é•¿ï¼Œ angle_BACï¼šABå’ŒACçš„å¤¹è§’(å¼§åº¦)
+//è¾“å…¥ï¼šmAã€mBã€mCï¼šABCä¸‰ä¸ªçš„è´¨é‡
+//è¾“å‡ºï¼šra rb rc rd reï¼šä½ç½®å‚æ•°ï¼Œå½“åˆšä½“ä¸‰è§’å½¢è´¨å¿ƒæ”¾ç½®äºåŸç‚¹æ—¶
+//Aç‚¹æ”¾ç½®äº(0,ra,0)ï¼ŒBç‚¹æ”¾ç½®äº(rc, rb, 0)ï¼ŒCç‚¹æ”¾ç½®äº(rd, re, 0)
 __device__ __host__ void Get_Rabcde_From_SAS(float rAB, float rAC, float angle_BAC, float mA, float mB, float mC,
 	float &ra, float &rb, float &rc, float &rd, float &re)
 {
@@ -92,17 +92,17 @@ __device__ __host__ void Get_Rabcde_From_SAS(float rAB, float rAC, float angle_B
 	}
 }
 
-//ºËĞÄ²¿·Ö
-// ²¿·Ö²Î¿¼ÁËShuichi & Peter: SETTLE: An Analytical Version of the SHAKE and RATTLE Algorithm for Rigid Water Models
-// A B C Èı¸öµã£¬O ÖÊĞÄ
-//ÊäÈë£ºrB0 ÉÏÒ»²½µÄBÔ­×Ó×ø±ê£¨AÎªÔ­µã£©£»rC0 ÉÏÒ»²½µÄCÔ­×Ó×ø±ê£¨AÎªÔ­µã£©
-//rA1 ÕâÒ»²½µÄAÔ­×Ó×ø±ê£¨ÖÊĞÄÎªÔ­µã£© rB1 ÕâÒ»²½µÄBÔ­×Ó×ø±ê£¨ÖÊĞÄÎªÔ­µã£©£»rC1 ÕâÒ»²½µÄCÔ­×Ó×ø±ê£¨ÖÊĞÄÎªÔ­µã£©
-//ra rb rc rd re£ºÎ»ÖÃ²ÎÊı£ºµ±¸ÕÌåÈı½ÇĞÎÖÊĞÄ·ÅÖÃÓÚÔ­µã£¬Aµã·ÅÖÃÓÚ(0,ra,0)£¬Bµã·ÅÖÃÓÚ(rc, rb, 0)£¬Cµã·ÅÖÃÓÚ(rd, re, 0)
-// mA¡¢mB¡¢mC£ºABCÈı¸öµÄÖÊÁ¿ dt:²½³¤
-// half_exp_gamma_plus_half, exp_gamma: Í¬simple_constrain
-//Êä³ö£ºrA3 ÕâÒ»²½ÏŞÖÆºóµÄAÔ­×Ó×ø±ê£¨ÖÊĞÄÎªÔ­µã£© rB3 ÕâÒ»²½ÏŞÖÆºóµÄBÔ­×Ó×ø±ê£¨ÖÊĞÄÎª Ô­µã£©
-//rC3 ÕâÒ»²½ÏŞÖÆºóµÄCÔ­×Ó×ø±ê£¨ÖÊĞÄÎªÔ­µã£©vA vB vC Ô¼ÊøºóµÄËÙ¶È£¨Ô­Î»Ìæ»»£©
-//virial virial_vector Ô¼ÊøºóµÄÎ¬Àï£¨Ô­Î»Ìæ»»£©
+//æ ¸å¿ƒéƒ¨åˆ†
+// éƒ¨åˆ†å‚è€ƒäº†Shuichi & Peter: SETTLE: An Analytical Version of the SHAKE and RATTLE Algorithm for Rigid Water Models
+// A B C ä¸‰ä¸ªç‚¹ï¼ŒO è´¨å¿ƒ
+//è¾“å…¥ï¼šrB0 ä¸Šä¸€æ­¥çš„BåŸå­åæ ‡ï¼ˆAä¸ºåŸç‚¹ï¼‰ï¼›rC0 ä¸Šä¸€æ­¥çš„CåŸå­åæ ‡ï¼ˆAä¸ºåŸç‚¹ï¼‰
+//rA1 è¿™ä¸€æ­¥çš„AåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸ºåŸç‚¹ï¼‰ rB1 è¿™ä¸€æ­¥çš„BåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸ºåŸç‚¹ï¼‰ï¼›rC1 è¿™ä¸€æ­¥çš„CåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸ºåŸç‚¹ï¼‰
+//ra rb rc rd reï¼šä½ç½®å‚æ•°ï¼šå½“åˆšä½“ä¸‰è§’å½¢è´¨å¿ƒæ”¾ç½®äºåŸç‚¹ï¼ŒAç‚¹æ”¾ç½®äº(0,ra,0)ï¼ŒBç‚¹æ”¾ç½®äº(rc, rb, 0)ï¼ŒCç‚¹æ”¾ç½®äº(rd, re, 0)
+// mAã€mBã€mCï¼šABCä¸‰ä¸ªçš„è´¨é‡ dt:æ­¥é•¿
+// half_exp_gamma_plus_half, exp_gamma: åŒsimple_constrain
+//è¾“å‡ºï¼šrA3 è¿™ä¸€æ­¥é™åˆ¶åçš„AåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸ºåŸç‚¹ï¼‰ rB3 è¿™ä¸€æ­¥é™åˆ¶åçš„BåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸º åŸç‚¹ï¼‰
+//rC3 è¿™ä¸€æ­¥é™åˆ¶åçš„CåŸå­åæ ‡ï¼ˆè´¨å¿ƒä¸ºåŸç‚¹ï¼‰vA vB vC çº¦æŸåçš„é€Ÿåº¦ï¼ˆåŸä½æ›¿æ¢ï¼‰
+//virial virial_vector çº¦æŸåçš„ç»´é‡Œï¼ˆåŸä½æ›¿æ¢ï¼‰
 __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	VECTOR rA1, VECTOR rB1, VECTOR rC1,
 	float ra, float rb, float rc, float rd, float re,
@@ -111,19 +111,19 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	VECTOR &rA3, VECTOR &rB3, VECTOR &rC3,
 	VECTOR &vA, VECTOR &vB, VECTOR &vC, VECTOR &virial_vector, int triangle_i)
 {
-	//µÚ0²½£º¹¹½¨ĞÂ×ø±êÏµ
-	//zÖá´¹Ö±ÓÚÉÏÒ»²½µÄBAºÍBC¡£ VECTOR ^ VECTOR ÊÇÍâ»ı
+	//ç¬¬0æ­¥ï¼šæ„å»ºæ–°åæ ‡ç³»
+	//zè½´å‚ç›´äºä¸Šä¸€æ­¥çš„BAå’ŒBCã€‚ VECTOR ^ VECTOR æ˜¯å¤–ç§¯
 	VECTOR base_vector_z = rB0 ^ rC0;
-	//xÖá´¹Ö±ÓÚzÖáºÍÕâÒ»²½µÄAO
+	//xè½´å‚ç›´äºzè½´å’Œè¿™ä¸€æ­¥çš„AO
 	VECTOR base_vector_x = rA1 ^ base_vector_z;
-	//yÖá´¹Ö±ÓÚzÖáºÍxÖá
+	//yè½´å‚ç›´äºzè½´å’Œxè½´
 	VECTOR base_vector_y = base_vector_z ^ base_vector_x;
-	//¹éÒ»»¯
+	//å½’ä¸€åŒ–
 	base_vector_x = rnorm3df(base_vector_x.x, base_vector_x.y, base_vector_x.z) * base_vector_x;
 	base_vector_y = rnorm3df(base_vector_y.x, base_vector_y.y, base_vector_y.z) * base_vector_y;
 	base_vector_z = rnorm3df(base_vector_z.x, base_vector_z.y, base_vector_z.z) * base_vector_z;
 
-	//µÚ1²½£ºÍ¶Ó°ÖÁĞÂ×ø±êÏµ
+	//ç¬¬1æ­¥ï¼šæŠ•å½±è‡³æ–°åæ ‡ç³»
 	//     rA0d = {0, 0, 0};
 	VECTOR rB0d = { base_vector_x * rB0, base_vector_y * rB0, 0 };
 	VECTOR rC0d = { base_vector_x * rC0, base_vector_y * rC0, 0 };
@@ -131,7 +131,7 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	VECTOR rB1d = { base_vector_x * rB1, base_vector_y * rB1, base_vector_z * rB1 };
 	VECTOR rC1d = { base_vector_x * rC1, base_vector_y * rC1, base_vector_z * rC1 };
 
-	//µÚ2²½£ºÈÆbase_vector_yĞı×ªpsi£¬ÈÆbase_vector_xĞı×ªphiµÃµ½rX2d
+	//ç¬¬2æ­¥ï¼šç»•base_vector_yæ—‹è½¬psiï¼Œç»•base_vector_xæ—‹è½¬phiå¾—åˆ°rX2d
 	float sinphi = rA1d.z / ra;
 	float cosphi = sqrtf(1.0f - sinphi * sinphi);
 	float sinpsi = (rB1d.z - rC1d.z - (rb - re) * sinphi) / ((rd - rc) * cosphi);
@@ -142,12 +142,12 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	VECTOR rC2d = { rd * cospsi, re * cosphi + rd * sinpsi * sinphi, rC1d.z };
 
 
-	//µÚ3²½£º¼ÆËã¸¨Öú±äÁ¿ alpha¡¢beta¡¢gamma
+	//ç¬¬3æ­¥ï¼šè®¡ç®—è¾…åŠ©å˜é‡ alphaã€betaã€gamma
 	float alpha = rB2d.x * rB0d.x + rC2d.x * rC0d.x + rB2d.y * rB0d.y + rC2d.y * rC0d.y;
 	float beta = -rB2d.x * rB0d.y - rC2d.x * rC0d.y + rB2d.y * rB0d.x + rC2d.y * rC0d.x;
 	float gamma = rB1d.y * rB0d.x - rB1d.x * rB0d.y + rC1d.y * rC0d.x - rC1d.x * rC0d.y;
 
-	//µÚ4²½£ºÈÆbase_vector_zĞı×ªtheta
+	//ç¬¬4æ­¥ï¼šç»•base_vector_zæ—‹è½¬theta
 	float temp = alpha * alpha + beta * beta;
 	float sintheta = (alpha * gamma - beta * sqrtf(temp - gamma * gamma)) / temp;
 	float costheta = sqrt(1.0f - sintheta * sintheta);
@@ -155,7 +155,7 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	VECTOR rB3d = { rB2d.x * costheta - rB2d.y * sintheta, rB2d.x * sintheta + rB2d.y * costheta, rB2d.z };
 	VECTOR rC3d = { rC2d.x * costheta - rC2d.y * sintheta, rC2d.x * sintheta + rC2d.y * costheta, rC2d.z };
 
-	//µÚ5²½£ºÍ¶Ó°»ØÈ¥
+	//ç¬¬5æ­¥ï¼šæŠ•å½±å›å»
 	rA3 = { rA3d.x * base_vector_x.x + rA3d.y * base_vector_y.x + rA3d.z * base_vector_z.x,
 		rA3d.x * base_vector_x.y + rA3d.y * base_vector_y.y + rA3d.z * base_vector_z.y,
 		rA3d.x * base_vector_x.z + rA3d.y * base_vector_y.z + rA3d.z * base_vector_z.z };
@@ -168,8 +168,8 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 		rC3d.x * base_vector_x.y + rC3d.y * base_vector_y.y + rC3d.z * base_vector_z.y,
 		rC3d.x * base_vector_x.z + rC3d.y * base_vector_y.z + rC3d.z * base_vector_z.z };
 
-	//µÚ6²½£º¼ÆËãÔ¼ÊøÔì³ÉµÄËÙ¶È±ä»¯ºÍÎ¬Àï±ä»¯
-	//½ÚÔ¼¼Ä´æÆ÷£¬°Ñ²»ÓÃµÄrX1dÄÃÀ´µ±delta vXÓÃ
+	//ç¬¬6æ­¥ï¼šè®¡ç®—çº¦æŸé€ æˆçš„é€Ÿåº¦å˜åŒ–å’Œç»´é‡Œå˜åŒ–
+	//èŠ‚çº¦å¯„å­˜å™¨ï¼ŒæŠŠä¸ç”¨çš„rX1dæ‹¿æ¥å½“delta vXç”¨
 	temp = exp_gamma / dt / half_exp_gamma_plus_half;
 	rA1d = temp * (rA3 - rA1);
 	rB1d = temp * (rB3 - rB1);
@@ -178,7 +178,7 @@ __device__ void SETTLE_DO_TRIANGLE(VECTOR rB0, VECTOR rC0,
 	vA = vA + rA1d;
 	vB = vB + rB1d;
 	vC = vC + rC1d;
-	//½ÚÔ¼¼Ä´æÆ÷£¬°Ñ²»ÓÃµÄrX0dÄÃÀ´µ±FXÓÃ
+	//èŠ‚çº¦å¯„å­˜å™¨ï¼ŒæŠŠä¸ç”¨çš„rX0dæ‹¿æ¥å½“FXç”¨
 	temp = 1.0f / dt / dt / half_exp_gamma_plus_half;
 	//rA0d = temp * mA * (rA3 - rA1);
 	rB0d = temp * mB * (rB3 - rB1);
@@ -203,7 +203,7 @@ void SETTLE::Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass
 	{
 		this->constrain = constrain;
 		controller[0].printf("START INITIALIZING SETTLE:\n");
-		//±éÀúËÑ³öconstrainÀïµÄÈı½ÇĞÎ
+		//éå†æœå‡ºconstrainé‡Œçš„ä¸‰è§’å½¢
 		int *linker_numbers = NULL;
 		int *linker_atoms = NULL;
 		float *link_r = NULL;
@@ -335,7 +335,7 @@ void SETTLE::Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass
 			cudaMemcpy(d_triangles, h_triangles, sizeof(CONSTRAIN_TRIANGLE)* triangle_numbers, cudaMemcpyHostToDevice);
 			cudaMemcpy(d_pairs, h_pairs, sizeof(CONSTRAIN_PAIR)* pair_numbers, cudaMemcpyHostToDevice);
 
-			//Ô­À´µÄÖØËÜ
+			//åŸæ¥çš„é‡å¡‘
 			int new_constrain_pair_numbers = constrain->constrain_pair_numbers - 3 * triangle_numbers - pair_numbers;
 			int new_pair_i = 0;
 

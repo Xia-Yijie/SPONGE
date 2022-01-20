@@ -1,4 +1,4 @@
-#include "FEP_core.cuh"
+﻿#include "FEP_core.cuh"
 
 #define TRAJ_COMMAND "crd"
 #define TRAJ_DEFAULT_FILENAME "mdcrd.dat"

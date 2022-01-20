@@ -1,4 +1,4 @@
-#ifndef LJ_SOFT_CORE_CUH
+﻿#ifndef LJ_SOFT_CORE_CUH
 #define LJ_SOFT_CORE_CUH
 #include "../common.cuh"
 #include "../control.cuh"

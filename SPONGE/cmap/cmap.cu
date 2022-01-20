@@ -1,6 +1,6 @@
-#include"cmap.cuh"
+ï»¿#include"cmap.cuh"
 
-//ÓÉÓÚÇóµ¼´øÀ´µÄÏµÊı¾ØÕóµÄÄæ¾ØÕóA_inv
+//ç”±äºæ±‚å¯¼å¸¦æ¥çš„ç³»æ•°çŸ©é˜µçš„é€†çŸ©é˜µA_inv
 static const float A_inv[16][16] =
 { { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
 { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, },
@@ -61,7 +61,7 @@ void CMAP::Initial(CONTROLLER *controller, const char *module_name)
 
 		for (int i = 0; i < (this->tot_cmap_num); i++)
 		{
-			//Êı×éÔ­×Ó±àºÅ´Ó0¼Ç
+			//æ•°ç»„åŸå­ç¼–å·ä»0è®°
 			ret = fscanf(fp, "%d", &this->h_atom_a[i]);
 			ret = fscanf(fp, "%d", &this->h_atom_b[i]);
 			ret = fscanf(fp, "%d", &this->h_atom_c[i]);
@@ -95,7 +95,7 @@ void CMAP::Initial(CONTROLLER *controller, const char *module_name)
 	}
 	if (is_initialized)
 	{
-	    //Íê³É²åÖµÏµÊı¼ÆËã£¬Íê³É³õÊ¼»¯
+	    //å®Œæˆæ’å€¼ç³»æ•°è®¡ç®—ï¼Œå®Œæˆåˆå§‹åŒ–
 	    this->Interpolation(this->cmap_resolution,this->grid_value,controller[0]);
 		
 	    Parameter_Host_to_Device();
@@ -111,7 +111,7 @@ void CMAP::Initial(CONTROLLER *controller, const char *module_name)
 
 void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller)
 {
-	//²ÎÊıÖĞµÄË«¶şÃæ½ÇµÄĞÅÏ¢
+	//å‚æ•°ä¸­çš„åŒäºŒé¢è§’çš„ä¿¡æ¯
 
 	FILE *parm = NULL;
 	Open_File_Safely(&parm, file_name, "r");
@@ -122,7 +122,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 	char temp_first_str[CHAR_LENGTH_MAX];
 	char temp_second_str[CHAR_LENGTH_MAX];
 
-	//ÖĞ¼ä/Ñ­»·±äÁ¿
+	//ä¸­é—´/å¾ªç¯å˜é‡
 	int count = 0, temp = 0;
 
 	while (true)
@@ -140,12 +140,12 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 			&& strcmp(temp_second_str, "CMAP_COUNT") == 0 || strcmp(temp_second_str, "CHARMM_CMAP_COUNT") == 0)
 		{
 			
-			//¶ÁÈ¡parm7ÖĞµÄ"COMMENT ..."(Èç¹û´æÔÚ)ÒÔ¼°"%FORMAT(2I8)" Á½ĞĞ
+			//è¯»å–parm7ä¸­çš„"COMMENT ..."(å¦‚æœå­˜åœ¨)ä»¥åŠ"%FORMAT(2I8)" ä¸¤è¡Œ
 			char *get_value = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
 				get_value = fgets(temps, CHAR_LENGTH_MAX, parm);
 
-			//¶ÁÈ¡CMAP¸öÊı
+			//è¯»å–CMAPä¸ªæ•°
 			int ret = fscanf(parm, "%d", &(this->tot_cmap_num));
 			ret = fscanf(parm, "%d", &(this->uniq_cmap_num));
 
@@ -156,7 +156,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "CMAP_RESOLUTION") == 0 || strcmp(temp_second_str, "CHARMM_CMAP_RESOLUTION") == 0)
 		{
-			//¶ÁÈ¡µ½"%FORMAT(20I4)"Ò»ĞĞ
+			//è¯»å–åˆ°"%FORMAT(20I4)"ä¸€è¡Œ
 			char* ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			if (strncmp(temps, "%COMMENT", 8) == 0)
 				ret = fgets(temps, CHAR_LENGTH_MAX, parm);
@@ -166,7 +166,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 				int ret2 = fscanf(parm, "%d", &cmap_resolution[i]);
 				uniq_gridpoint_num += cmap_resolution[i] * cmap_resolution[i];
 			}
-			//¶ÁÈëÈ«²¿Ë«¶şÃæ½ÇĞÅÏ¢²¢Ñ¡ÔñÊ¹ÓÃµ½µÄ½øĞĞ²åÖµ
+			//è¯»å…¥å…¨éƒ¨åŒäºŒé¢è§’ä¿¡æ¯å¹¶é€‰æ‹©ä½¿ç”¨åˆ°çš„è¿›è¡Œæ’å€¼
 			if (!Malloc_Safely((void**)&(this->grid_value), sizeof(float)*(this->uniq_cmap_num)*pow(24, 2)))
 			{
 				printf("        Error occurs when malloc CMAP grid vlaues in CMAP::Read_Information_From_AMBERFILE");
@@ -174,7 +174,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 
 		}
 
-		//Ñ­»·¶ÁÈ¡²åÖµ¸ñµã´¦µÄÖµ£¬²¢½«²åÖµµÃµ½µÄÏµÊı±£´æ
+		//å¾ªç¯è¯»å–æ’å€¼æ ¼ç‚¹å¤„çš„å€¼ï¼Œå¹¶å°†æ’å€¼å¾—åˆ°çš„ç³»æ•°ä¿å­˜
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& (strncmp(temp_second_str, "CMAP_PARAMETER", 14) == 0 || strncmp(temp_second_str, "CHARMM_CMAP_PARAMETER", 15) == 0))
 		{
@@ -182,7 +182,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 			if (strncmp(temps, "%COMMENT", 8) == 0)
 				ret = fgets(temps, CHAR_LENGTH_MAX, parm);
 			
-		////½«ËùÓĞ¸ñµãÖµ¶ÁÈ¡µ½Ò»¸öÊı×éÖĞ
+		////å°†æ‰€æœ‰æ ¼ç‚¹å€¼è¯»å–åˆ°ä¸€ä¸ªæ•°ç»„ä¸­
 			for (int i = 0; i < pow(this->cmap_resolution[count],2); i++)
 			{
 				int ret2 = fscanf(parm,"%f",&grid_value[i+temp]);
@@ -192,7 +192,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 			count += 1;
 		}
 
-		//¶ÁÈ¡²ÎÓëË«¶şÃæ½ÇµÄÔ­×Ó±àºÅ
+		//è¯»å–å‚ä¸åŒäºŒé¢è§’çš„åŸå­ç¼–å·
 		if (strcmp(temp_first_str, "%FLAG") == 0
 			&& strcmp(temp_second_str, "CMAP_INDEX") == 0 || strcmp(temp_second_str, "CHARMM_CMAP_INDEX") == 0)
 		{
@@ -202,7 +202,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 
 			for (int i = 0; i < (this->tot_cmap_num); i++)
 			{
-				//Êı×éÔ­×Ó±àºÅ´Ó0¼Ç
+				//æ•°ç»„åŸå­ç¼–å·ä»0è®°
 				int ret2 = fscanf(parm, "%d", &this->h_atom_a[i]);
 				h_atom_a[i] -= 1;
 				ret2 = fscanf(parm, "%d", &this->h_atom_b[i]);
@@ -250,7 +250,7 @@ void CMAP::Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER con
 
 void CMAP::Parameter_Host_to_Device()
 {
-	//Ô­×ÓĞòºÅ
+	//åŸå­åºå·
 	cudaMemcpy(this->d_atom_a, this->h_atom_a, sizeof(int)*this->tot_cmap_num, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_atom_b, this->h_atom_b, sizeof(int)*this->tot_cmap_num, cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_atom_c, this->h_atom_c, sizeof(int)*this->tot_cmap_num, cudaMemcpyHostToDevice);
@@ -259,14 +259,14 @@ void CMAP::Parameter_Host_to_Device()
 
 	cudaMemcpy(this->d_cmap_resolution, this->cmap_resolution, sizeof(int)*(this->uniq_cmap_num),cudaMemcpyHostToDevice);
 	cudaMemcpy(this->d_cmap_type, this->cmap_type, sizeof(int)*(this->tot_cmap_num), cudaMemcpyHostToDevice);
-	//²åÖµ¾ØÕó
+	//æ’å€¼çŸ©é˜µ
 	cudaMemcpy(this->d_inter_coeff, this->inter_coeff, sizeof(float)*(this->tot_cmap_num) * 24 * 24 * 16, cudaMemcpyHostToDevice);
 }
 
 
 void CMAP::Memory_Allocate()
 {
-	//cmapÏà¹ØĞÅÏ¢
+	//cmapç›¸å…³ä¿¡æ¯
 	if (!Malloc_Safely((void**)&(this->cmap_resolution), sizeof(int)* (this->uniq_cmap_num)))
 	{
 		printf("        Error occurs when malloc cmap resolution in CMAP::Read_Information_From_AMBERFILE");
@@ -284,7 +284,7 @@ void CMAP::Memory_Allocate()
 		printf("        Error occurs when CUDA malloc cmap type in CMAP::Read_Information_From_AMBERFILE");
 	}
 
-	//¹ØÓÚÄÜÁ¿ĞÅÏ¢
+	//å…³äºèƒ½é‡ä¿¡æ¯
 	if (!Malloc_Safely((void**)&(this->h_sigma_of_cmap_ene), sizeof(float)))
 	{
 		printf("        Error occurs when malloc CMAP sum of energy in CMAP::Read_Information_From_AMBERFILE");
@@ -311,7 +311,7 @@ void CMAP::Memory_Allocate()
 	}
 
 
-	//¹ØÓÚÔ­×Ó×ø±ê
+	//å…³äºåŸå­åæ ‡
 	if (!Malloc_Safely((void**)&this->h_atom_a, sizeof(int)* this->tot_cmap_num))
 		printf("Error occurs when malloc DIHEDARL::h_atom_a in CMAP::cmap_initialize");
 	if (!Malloc_Safely((void**)&this->h_atom_b, sizeof(int)* this->tot_cmap_num))
@@ -400,20 +400,20 @@ void CMAP::Clear()
 
 void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controller)
 {
-	//ÁÙÊ±´¢´æ½ÚµãµÄÖµºÍ²î·Ö
+	//ä¸´æ—¶å‚¨å­˜èŠ‚ç‚¹çš„å€¼å’Œå·®åˆ†
 	float f[4][4];
 	float p[16];
 
 	printf("    Start Interpolating the CMAP Grid Value\n");
-	//Ê×ÏÈ´ÓÍ³Ò»¶ÁÈëµÄCMAP¸ñµãÊı¾İÖĞ½ØÈ¡³öĞèÒª²åÖµµÄÊı¾İ
-	int temp_loca = 0,temp_record = 0;//¼ÇÂ¼Î»ÖÃ
-	float *temp_grid_value;//ÁÙÊ±´¢´æÌØ¶¨CMAP¸ñµãµÄÖµ
-	float *temp_inter_coeff;//ÁÙÊ±´¢´æ²åÖµÏµÊı
-	int temp_type;//±ê¼ÇCMAPÀàĞÍ
-	int temp_reso;//±ê¼Ç¸ñµã·Ö±æÂÊ
+	//é¦–å…ˆä»ç»Ÿä¸€è¯»å…¥çš„CMAPæ ¼ç‚¹æ•°æ®ä¸­æˆªå–å‡ºéœ€è¦æ’å€¼çš„æ•°æ®
+	int temp_loca = 0,temp_record = 0;//è®°å½•ä½ç½®
+	float *temp_grid_value;//ä¸´æ—¶å‚¨å­˜ç‰¹å®šCMAPæ ¼ç‚¹çš„å€¼
+	float *temp_inter_coeff;//ä¸´æ—¶å‚¨å­˜æ’å€¼ç³»æ•°
+	int temp_type;//æ ‡è®°CMAPç±»å‹
+	int temp_reso;//æ ‡è®°æ ¼ç‚¹åˆ†è¾¨ç‡
 
 	int phi_index = 0, psi_index = 0;
-	//²åÖµÊı¾İ½á¹¹Îª£º  
+	//æ’å€¼æ•°æ®ç»“æ„ä¸ºï¼š  
 	//                          psi
 	//                - - - - - ... - - - - -
 	//                - - - - - ... - - - - -
@@ -421,14 +421,14 @@ void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controlle
 	//                      .
 	//						.
 	//                - - - - - ... - - - - -
-	//¹æÄ£Îª resolution*resolution
+	//è§„æ¨¡ä¸º resolution*resolution
 	for (int k = 0; k < (this->tot_cmap_num); k++)
 	{
 		temp_type = this->cmap_type[k];
 		temp_reso = this->cmap_resolution[temp_type];
 		//controller.printf("        CMAP type number is %d, CMAP resolution is %d\n", this->cmap_type[k], temp_reso);
 
-		//ÁÙÊ±Êı×é£¬ÓÃÓÚ´¢´æµ¥¸öCMAPµÄ²åÖµÊı¾İÓë¼ÆËãµÃµ½µÄ²åÖµÏµÊı
+		//ä¸´æ—¶æ•°ç»„ï¼Œç”¨äºå‚¨å­˜å•ä¸ªCMAPçš„æ’å€¼æ•°æ®ä¸è®¡ç®—å¾—åˆ°çš„æ’å€¼ç³»æ•°
 		if (!Malloc_Safely((void**)&(temp_grid_value), sizeof(float)* pow(temp_reso, 2)))
 		{
 			printf("        Error occurs when malloc temprerary grid value list in CMAP::Interpolation");
@@ -438,7 +438,7 @@ void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controlle
 			printf("        Error occurs when malloc temprerary interpolation coefficients list in CMAP::Interpolation");
 		}
 		
-		//temp_loca = pow(this->cmap_resolution[0], 2)*(temp_type); //demo£¬ÔÚËùÓĞË«¶şÃæ½Ç²åÖµ·Ö±æÂÊÏàÍ¬Ê±ÊÇÕıÈ·µÄ
+		//temp_loca = pow(this->cmap_resolution[0], 2)*(temp_type); //demoï¼Œåœ¨æ‰€æœ‰åŒäºŒé¢è§’æ’å€¼åˆ†è¾¨ç‡ç›¸åŒæ—¶æ˜¯æ­£ç¡®çš„
 		temp_loca = 0;
 		for (int i = 0; i < temp_type; i++)
 		{
@@ -448,14 +448,14 @@ void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controlle
 
 		for (int i = 0; i < (temp_reso)*(temp_reso); i++)
 		{	
-			//¶ÔÃ¿¸öµ¥Ôª½øĞĞ²åÖµ
+			//å¯¹æ¯ä¸ªå•å…ƒè¿›è¡Œæ’å€¼
 			psi_index = i % (temp_reso);
 			phi_index = (i - psi_index)/(temp_reso);
 			for (int m = 0; m < 4; m++)
 			{
 				for (int n = 0; n < 4; n++)
 				{
-					//ÒıÈëÖÜÆÚĞÔµÄ¶ÁÈ¡·½Ê½
+					//å¼•å…¥å‘¨æœŸæ€§çš„è¯»å–æ–¹å¼
 					if (phi_index + m - 1 >= 0 && psi_index + n - 1 >= 0)
 						f[m][n] = temp_grid_value[((phi_index + m - 1) % (temp_reso))*temp_reso + (psi_index + n - 1) % temp_reso];
 					else if ((phi_index + m - 1 < 0 && psi_index + n - 1 >= 0))
@@ -466,7 +466,7 @@ void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controlle
 						f[m][n] = temp_grid_value[((phi_index + m + 23) % (temp_reso))*temp_reso + (psi_index + n + 23) % temp_reso];
 				}
 			}
-			//¸ñµãÖµÒÔ¼°Ò»½×¶ş½×²î·Ö
+			//æ ¼ç‚¹å€¼ä»¥åŠä¸€é˜¶äºŒé˜¶å·®åˆ†
 			p[0] = f[1][1];
 			p[1] = f[2][1];
 			p[2] = f[1][2];
@@ -484,17 +484,17 @@ void CMAP::Interpolation(int* resolution, float* grid_value,CONTROLLER controlle
 			p[14] = (f[2][3] + f[0][1] - f[2][1] - f[0][3]) / 4;
 			p[15] = (f[3][3] + f[1][1] - f[3][1] - f[1][3]) / 4;
 
-			//ÏµÊı¾ØÕó£¨size:4*4£©µÄ¶ÔÓ¦¹ØÏµÎªÁĞÖ¸±ê¶ÔÓ¦y´ÎÊı£¬ĞĞÖ¸±ê¶ÔÓ¦x´ÎÊı£¬Ô­Ê¼Êı¾İ£¨size:reso*reso£©ĞĞÖ¸±ê¶ÔÓ¦x×ø±ê£¬ÁĞÖ¸±ê¶ÔÓ¦y×ø±ê
+			//ç³»æ•°çŸ©é˜µï¼ˆsize:4*4ï¼‰çš„å¯¹åº”å…³ç³»ä¸ºåˆ—æŒ‡æ ‡å¯¹åº”yæ¬¡æ•°ï¼Œè¡ŒæŒ‡æ ‡å¯¹åº”xæ¬¡æ•°ï¼ŒåŸå§‹æ•°æ®ï¼ˆsize:reso*resoï¼‰è¡ŒæŒ‡æ ‡å¯¹åº”xåæ ‡ï¼Œåˆ—æŒ‡æ ‡å¯¹åº”yåæ ‡
 			for (int q = 0; q < 16; q++)
 			{
-				//ÊÖ¶¯¾ØÕó³Ë·¨
+				//æ‰‹åŠ¨çŸ©é˜µä¹˜æ³•
 				temp_inter_coeff[i * 16 + q] = 0;
 				for (int j = 0; j < 16; j++)
 					temp_inter_coeff[i * 16 + q] += (A_inv[q][j])*p[j];
 			}		
 		}
 		
-		//½«²åÖµÏµÊı´æ³öÀ´
+		//å°†æ’å€¼ç³»æ•°å­˜å‡ºæ¥
 		memcpy(&inter_coeff[temp_record], temp_inter_coeff, sizeof(float)* 16 * pow(temp_reso, 2));
 		temp_record += temp_reso*temp_reso * 16;
 		
@@ -520,12 +520,12 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		int atom_l = atom_d[cmap_i];
 		int atom_m = atom_e[cmap_i];
 
-		//¼ÆËãphi
+		//è®¡ç®—phi
 		VECTOR drij = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
 		VECTOR drkj = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_j], scaler);
 		VECTOR drkl = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_l], scaler);
 
-		//·¨ÏòÁ¿¼Ğ½Ç
+		//æ³•å‘é‡å¤¹è§’
 		VECTOR r1_phi = drij ^ drkj;
 		VECTOR r2_phi = drkl ^ drkj;
 
@@ -539,7 +539,7 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
 		phi = acosf(phi);
 
-		//acosf()Ö»ÄÜ·µ»Ø[0,pi],ĞèÒªÈ·¶¨ÆäÕı¸º£¬×îÖÕphiÂäÔÚ[-pi,pi]
+		//acosf()åªèƒ½è¿”å›[0,pi],éœ€è¦ç¡®å®šå…¶æ­£è´Ÿï¼Œæœ€ç»ˆphiè½åœ¨[-pi,pi]
 
 		phi = CONSTANT_Pi - phi;
 
@@ -549,12 +549,12 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		float cos_phi = cosf(phi);
 		float sin_phi = sinf(phi);
 
-		//¼ÆËãpsi
+		//è®¡ç®—psi
 		VECTOR drjk = Get_Periodic_Displacement(uint_crd[atom_j], uint_crd[atom_k], scaler);
 		VECTOR drlk = Get_Periodic_Displacement(uint_crd[atom_l], uint_crd[atom_k], scaler);
 		VECTOR drlm = Get_Periodic_Displacement(uint_crd[atom_l], uint_crd[atom_m], scaler);
 
-		//·¨ÏòÁ¿¼Ğ½Ç
+		//æ³•å‘é‡å¤¹è§’
 		VECTOR r1_psi = drjk ^ drlk;
 		VECTOR r2_psi = drlm ^ drlk;
 
@@ -568,7 +568,7 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		psi = fmaxf(-0.999999, fminf(psi, 0.999999));
 		psi = acosf(psi);
 
-		//Í¬Àí½«psiÓ³Éäµ½[-pi,pi]
+		//åŒç†å°†psiæ˜ å°„åˆ°[-pi,pi]
 		psi = CONSTANT_Pi - psi;
 		float sign_psi = (r2_psi ^ r1_psi) * drlk;
 		psi = copysignf(psi, sign_psi);
@@ -577,8 +577,8 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		float sin_psi = sinf(psi);
 
 
-		//¼ÆËãÄÜÁ¿
-		//Ê×ÏÈ½«phi,psi ¶Ôpi¹éÒ»»¯,µ¥Î»Îª(pi/resolution),²¢È·¶¨ÆäËùÊô¸ñµãÒÔ¼°ÔÚ¸ñÄÚµÄÎ»ÖÃ
+		//è®¡ç®—èƒ½é‡
+		//é¦–å…ˆå°†phi,psi å¯¹piå½’ä¸€åŒ–,å•ä½ä¸º(pi/resolution),å¹¶ç¡®å®šå…¶æ‰€å±æ ¼ç‚¹ä»¥åŠåœ¨æ ¼å†…çš„ä½ç½®
 
 		phi = phi / (2.0*CONSTANT_Pi / resolution[cmap_i]);
 		psi = psi / (2.0*CONSTANT_Pi / resolution[cmap_i]);
@@ -589,13 +589,13 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		int locate_phi = (int)floorf(phi) + 12;
 		int locate_psi = (int)floorf(psi) + 12;
 
-		//¶¨ÒåÃİ´Î
+		//å®šä¹‰å¹‚æ¬¡
 		float parm_phi_2 = parm_phi*parm_phi;
 		float parm_phi_3 = parm_phi_2*parm_phi;
 		float parm_psi_2 = parm_psi*parm_psi;
 		float parm_psi_3 = parm_psi_2*parm_psi;
 
-		//ÓÃÓÚ¶¨Î»µÄÖĞ¼ä±äÁ¿
+		//ç”¨äºå®šä½çš„ä¸­é—´å˜é‡
 		//int locate = 16 * (locate_phi * 24 + locate_psi) + 24 * 24 * 16 * cmap_i;
 		int temp_reso = resolution[type[cmap_i] - 1];
 		int locate = 16 * (locate_phi * temp_reso + locate_psi);
@@ -605,7 +605,7 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		}
 
 
-		//¼ÆËãÄÜÁ¿¶ÔÓĞ·ûºÅ¹éÒ»»¯¶şÃæ½ÇµÄÆ«Î¢·Ö
+		//è®¡ç®—èƒ½é‡å¯¹æœ‰ç¬¦å·å½’ä¸€åŒ–äºŒé¢è§’çš„åå¾®åˆ†
 		float dE_dphi = (inter_coeff[locate + 4] + parm_psi*inter_coeff[locate + 5] + parm_psi_2*inter_coeff[locate + 6] + parm_psi_3*inter_coeff[locate + 7])
 						+ 2 * parm_phi*(inter_coeff[locate + 8] + parm_psi*inter_coeff[locate + 9] + parm_psi_2*inter_coeff[locate + 10] + parm_psi_3*inter_coeff[locate + 11])
 						+ 3 * parm_phi_2*(inter_coeff[locate + 12] + parm_psi*inter_coeff[locate + 13] + parm_psi_2*inter_coeff[locate + 14] + parm_psi_3*inter_coeff[locate + 15]);
@@ -615,12 +615,12 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 						+ parm_phi_2*(inter_coeff[locate + 9] + 2 * parm_psi*inter_coeff[locate + 10] + 3 * parm_psi_2*inter_coeff[locate + 11])
 						+ parm_phi_3*(inter_coeff[locate + 13] + 2 * parm_psi*inter_coeff[locate + 14] + 3 * parm_psi_2*inter_coeff[locate + 15]);
 				
-	    //½«ÓĞ·ûºÅ¹éÒ»»¯¶şÃæ½ÇÓ³Éä»Ø»¡¶ÈÖÆ¶şÃæ½Ç
+	    //å°†æœ‰ç¬¦å·å½’ä¸€åŒ–äºŒé¢è§’æ˜ å°„å›å¼§åº¦åˆ¶äºŒé¢è§’
 		dE_dphi = dE_dphi/(2.0*CONSTANT_Pi / resolution[cmap_i]);
 		dE_dpsi = dE_dpsi/(2.0*CONSTANT_Pi / resolution[cmap_i]);
 		
 
-        //phi½Ç²¿·Ö
+        //phiè§’éƒ¨åˆ†
 		VECTOR temp_phi_A = drij^drjk;
 		VECTOR temp_phi_B = drlk^drjk;
 
@@ -635,7 +635,7 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 		VECTOR dphi_drm = { 0, 0, 0 };
 
 
-		//psi½Ç²¿·Ö
+		//psiè§’éƒ¨åˆ†
 		VECTOR drml = Get_Periodic_Displacement(uint_crd[atom_m], uint_crd[atom_l], scaler);
 	
 		VECTOR temp_psi_A = drjk^drkl;
@@ -651,7 +651,7 @@ static __global__ void CMAP_Force_with_Atom_Energy_CUDA(const int cmap_numbers, 
 			+ drml*drkl / (temp_psi_B*temp_psi_B*sqrtf(drkl*drkl))*temp_psi_B;
 		VECTOR dpsi_drm = sqrtf(drkl*drkl) / (temp_psi_B*temp_psi_B)*temp_psi_B;
 
-		//¼ÆËãÁ¦
+		//è®¡ç®—åŠ›
 		VECTOR fi = -(dE_dphi*dphi_dri + dE_dpsi*dpsi_dri);
 		VECTOR fj = -(dE_dphi*dphi_drj + dE_dpsi*dpsi_drj);
 		VECTOR fk = -(dE_dphi*dphi_drk + dE_dpsi*dpsi_drk);
@@ -698,12 +698,12 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 		int atom_l = atom_d[cmap_i];
 		int atom_m = atom_e[cmap_i];
 
-		//¼ÆËãphi
+		//è®¡ç®—phi
 		VECTOR drij = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
 		VECTOR drkj = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_j], scaler);
 		VECTOR drkl = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_l], scaler);
 
-		//·¨ÏòÁ¿¼Ğ½Ç
+		//æ³•å‘é‡å¤¹è§’
 		VECTOR r1_phi = drij ^ drkj;
 		VECTOR r2_phi = drkl ^ drkj;
 
@@ -717,7 +717,7 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 		phi = fmaxf(-0.999999, fminf(phi, 0.999999));
 		phi = acosf(phi);
 
-		//acosf()Ö»ÄÜ·µ»Ø[0,pi],ĞèÒªÈ·¶¨ÆäÕı¸º£¬×îÖÕphiÂäÔÚ[-pi,pi]
+		//acosf()åªèƒ½è¿”å›[0,pi],éœ€è¦ç¡®å®šå…¶æ­£è´Ÿï¼Œæœ€ç»ˆphiè½åœ¨[-pi,pi]
 
 		phi = CONSTANT_Pi - phi;
 
@@ -729,12 +729,12 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 
 
 
-		//¼ÆËãpsi
+		//è®¡ç®—psi
 		VECTOR drjk = Get_Periodic_Displacement(uint_crd[atom_j], uint_crd[atom_k], scaler);
 		VECTOR drlk = Get_Periodic_Displacement(uint_crd[atom_l], uint_crd[atom_k], scaler);
 		VECTOR drlm = Get_Periodic_Displacement(uint_crd[atom_l], uint_crd[atom_m], scaler);
 
-		//·¨ÏòÁ¿¼Ğ½Ç
+		//æ³•å‘é‡å¤¹è§’
 		VECTOR r1_psi = drjk ^ drlk;
 		VECTOR r2_psi = drlm ^ drlk;
 
@@ -748,7 +748,7 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 		psi = fmaxf(-0.999999, fminf(psi, 0.999999));
 		psi = acosf(psi);
 
-		//Í¬Àí½«psiÓ³Éäµ½[-pi,pi]
+		//åŒç†å°†psiæ˜ å°„åˆ°[-pi,pi]
 		psi = CONSTANT_Pi - psi;
 		sign = (r2_psi ^ r1_psi) * drlk;
 		psi = copysignf(psi, sign);
@@ -756,8 +756,8 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 		float cos_psi = cosf(psi);
 		float sin_psi = sinf(psi);
 
-		//¼ÆËãÄÜÁ¿
-		//Ê×ÏÈ½«phi,psi ¶Ôpi¹éÒ»»¯,µ¥Î»Îª(2pi/resolution),²¢È·¶¨ÆäËùÊô¸ñµãÒÔ¼°ÔÚ¸ñÄÚµÄÎ»ÖÃ
+		//è®¡ç®—èƒ½é‡
+		//é¦–å…ˆå°†phi,psi å¯¹piå½’ä¸€åŒ–,å•ä½ä¸º(2pi/resolution),å¹¶ç¡®å®šå…¶æ‰€å±æ ¼ç‚¹ä»¥åŠåœ¨æ ¼å†…çš„ä½ç½®
 
 		int temp_reso = resolution[type[cmap_i - 1]];
 		phi = phi / (2.0*CONSTANT_Pi / temp_reso);
@@ -769,14 +769,14 @@ static __global__ void CMAP_Energy_CUDA(const int cmap_numbers, const UNSIGNED_I
 		int locate_phi = (int)floorf(phi) + 12;
 		int locate_psi = (int)floorf(psi) + 12;
 
-		//¶¨ÒåÃİ´Î
+		//å®šä¹‰å¹‚æ¬¡
 		float parm_phi_2 = parm_phi*parm_phi;
 		float parm_phi_3 = parm_phi_2*parm_phi;
 
 		float parm_psi_2 = parm_psi*parm_psi;
 		float parm_psi_3 = parm_psi_2*parm_psi;
 
-		//ÓÃÓÚ¶¨Î»µÄÖĞ¼ä±äÁ¿
+		//ç”¨äºå®šä½çš„ä¸­é—´å˜é‡
 		int locate = 16 * (locate_phi * temp_reso + locate_psi);
 		for (int i = 0; i < cmap_i; i++)
 		{

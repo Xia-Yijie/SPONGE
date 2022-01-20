@@ -1,4 +1,4 @@
-#include "LJ_soft_core.cuh"
+﻿#include "LJ_soft_core.cuh"
 
 #define TWO_DIVIDED_BY_SQRT_PI 1.1283791670218446
 #define ONE_DIVIDED_BY_3_SQRT_PI 0.18806319451591877

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
 * NOTICE TO LICENSEE:
@@ -21,18 +21,18 @@
 #include "../control.cuh"
 #include <deque>
 
-//20210420 ·Ö×ÓÓ³ÉäÄ¿Ç°ÊÇÓÃÅÅ³ı±í¹¹½¨µÄ¡ª¡ª´æÔÚÓĞÅÅ³ı±íµÄÔ­×Ó»á±»ÊÓÎªÊôÓÚÍ¬Ò»¸ö·Ö×Ó
+//20210420 åˆ†å­æ˜ å°„ç›®å‰æ˜¯ç”¨æ’é™¤è¡¨æ„å»ºçš„â€”â€”å­˜åœ¨æœ‰æ’é™¤è¡¨çš„åŸå­ä¼šè¢«è§†ä¸ºå±äºåŒä¸€ä¸ªåˆ†å­
 struct CoordinateMolecularMap
 {
 	char module_name[CHAR_LENGTH_MAX];
 	int is_initialized = 0;
 	int last_modify_date = 20210830;
 
-	//ÌåÏµ»ù±¾ĞÅÏ¢
+	//ä½“ç³»åŸºæœ¬ä¿¡æ¯
 	int atom_numbers=0;
 	VECTOR box_length;
 
-	//ÓÃÓÚĞèÒª·Ö×ÓÄÚ×ø±êµÄ½âwrapµÄ×ø±ê¼ÇÂ¼
+	//ç”¨äºéœ€è¦åˆ†å­å†…åæ ‡çš„è§£wrapçš„åæ ‡è®°å½•
 	VECTOR *nowrap_crd = NULL;
 	VECTOR *old_crd = NULL;
 	INT_VECTOR *box_map_times = NULL;
@@ -42,18 +42,18 @@ struct CoordinateMolecularMap
 
 	int threads_per_block = 256;
 	int blocks_per_grid = 20;
-	//×¢Òâ´«ÈëµÄcrdÊÇdeviceÉÏµØÖ·£¬Ò»°ã³õÊ¼»¯µÄÊ±ºò×ÜÊÇÓĞÕâ¸ö¶«Î÷µÄ
+	//æ³¨æ„ä¼ å…¥çš„crdæ˜¯deviceä¸Šåœ°å€ï¼Œä¸€èˆ¬åˆå§‹åŒ–çš„æ—¶å€™æ€»æ˜¯æœ‰è¿™ä¸ªä¸œè¥¿çš„
 	void Initial(int atom_numbers, VECTOR box_length, VECTOR *crd, 
 		const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, const char *module_name = NULL);
-	//Çå³ıÄÚ´æ
+	//æ¸…é™¤å†…å­˜
 	void Clear();
 
-	//´«ÈëÊµÊ±Ä£ÄâÖĞµÄcrd×ø±ê£¨GPUÉÏ£©£¬¼ÆËã¸üĞÂnowarp_crd£¬ÓÃÓÚ·Ö×ÓÄÚ×ø±ê¼ÆËã
+	//ä¼ å…¥å®æ—¶æ¨¡æ‹Ÿä¸­çš„crdåæ ‡ï¼ˆGPUä¸Šï¼‰ï¼Œè®¡ç®—æ›´æ–°nowarp_crdï¼Œç”¨äºåˆ†å­å†…åæ ‡è®¡ç®—
 	void Calculate_No_Wrap_Crd(const VECTOR *crd);
-	//ÔÚÃ¿´ÎÓĞ¶ÔÔ­×Ó½øĞĞÖÜÆÚĞÔÓ³ÉäµÄ²Ù×÷ºó¼ÓÈëÏÂÃæÕâ¸öº¯ÊıÒÔ¸üĞÂ¿çºĞ×Ó´ÎÊı¼ÇÂ¼±í
+	//åœ¨æ¯æ¬¡æœ‰å¯¹åŸå­è¿›è¡Œå‘¨æœŸæ€§æ˜ å°„çš„æ“ä½œååŠ å…¥ä¸‹é¢è¿™ä¸ªå‡½æ•°ä»¥æ›´æ–°è·¨ç›’å­æ¬¡æ•°è®°å½•è¡¨
 	void Refresh_BoxMapTimes(const VECTOR *crd);
 
-	//CPUÉÏº¯Êı£¬ÅĞ¶Ï½üÁÚ±íÄ£¿éÖĞ½øĞĞbox_map²Ù×÷Ç°ºóµÄold_crd,crdµÄ´©Ô½ºĞ×ÓĞÅÏ¢box_map_times
+	//CPUä¸Šå‡½æ•°ï¼Œåˆ¤æ–­è¿‘é‚»è¡¨æ¨¡å—ä¸­è¿›è¡Œbox_mapæ“ä½œå‰åçš„old_crd,crdçš„ç©¿è¶Šç›’å­ä¿¡æ¯box_map_times
 	void Record_Box_Map_Times_Host(int atom_numbers, VECTOR *crd, VECTOR *old_crd, INT_VECTOR *box_map_times, VECTOR box);
 
 	void Update_Volume(VECTOR box_length);

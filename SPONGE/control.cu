@@ -1,4 +1,4 @@
-#include "control.cuh"
+ï»¿#include "control.cuh"
 
 #define SPONGE_VERSION "v1.2.3 ALPHA 2022-01-04"
 
@@ -223,7 +223,7 @@ void CONTROLLER::Get_Command(char *line, char *prefix)
 	
 	sscanf(flag, "%s", Flag);
 	strcpy(Value, command);
-	//fprintf(stdout, "%s|\n%s|\n%s|\n\n", Flag, Value, prefix); //debugÓÃ
+	//fprintf(stdout, "%s|\n%s|\n%s|\n\n", Flag, Value, prefix); //debugç”¨
 	Set_Command(Flag, Value, 1, prefix);
 
 }

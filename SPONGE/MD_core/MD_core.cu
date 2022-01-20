@@ -1,4 +1,4 @@
-#include "MD_core.cuh"
+﻿#include "MD_core.cuh"
 
 #define BOX_TRAJ_COMMAND "box"
 #define BOX_TRAJ_DEFAULT_FILENAME "mdbox.txt"

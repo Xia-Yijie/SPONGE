@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
 * NOTICE TO LICENSEE:
@@ -25,7 +25,7 @@ struct CONSTRAIN_PAIR
 	int atom_i_serial;
 	int atom_j_serial;
 	float constant_r;
-	float constrain_k;//Õâ¸ö²¢²»ÊÇËµÓĞ¸öµ¯ĞÔÏµÊıÀ´¹Ì¶¨£¬¶øÊÇµü´úÊ±£¬ÓĞ¸öÏµÊık=m1*m2/(m1+m2)
+	float constrain_k;//è¿™ä¸ªå¹¶ä¸æ˜¯è¯´æœ‰ä¸ªå¼¹æ€§ç³»æ•°æ¥å›ºå®šï¼Œè€Œæ˜¯è¿­ä»£æ—¶ï¼Œæœ‰ä¸ªç³»æ•°k=m1*m2/(m1+m2)
 };
 
 struct CONSTRAIN
@@ -38,27 +38,27 @@ struct CONSTRAIN
 	int atom_numbers = 0;
 	float dt = 0.001f;
 	float dt_inverse;
-	VECTOR uint_dr_to_dr_cof;//¸ÃÏµÊı¿É½«ÎŞ·ûºÅÕûĞÍ×ø±êÖ®²î±äÎªÊµ¼Ê×ø±êÖ®²î
-	VECTOR quarter_crd_to_uint_crd_cof;//¸ÃÏµÊı¿É½«Êµ¼Ê×ø±ê±äÎª¶ÔÓ¦µÄÒ»°ë³¤¶ÈµÄÎŞ·ûºÅÕûĞÍ×ø±ê
-	float volume; //Ìå»ı
+	VECTOR uint_dr_to_dr_cof;//è¯¥ç³»æ•°å¯å°†æ— ç¬¦å·æ•´å‹åæ ‡ä¹‹å·®å˜ä¸ºå®é™…åæ ‡ä¹‹å·®
+	VECTOR quarter_crd_to_uint_crd_cof;//è¯¥ç³»æ•°å¯å°†å®é™…åæ ‡å˜ä¸ºå¯¹åº”çš„ä¸€åŠé•¿åº¦çš„æ— ç¬¦å·æ•´å‹åæ ‡
+	float volume; //ä½“ç§¯
 
-	float v_factor = 1.0f;  //Ò»¸ö»ı·Ö²½ÖĞ,Ò»¸öÎ¢Ğ¡µÄÁ¦F¶ÔËÙ¶ÈµÄÓ°Ïì£¬¼´dv = v_factor * F * dt/m
-	float x_factor = 1.0f;  //Ò»¸ö»ı·Ö²½ÖĞ,Ò»¸öÎ¢Ğ¡µÄÁ¦F¶ÔÎ»ÒÆµÄÓ°Ïì£¬¼´dx = x_factor * F * dt * dt/m 
-	float constrain_mass = 3.3;//¶ÔÖÊÁ¿Ğ¡ÓÚ¸ÃÖµµÄÔ­×Ó½øĞĞÏŞÖÆ
+	float v_factor = 1.0f;  //ä¸€ä¸ªç§¯åˆ†æ­¥ä¸­,ä¸€ä¸ªå¾®å°çš„åŠ›Få¯¹é€Ÿåº¦çš„å½±å“ï¼Œå³dv = v_factor * F * dt/m
+	float x_factor = 1.0f;  //ä¸€ä¸ªç§¯åˆ†æ­¥ä¸­,ä¸€ä¸ªå¾®å°çš„åŠ›Få¯¹ä½ç§»çš„å½±å“ï¼Œå³dx = x_factor * F * dt * dt/m 
+	float constrain_mass = 3.3;//å¯¹è´¨é‡å°äºè¯¥å€¼çš„åŸå­è¿›è¡Œé™åˆ¶
 
-	//ÔÚ³õÊ¼»¯µÄÊ±ºòÓÃµ½£¬ÔÚÊµ¼Ê¼ÆËãÖĞ²»»áÊ¹ÓÃ,ÔÚ³õÊ¼»¯Ê±ÒÑ¾­±»ÊÍ·Å
+	//åœ¨åˆå§‹åŒ–çš„æ—¶å€™ç”¨åˆ°ï¼Œåœ¨å®é™…è®¡ç®—ä¸­ä¸ä¼šä½¿ç”¨,åœ¨åˆå§‹åŒ–æ—¶å·²ç»è¢«é‡Šæ”¾
 	int bond_constrain_pair_numbers = 0;
 	int angle_constrain_pair_numbers = 0;
 	CONSTRAIN_PAIR *h_bond_pair = NULL;
 	CONSTRAIN_PAIR *h_angle_pair = NULL;
 
-	//ÔÚÊµ¼Ê¼ÆËãÖĞÊ¹ÓÃ£¬ÌåÏµ×ÜµÄconstrain pair
+	//åœ¨å®é™…è®¡ç®—ä¸­ä½¿ç”¨ï¼Œä½“ç³»æ€»çš„constrain pair
 	int constrain_pair_numbers = 0;
 	CONSTRAIN_PAIR *constrain_pair = NULL;
 	CONSTRAIN_PAIR *h_constrain_pair = NULL;
 
-	//ÓÃÓÚÔİÊ±¼ÇÂ¼bondµÄĞÅÏ¢£¬±ãÓÚangleÖĞËÑË÷bond³¤¶È
-	//ÕâĞ©Ö¸ÕëÖ¸ÏòµÄ¿Õ¼ä²¢²»ÓÉ±¾Ä£¿éÉêÇëÇÒ²»ÓÉ±¾Ä£¿éÊÍ·Å
+	//ç”¨äºæš‚æ—¶è®°å½•bondçš„ä¿¡æ¯ï¼Œä¾¿äºangleä¸­æœç´¢bondé•¿åº¦
+	//è¿™äº›æŒ‡é’ˆæŒ‡å‘çš„ç©ºé—´å¹¶ä¸ç”±æœ¬æ¨¡å—ç”³è¯·ä¸”ä¸ç”±æœ¬æ¨¡å—é‡Šæ”¾
 	struct BOND_INFORMATION
 	{
 		int bond_numbers;
@@ -68,32 +68,32 @@ struct CONSTRAIN
 	}bond_info;
 
 
-	//Ä¬ÈÏµÄInitialĞèÒª°´ÕÕÏÂÃæµÄË³Ğò£º
+	//é»˜è®¤çš„Initialéœ€è¦æŒ‰ç…§ä¸‹é¢çš„é¡ºåºï¼š
 	//Add_HBond_To_Constrain_Pair
 	//Add_HAngle_To_Constrain_Pair
 	//Initial_Constrain
 
-	//20201125 ÓÉÓÚMD_INFORMATIONÀïÃæÔİÊ±Ã»ÓĞ¼ÓÈëÔ­×ÓĞòÊı£¬ËùÒÔ²»ÓÃÔ­×ÓĞòÊıÅĞ¶ÏH£¬¶øÊÇÖ±½Ó±È½ÏÖÊÁ¿
-	//µ±ÖÊÁ¿½ÏĞ¡Ê±£¬¾ÍÈÏÎªÊÇH
-	//´«ÈëµÄÖ¸ÕëÖ¸ÏòHOSTÄÚ´æ
+	//20201125 ç”±äºMD_INFORMATIONé‡Œé¢æš‚æ—¶æ²¡æœ‰åŠ å…¥åŸå­åºæ•°ï¼Œæ‰€ä»¥ä¸ç”¨åŸå­åºæ•°åˆ¤æ–­Hï¼Œè€Œæ˜¯ç›´æ¥æ¯”è¾ƒè´¨é‡
+	//å½“è´¨é‡è¾ƒå°æ—¶ï¼Œå°±è®¤ä¸ºæ˜¯H
+	//ä¼ å…¥çš„æŒ‡é’ˆæŒ‡å‘HOSTå†…å­˜
 	void Add_HBond_To_Constrain_Pair
 		(CONTROLLER *controller, const int bond_numbers, const int *atom_a, const int *atom_b, const float *bond_r,
-		const float *atom_mass, const char *module_name = NULL);//ÒªÇó¾ùÊÇÖ¸ÏòhostÉÏÄÚ´æµÄÖ¸Õë
+		const float *atom_mass, const char *module_name = NULL);//è¦æ±‚å‡æ˜¯æŒ‡å‘hostä¸Šå†…å­˜çš„æŒ‡é’ˆ
 
-	//ĞèÒªÔÚÏÈÔËĞĞAdd_HBond_To_Constrain_PairÖ®ºóÔÙÔËĞĞ
-	//´«ÈëµÄÖ¸ÕëÖ¸ÏòHOSTÄÚ´æ
+	//éœ€è¦åœ¨å…ˆè¿è¡ŒAdd_HBond_To_Constrain_Pairä¹‹åå†è¿è¡Œ
+	//ä¼ å…¥çš„æŒ‡é’ˆæŒ‡å‘HOSTå†…å­˜
 	void Add_HAngle_To_Constrain_Pair
 		(CONTROLLER *controller, const int angle_numbers, const int *atom_a, const int *atom_b, const int *atom_c,
-		const float *angle_theta, const float *atom_mass);//ÒªÇó¾ùÊÇÖ¸ÏòhostÉÏÄÚ´æµÄÖ¸Õë
+		const float *angle_theta, const float *atom_mass);//è¦æ±‚å‡æ˜¯æŒ‡å‘hostä¸Šå†…å­˜çš„æŒ‡é’ˆ
 	
-	//ÔÚ¼ÓÈë¸÷ÖÖconstrain_pairºó³õÊ¼»¯
-	//ÖĞ¼äµÄexp_gammaÎªÀÊÖ®ÍòÁõ½£ÈÈÔ¡µÄexp_gamma
+	//åœ¨åŠ å…¥å„ç§constrain_pairååˆå§‹åŒ–
+	//ä¸­é—´çš„exp_gammaä¸ºæœ—ä¹‹ä¸‡åˆ˜å‰‘çƒ­æµ´çš„exp_gamma
 	void Initial_Constrain
 		(CONTROLLER *controller, const int atom_numbers, const float dt, const VECTOR box_length, const float exp_gamma, const int is_Minimization, float *atom_mass, int *system_freedom);
 	
-	//Çå³ıÄÚ´æ
+	//æ¸…é™¤å†…å­˜
 	void Clear();
-	//¼ÇÂ¼¸üĞÂÇ°µÄ¾àÀë
+	//è®°å½•æ›´æ–°å‰çš„è·ç¦»
 
 	void Update_Volume(VECTOR box_length);
 

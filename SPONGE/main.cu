@@ -1,4 +1,4 @@
-#include "main.cuh"
+﻿#include "main.cuh"
 
 CONTROLLER controller;
 MD_INFORMATION md_info;

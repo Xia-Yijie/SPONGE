@@ -1,4 +1,4 @@
-#include "angle.cuh"
+ï»¿#include "angle.cuh"
 
 //the formula is deduced by xyj
 static __global__ void Angle_Energy_CUDA(const int angle_numbers,
@@ -49,7 +49,7 @@ __global__ void Angle_Force_With_Atom_Energy_CUDA(const int angle_numbers,
 
 		float theta0 = angle_theta0[angle_i];
 		float k = angle_k[angle_i];
-		float k2 = k;//¸´ÖÆÒ»·İk
+		float k2 = k;//å¤åˆ¶ä¸€ä»½k
 
 		VECTOR drij = Get_Periodic_Displacement(uint_crd[atom_i], uint_crd[atom_j], scaler);
 		VECTOR drkj = Get_Periodic_Displacement(uint_crd[atom_k], uint_crd[atom_j], scaler);
@@ -85,7 +85,7 @@ __global__ void Angle_Force_With_Atom_Energy_CUDA(const int angle_numbers,
 		atomicAdd(&frc[atom_j].y, fi.y);
 		atomicAdd(&frc[atom_j].z, fi.z);
 
-		atomicAdd(&atom_energy[atom_i], k2 * dtheta * dtheta);//½«Õâ¸öangleµÄÄÜÁ¿¼Óµ½²ÎÓëangleµÄµÚÒ»¸öÔ­×ÓÉÏ£¬ÓÃÖ±½ÓÄÜÁ¿Ëã·¨µÃµ½µÄÄÜÁ¿ÊÇ²»ÄÜ·Ö½âµ½µ¥¸öÔ­×ÓÉÏµÄ¡£
+		atomicAdd(&atom_energy[atom_i], k2 * dtheta * dtheta);//å°†è¿™ä¸ªangleçš„èƒ½é‡åŠ åˆ°å‚ä¸angleçš„ç¬¬ä¸€ä¸ªåŸå­ä¸Šï¼Œç”¨ç›´æ¥èƒ½é‡ç®—æ³•å¾—åˆ°çš„èƒ½é‡æ˜¯ä¸èƒ½åˆ†è§£åˆ°å•ä¸ªåŸå­ä¸Šçš„ã€‚
 	}
 }
 

@@ -1,4 +1,4 @@
-#ifndef BOND_SOFT_CUH
+﻿#ifndef BOND_SOFT_CUH
 #define BOND_SOFT_CUH
 #include "../common.cuh"
 #include "../control.cuh"

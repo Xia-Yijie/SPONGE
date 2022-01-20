@@ -1,4 +1,4 @@
-#include "main_ti.cuh"
+﻿#include "main_ti.cuh"
 
 CONTROLLER controller;
 TI_CORE TI_core;

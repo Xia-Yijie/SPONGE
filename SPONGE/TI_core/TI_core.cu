@@ -1,4 +1,4 @@
-#include "TI_core.cuh"
+﻿#include "TI_core.cuh"
 
 #define PI 3.1415926
 

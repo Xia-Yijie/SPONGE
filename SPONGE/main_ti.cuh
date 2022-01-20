@@ -1,4 +1,4 @@
-#ifndef MAIN_CUH
+﻿#ifndef MAIN_CUH
 #define MAIN_CUH
 
 

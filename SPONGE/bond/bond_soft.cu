@@ -1,4 +1,4 @@
-#include "bond_soft.cuh"
+﻿#include "bond_soft.cuh"
 
 static __global__ void Soft_Bond_Force_With_Atom_Energy_And_Virial_CUDA(const int bond_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
 	const int *atom_a, const int *atom_b, const float *bond_k, const float *bond_r0, const int * AB_mask, VECTOR *frc, float *atom_energy, float *atom_virial, const float lambda, const float alpha)

@@ -1,4 +1,5 @@
 ﻿#include "nb14.cuh"
+#define TINY 1e-20
 
 static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength,
 	const int *a_14, const int *b_14, const float *lj_A, const float *lj_B, float *ene)
@@ -72,9 +73,13 @@ static __global__ void Dihedral_14_CF_Energy(const int dihedral_14_numbers, cons
 		dr.z = boxlength.z*int_z;
 		r_1 = rnorm3df(dr.x, dr.y, dr.z);
 
-		ene_lin = charge[atom_i] * charge[atom_j] * r_1;
-
-		ene_lin *= cf_scale_factor[dihedral_14_i];
+		float charge_i = charge[atom_i];
+		if (fabs(charge_i) < TINY)
+                    charge_i = TINY;
+		float charge_j = charge[atom_j];
+		if (fabs(charge_j) < TINY)
+                    charge_j = TINY;
+		ene_lin = cf_scale_factor[dihedral_14_i] * charge_i * charge_j * r_1;
 
 		ene[dihedral_14_i] = ene_lin;
 	}
@@ -121,10 +126,14 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 
 		//CF
 		float charge_i = charge[atom_i];
+		if (fabs(charge_i) < TINY)
+                    charge_i = TINY;
 		float charge_j = charge[atom_j];
+		if (fabs(charge_j) < TINY)
+                    charge_j = TINY;
 		float frc_cf_abs;
 		frc_cf_abs = cf_scale_factor[dihedral_14_i] * dr_2 *dr_1;
-		frc_cf_abs = -charge_i * charge_j*frc_cf_abs;
+		frc_cf_abs = -frc_cf_abs * charge_i * charge_j;
 		//LJ
 		frc_abs = -lj_A[dihedral_14_i] * dr_14
 			+ lj_B[dihedral_14_i] * dr_8;
@@ -144,8 +153,7 @@ static __global__ void Dihedral_14_LJ_CF_Force_With_Atom_Energy_And_Virial_Cuda(
 		atomicAdd(&frc[atom_i].z, temp_frc.z);
 
 		//能量
-		ene_lin = charge_i*charge_j*dr_1;
-		ene_lin *= cf_scale_factor[dihedral_14_i];
+		ene_lin = cf_scale_factor[dihedral_14_i] * dr_1 * charge_i * charge_j;
 		ene_lin2 = 0.08333333*lj_A[dihedral_14_i] * dr_4*dr_8
 			- 0.1666666*lj_B[dihedral_14_i] * dr_4*dr_2;//LJ的A,B系数已经乘以12和6因此要反乘
 
