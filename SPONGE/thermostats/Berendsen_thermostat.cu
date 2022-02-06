@@ -67,6 +67,7 @@ void BERENDSEN_THERMOSTAT_INFORMATION::Record_Temperature(float temperature, int
 		else
 		{	
 			lambda = sqrtf(1 + dt / tauT * (target_temperature / temperature - 1));
+
 		}
 	}
 }
