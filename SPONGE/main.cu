@@ -208,6 +208,7 @@ void Main_Iteration()
 	if (md_info.mode == md_info.RERUN)
 	{
 		md_info.rerun.Iteration();
+	        Main_Box_Length_Change(md_info.rerun.box_length_change_factor);
 		return;
 	}
 	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8ѹ\B2\BF\B7\D6

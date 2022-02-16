@@ -583,6 +583,7 @@ void __global__ LJ_Soft_Core_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUD
 						lambda_ * ( - AAij * dr_sc_A6 + ABij) * dr_sc_A12 
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
+                                        
 					
 					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
 					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
@@ -713,7 +714,7 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 				BBij = LJ_type_BB[atom_pair_LJ_type_B];
 
 				soft_core = (mask_i != mask_j) || (BAij > 1e-6 && AAij < 1e-6) || (BAij < 1e-6 && AAij > 1e-6);
-				if (!soft_core)
+				if (!soft_core) 
 				{
 					dr_1 = 1. / dr_abs;
 					dr_2 = dr_1*dr_1;
@@ -731,7 +732,7 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 					virial_lin = virial_lin - frc_abs * dr_abs * dr_abs;
 	
 					frc_abs = frc_abs - frc_cf_abs;
-
+                                        
 					ene_lin2 = ene_lin2 + charge_i * charge_j * erfcf(beta_dr) * dr_1;
 					ene_lin = ene_lin + (0.083333333* (lambda_ * AAij + lambda * BAij) * dr_6
 						- 0.166666666*(lambda_ * ABij + lambda * BBij)) * dr_6;
@@ -764,13 +765,13 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
-
+                                        
 					frc_cf_abs = dr4 * (
 						lambda_ * (expf(-beta_dr_sc_A * beta_dr_sc_A) * sqrt_pi * pme_beta + erfcf(beta_dr_sc_A) * dr_sc_A) * dr_sc_A6
 						+ lambda * (expf(-beta_dr_sc_B * beta_dr_sc_B) * sqrt_pi * pme_beta + erfcf(beta_dr_sc_B) * dr_sc_B) * dr_sc_B6
 					);
 					frc_cf_abs = frc_cf_abs * charge_i * charge_j;
-
+                                        
 					virial_lin = virial_lin - frc_abs * dr_abs * dr_abs;
 
 					frc_abs = frc_abs - frc_cf_abs;
@@ -1397,52 +1398,56 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 			if (controller[0].Command_Exist("lambda_lj"))
 			{
 				this->lambda = atof(controller[0].Command("lambda_lj"));
+                                controller->printf("    FEP lj lambda: %f\n", this->lambda);
 			}
 			else
 			{
-				printf("\tError: FEP lambda of LJ must be given for the calculation of SOFT CORE.\n");
+				controller->printf("    Error: FEP lambda of LJ must be given for the calculation of SOFT CORE.\n");
+                                getchar();
+                                fcloseall();
+                                exit(0);
 			}
 
 			if (controller[0].Command_Exist("soft_core_alpha"))
 			{
 				this->alpha = atof(controller[0].Command("soft_core_alpha"));
-				printf("\tFEP soft core alpha: %f\n", this->alpha);
+				controller->printf("    FEP soft core alpha: %f\n", this->alpha);
 			}
 			else
 			{
-				printf("\tWarning: FEP alpha of soft core missing for the calculation of SOFT CORE, set to default value 0.0.\n");
-				this->alpha = 0.0;
+				controller->printf("    FEP soft core alpha is set to default value 0.5\n");
+				this->alpha = 0.5;
 			}
 
 			if (controller[0].Command_Exist("soft_core_power"))
 			{
 				this->p = atof(controller[0].Command("soft_core_power"));
-				printf("\tFEP soft core power: %f\n", this->p);
+				controller->printf("    FEP soft core power: %f\n", this->p);
 			}
 			else
 			{
-				printf("\tWarning: FEP p of soft core missing for the calculation of SOFT CORE, set to default value 1.0.\n");
+				controller->printf("    FEP soft core power is set to default value 1.0.\n");
 				this->p = 1.0;
 			}
 			
 			if (controller[0].Command_Exist("soft_core_sigma"))
 			{
 				this->sigma = atof(controller[0].Command("soft_core_sigma"));
-				printf("\tFEP soft core sigma: %f\n", this->sigma);
+				controller->printf("    FEP soft core sigma: %f\n", this->sigma);
 			}
 			else
 			{
-				printf("Warning: FEP sigma of soft core missing for the calculation of SOFT CORE, set to default value 0.0\n");
-				this->sigma = 0.0;
+				controller->printf("    FEP soft core sigma is set to default value 3.0\n");
+				this->sigma = 3.0;
 			}
 			if (controller[0].Command_Exist("soft_core_sigma_min"))
 			{
 				this->sigma_min = atof(controller[0].Command("soft_core_sigma_min"));
-				printf("\tFEP soft core sigma min: %f\n", this->sigma_min);
+				controller->printf("    FEP soft core sigma min: %f\n", this->sigma_min);
 			}
 			else
 			{
-				printf("Warning: FEP minimal sigma of soft core missing for the calculation of SOFT CORE, set to default value 0.0\n");
+				controller->printf("    FEP soft core sigma min is set to default value 0.0\n");
 				this->sigma_min = 0.0;
 			}
 
@@ -1526,7 +1531,6 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 			sigma_6_min = pow(sigma_min, 6);
 			alpha_lambda_p_1 = alpha * pow(lambda, p-1);
 			alpha_lambda_p_1_ = alpha * pow(1.0 - lambda, p-1);
-
 			pme_tolerance = 0.00001;
 			if (controller[0].Command_Exist("PME_Direct_Tolerance"))
 				pme_tolerance = atof(controller[0].Command("PME_Direct_Tolerance"));
@@ -1724,7 +1728,7 @@ void LJ_SOFT_CORE::LJ_Soft_Core_PME_Direct_Force_With_Atom_Energy_And_Virial(con
 				(atom_numbers, nl,
 				uint_crd_with_LJ, uint_dr_to_dr_cof,
 				d_LJ_AA, d_LJ_AB, d_LJ_BA, d_LJ_BB, cutoff,
-				frc, pme_beta, TWO_DIVIDED_BY_SQRT_PI, atom_energy, atom_lj_virial, atom_direct_pme_energy, lambda, alpha_lambda_p, alpha_lambda_p, sigma_6, sigma_6_min);
+				frc, pme_beta, TWO_DIVIDED_BY_SQRT_PI, atom_energy, atom_lj_virial, atom_direct_pme_energy, lambda, alpha_lambda_p, alpha_lambda_p_, sigma_6, sigma_6_min);
 		}
 	}
 }
