@@ -161,6 +161,12 @@ void Main_Clear()
 
 void Main_Calculate_Force()
 {
+
+	if (md_info.mode == md_info.RERUN)
+	{
+		md_info.rerun.Iteration();
+	        Main_Box_Length_Change(md_info.rerun.box_length_change_factor);
+	}
 	md_info.MD_Information_Crd_To_Uint_Crd();
 	md_info.MD_Reset_Atom_Energy_And_Virial_And_Force();
 	if (md_info.sys.steps % md_info.output.write_mdout_interval == 0 || (md_info.mode == md_info.MINIMIZATION && md_info.min.dynamic_dt))
@@ -207,8 +213,6 @@ void Main_Iteration()
 {
 	if (md_info.mode == md_info.RERUN)
 	{
-		md_info.rerun.Iteration();
-	        Main_Box_Length_Change(md_info.rerun.box_length_change_factor);
 		return;
 	}
 	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8ѹ\B2\BF\B7\D6
