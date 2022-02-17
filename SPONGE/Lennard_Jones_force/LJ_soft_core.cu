@@ -1,4 +1,4 @@
-﻿#include "LJ_soft_core.cuh"
+#include "LJ_soft_core.cuh"
 
 #define TWO_DIVIDED_BY_SQRT_PI 1.1283791670218446
 #define ONE_DIVIDED_BY_3_SQRT_PI 0.18806319451591877
@@ -115,6 +115,42 @@ static __global__ void Total_C6_Get(int atom_numbers, int * atom_lj_type_A, int 
 			
 			temp_sum += lambda_ * d_lj_Ab[atom_pair_LJ_type_A];
 			temp_sum += lambda * d_lj_Bb[atom_pair_LJ_type_B];
+		}
+	}
+	atomicAdd(d_factor, temp_sum);
+}
+
+static __global__ void Total_C6_B_A_Get(int atom_numbers, int * atom_lj_type_A, int * atom_lj_type_B, float * d_lj_Ab, float * d_lj_Bb,float * d_factor)
+{
+	int i, j;
+	float temp_sum = 0.0;
+	int xA, yA, xB, yB;
+	int itype_A, jtype_A, itype_B, jtype_B, atom_pair_LJ_type_A, atom_pair_LJ_type_B;
+	for (i = blockIdx.x * blockDim.x + threadIdx.x; i < atom_numbers; i += gridDim.x * blockDim.x)
+	{
+		itype_A = atom_lj_type_A[i];
+		itype_B = atom_lj_type_B[i];
+		for (j = blockIdx.y * blockDim.y + threadIdx.y; j < atom_numbers; j += gridDim.y * blockDim.y)
+		{
+			jtype_A = atom_lj_type_A[j];
+			jtype_B = atom_lj_type_B[j];
+			yA = (jtype_A - itype_A);
+			xA = yA >> 31;
+			yA = (yA^xA) - xA;
+			xA = jtype_A + itype_A;
+			jtype_A = (xA + yA) >> 1;
+			xA = (xA - yA) >> 1;
+			atom_pair_LJ_type_A = (jtype_A*(jtype_A + 1) >> 1) + xA;
+
+			yB = (jtype_B - itype_B);
+			xB = yB >> 31;
+			yB = (yB^xB) - xB;
+			xB = jtype_B + itype_B;
+			jtype_B = (xB + yB) >> 1;
+			xB = (xB - yB) >> 1;
+			atom_pair_LJ_type_B = (jtype_B*(jtype_B + 1) >> 1) + xB;
+			
+			temp_sum += d_lj_Bb[atom_pair_LJ_type_B] - d_lj_Ab[atom_pair_LJ_type_A];
 		}
 	}
 	atomicAdd(d_factor, temp_sum);
@@ -583,7 +619,6 @@ void __global__ LJ_Soft_Core_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUD
 						lambda_ * ( - AAij * dr_sc_A6 + ABij) * dr_sc_A12 
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
-                                        
 					
 					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
 					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
@@ -714,7 +749,7 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 				BBij = LJ_type_BB[atom_pair_LJ_type_B];
 
 				soft_core = (mask_i != mask_j) || (BAij > 1e-6 && AAij < 1e-6) || (BAij < 1e-6 && AAij > 1e-6);
-				if (!soft_core) 
+				if (!soft_core)
 				{
 					dr_1 = 1. / dr_abs;
 					dr_2 = dr_1*dr_1;
@@ -732,7 +767,7 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 					virial_lin = virial_lin - frc_abs * dr_abs * dr_abs;
 	
 					frc_abs = frc_abs - frc_cf_abs;
-                                        
+
 					ene_lin2 = ene_lin2 + charge_i * charge_j * erfcf(beta_dr) * dr_1;
 					ene_lin = ene_lin + (0.083333333* (lambda_ * AAij + lambda * BAij) * dr_6
 						- 0.166666666*(lambda_ * ABij + lambda * BBij)) * dr_6;
@@ -765,13 +800,13 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
-                                        
+
 					frc_cf_abs = dr4 * (
 						lambda_ * (expf(-beta_dr_sc_A * beta_dr_sc_A) * sqrt_pi * pme_beta + erfcf(beta_dr_sc_A) * dr_sc_A) * dr_sc_A6
 						+ lambda * (expf(-beta_dr_sc_B * beta_dr_sc_B) * sqrt_pi * pme_beta + erfcf(beta_dr_sc_B) * dr_sc_B) * dr_sc_B6
 					);
 					frc_cf_abs = frc_cf_abs * charge_i * charge_j;
-                                        
+
 					virial_lin = virial_lin - frc_abs * dr_abs * dr_abs;
 
 					frc_abs = frc_abs - frc_cf_abs;
@@ -1382,7 +1417,7 @@ static __global__ void LJ_Soft_Core_With_Drect_Columb_dH_dlambda_Charge_Unpertub
 }
 
 
-void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, const char *module_name)
+void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_length,char *module_name)
 {
 	if (module_name == NULL)
 	{
@@ -1531,6 +1566,7 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 			sigma_6_min = pow(sigma_min, 6);
 			alpha_lambda_p_1 = alpha * pow(lambda, p-1);
 			alpha_lambda_p_1_ = alpha * pow(1.0 - lambda, p-1);
+
 			pme_tolerance = 0.00001;
 			if (controller[0].Command_Exist("PME_Direct_Tolerance"))
 				pme_tolerance = atof(controller[0].Command("PME_Direct_Tolerance"));
@@ -1552,6 +1588,8 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 			Reset_List(d_factor, 0.0f, 1, 1);
 			Total_C6_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type_A, d_atom_LJ_type_B,d_LJ_AB, d_LJ_BB, d_factor, this->lambda);
 			cudaMemcpy(&long_range_factor, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
+			Total_C6_B_A_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type_A, d_atom_LJ_type_B,d_LJ_AB, d_LJ_BB, d_factor);
+			cudaMemcpy(&long_range_factor_TI, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
 			cudaFree(d_factor);
 
 			long_range_factor *= -2.0f / 3.0f * CONSTANT_Pi / cutoff / cutoff / cutoff / 6.0f;
@@ -1901,7 +1939,7 @@ float LJ_SOFT_CORE::Partial_H_Partial_Lambda_Long_Range_Correction()
 	if (is_initialized)
 	{
 		cudaMemset(d_long_range_correction, 0, sizeof(float));
-		device_add << <1, 1 >> >(d_long_range_correction, long_range_factor / volume);
+		device_add << <1, 1 >> >(d_long_range_correction, long_range_factor_TI / volume);
 		cudaMemcpy(&long_range_correction, d_long_range_correction, sizeof(float), cudaMemcpyDeviceToHost);
 		//printf("long range correction: %f\n", *long_range_correction);
 		return long_range_correction;

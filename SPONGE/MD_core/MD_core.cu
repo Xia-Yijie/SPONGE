@@ -1647,6 +1647,7 @@ void MD_INFORMATION::RERUN_information::Initial(CONTROLLER *controller, MD_INFOR
 		{
 			controller->printf("        Open rerun box trajectory\n");
 		}
+                md_info->sys.step_limit = INT_MAX;
 
 		controller->printf("    End initializing rerun\n\n");
 	}
@@ -1657,7 +1658,6 @@ void MD_INFORMATION::RERUN_information::Iteration()
 	int n = fread(this->md_info->coordinate, sizeof(VECTOR), this->md_info->atom_numbers, traj_file);
 	if (n != this->md_info->atom_numbers)
 	{
-		md_info->sys.step_limit = 0;
                 fcloseall();
                 exit(0);
 	}

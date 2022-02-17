@@ -1,4 +1,4 @@
-﻿#include "main_fep.cuh"
+#include "main_fep.cuh"
 
 CONTROLLER controller;
 FEP_CORE fep_core;
@@ -145,7 +145,7 @@ void Main_Print()
 	controller.Step_Print("bond_soft", fep_core.data.partition.bond_soft_ene);
 	controller.Step_Print("LJ(sc.)", fep_core.data.lj_soft_ene);
 	controller.Step_Print("Coul(direct.)", fep_core.data.partition.coul_direct_intrasys_ene + fep_core.data.partition.coul_direct_intersys_ene);
-	controller.Step_Print("LR_corr", fep_core.data.partition.vdw_long_range_correction);
+	controller.Step_Print("LR_corr(sc.)", fep_core.data.partition.vdw_long_range_correction);
 	controller.Step_Print("PME(reci.)", pme.reciprocal_ene);
 	controller.Step_Print("PME(self.)", pme.self_ene);
 	controller.Step_Print("PME(corr.)", pme.correction_ene);

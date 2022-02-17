@@ -1,4 +1,4 @@
-﻿#include "TI_core.cuh"
+#include "TI_core.cuh"
 
 #define PI 3.1415926
 
@@ -408,11 +408,11 @@ void TI_CORE::Initial(CONTROLLER *controller)
 
 	if (controller->Command_Exist(TI_RESULT_COMMAND))
 	{
-		Open_File_Safely(&ti_result, controller->Command(TI_RESULT_COMMAND), "wb");
+		Open_File_Safely(&ti_result, controller->Command(TI_RESULT_COMMAND), "a");
 	}
 	else
 	{
-		Open_File_Safely(&ti_result, TI_RESULT_DEFUALT_FILENAME, "wb");
+		Open_File_Safely(&ti_result, TI_RESULT_DEFUALT_FILENAME, "a");
 	}
 	
 	
@@ -554,6 +554,13 @@ void TI_CORE::Initial(CONTROLLER *controller)
 
 	controller[0].Step_Print_Initial("frame", "%d");
 	controller[0].Step_Print_Initial("dH_dlambda", "%.2f");
+	if (charge_pertubated)
+	{
+		controller[0].Step_Print_Initial("Coul(direct.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(reci.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(corr.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(self.)", "%.2f");
+	}
 	Read_Next_Frame();
 
 	printf("END INITIALZING TI CORE\n\n");

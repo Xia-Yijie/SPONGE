@@ -1,4 +1,4 @@
-﻿#include "FEP_core.cuh"
+#include "FEP_core.cuh"
 
 #define TRAJ_COMMAND "crd"
 #define TRAJ_DEFAULT_FILENAME "mdcrd.dat"
@@ -443,6 +443,14 @@ void FEP_CORE::Initial(CONTROLLER *controller)
 	controller[0].Step_Print_Initial("frame", "%d");
 	controller[0].Step_Print_Initial("ene", "%.2f");
 	controller[0].Step_Print_Initial("pV", "%.2f");
+	if (charge_pertubated)
+	{
+		controller[0].Step_Print_Initial("Coul(direct.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(reci.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(corr.)", "%.2f");
+		controller[0].Step_Print_Initial("PME(self.)", "%.2f");
+		controller[0].Step_Print_Initial("Coul(all.)", "%.2f");
+	}
 	Read_Next_Frame();
 
 	data.pressure = 1.0;

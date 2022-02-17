@@ -1,4 +1,4 @@
-﻿#include "main_ti.cuh"
+#include "main_ti.cuh"
 
 CONTROLLER controller;
 TI_CORE TI_core;
@@ -175,7 +175,7 @@ void Main_Print()
 	controller.Step_Print("bond_soft", TI_core.data.bond_soft_dH_dlambda);
 	controller.Step_Print("LJ(sc.)", TI_core.data.lj_soft_dH_dlambda);
 	controller.Step_Print("Coul(direct.)", TI_core.data.coul_direct_dH_dlambda);
-	controller.Step_Print("LR_corr", TI_core.data.lj_soft_long_range_correction);
+	controller.Step_Print("LR_corr(sc.)", TI_core.data.lj_soft_long_range_correction);
 	controller.Step_Print("PME(reci.)", TI_core.data.pme_reci_dH_dlambda);
 	controller.Step_Print("PME(self.)", TI_core.data.pme_self_dH_dlambda);
 	controller.Step_Print("PME(corr.)", TI_core.data.pme_corr_dH_dlambda);
