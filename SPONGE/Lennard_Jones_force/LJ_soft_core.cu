@@ -1588,11 +1588,13 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 			Reset_List(d_factor, 0.0f, 1, 1);
 			Total_C6_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type_A, d_atom_LJ_type_B,d_LJ_AB, d_LJ_BB, d_factor, this->lambda);
 			cudaMemcpy(&long_range_factor, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
+			Reset_List(d_factor, 0.0f, 1, 1);			
 			Total_C6_B_A_Get << < {4, 4}, { 32, 32 } >> >(atom_numbers, d_atom_LJ_type_A, d_atom_LJ_type_B,d_LJ_AB, d_LJ_BB, d_factor);
 			cudaMemcpy(&long_range_factor_TI, d_factor, sizeof(float), cudaMemcpyDeviceToHost);
 			cudaFree(d_factor);
 
 			long_range_factor *= -2.0f / 3.0f * CONSTANT_Pi / cutoff / cutoff / cutoff / 6.0f;
+			long_range_factor_TI *= -2.0f / 3.0f * CONSTANT_Pi / cutoff / cutoff / cutoff / 6.0f;
 			this->volume = box_length.x * box_length.y * box_length.z;
 			controller[0].printf("        long range correction factor is: %e\n", long_range_factor);
 			controller[0].printf("    End initializing long range LJ correction\n");
