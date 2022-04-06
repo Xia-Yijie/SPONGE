@@ -1,5 +1,5 @@
 ﻿#include "nb14.cuh"
-#define TINY 1e-20
+#define TINY 1e-10
 
 static __global__ void Dihedral_14_LJ_Energy(const int dihedral_14_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR boxlength,
 	const int *a_14, const int *b_14, const float *lj_A, const float *lj_B, float *ene)

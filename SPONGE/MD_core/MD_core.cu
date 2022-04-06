@@ -544,7 +544,7 @@ void MD_INFORMATION::Read_dt(CONTROLLER *controller)
 		if (mode != MINIMIZATION)
 			dt = 0.001;
 		else
-			dt = 1e-8;
+			dt = 1e-10;
 		sys.dt_in_ps = 0.001;
 		controller->printf("    dt set to %f ps\n", dt);
 		dt *= CONSTANT_TIME_CONVERTION;
