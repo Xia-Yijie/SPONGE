@@ -155,7 +155,7 @@ int MC_BAROSTAT_INFORMATION::Check_MC_Barostat_Accept()
 }
 
 void MC_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, int atom_numbers, 
-	float target_pressure, VECTOR boxlength, int res_is_initialized, char *module_name)
+	float target_pressure, VECTOR boxlength, int res_is_initialized, const char *module_name)
 {
 	controller->printf("START INITIALIZING MC BAROSTAT:\n");
 	if (module_name == NULL)

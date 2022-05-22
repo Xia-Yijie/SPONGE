@@ -577,7 +577,7 @@ void NEIGHBOR_LIST::Initial_Malloc()
 }
 
 
-void NEIGHBOR_LIST::Initial(CONTROLLER *controller, int md_atom_numbers, VECTOR box_length, float cut, float skin, char * module_name)
+void NEIGHBOR_LIST::Initial(CONTROLLER *controller, int md_atom_numbers, VECTOR box_length, float cut, float skin, const char * module_name)
 {
 	
 	if (module_name == NULL)

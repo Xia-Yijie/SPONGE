@@ -69,7 +69,7 @@ struct LENNARD_JONES_INFORMATION
 
 	dim3 thread_LJ = { 32, 32 }; // cuda参数
 	//初始化
-	void Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, const char *module_name = NULL);
 	//从amber的parm文件里读取
 	void Initial_From_AMBER_Parm(const char *file_name, CONTROLLER controller);
 	//清除内存

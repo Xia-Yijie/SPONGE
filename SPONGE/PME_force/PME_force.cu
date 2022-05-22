@@ -105,7 +105,7 @@ static __global__ void device_add(float *ene, float factor, float *charge_sum)
 }
 
 //////////////////////////////
-void Particle_Mesh_Ewald::Initial(CONTROLLER *controller, int atom_numbers, VECTOR boxlength,float cutoff,char *module_name)
+void Particle_Mesh_Ewald::Initial(CONTROLLER *controller, int atom_numbers, VECTOR boxlength,float cutoff, const char *module_name)
 {
 	if (module_name == NULL)
 	{
@@ -363,8 +363,8 @@ void Particle_Mesh_Ewald::Clear()
 
 	}
 }
-
-static __global__ void PME_Atom_Near(const UNSIGNED_INT_VECTOR *uint_crd, int **PME_atom_near, const int PME_Nin,
+ 
+__global__ void PME_Atom_Near(const UNSIGNED_INT_VECTOR *uint_crd, int **PME_atom_near, const int PME_Nin,
 	const float periodic_factor_inverse_x, const float periodic_factor_inverse_y, const float periodic_factor_inverse_z,
 	const int atom_numbers, const int fftx, const int ffty, const int fftz,
 	const UNSIGNED_INT_VECTOR *PME_kxyz, UNSIGNED_INT_VECTOR *PME_uxyz, VECTOR *PME_frxyz)
@@ -425,7 +425,7 @@ static __global__ void PME_Atom_Near(const UNSIGNED_INT_VECTOR *uint_crd, int **
 
 
 
-static __global__ void PME_Q_Spread
+__global__ void PME_Q_Spread
 (int **PME_atom_near, const float *charge, const VECTOR *PME_frxyz, 
 float *PME_Q, const UNSIGNED_INT_VECTOR *PME_kxyz, const int atom_numbers)
 {
@@ -470,7 +470,7 @@ float *PME_Q, const UNSIGNED_INT_VECTOR *PME_kxyz, const int atom_numbers)
     }
 }
 
-static __global__ void PME_BCFQ(cufftComplex *PME_FQ, float *PME_BC, int PME_Nfft)
+__global__ void PME_BCFQ(cufftComplex *PME_FQ, float *PME_BC, int PME_Nfft)
 {
 	int index = blockDim.x * blockIdx.x + threadIdx.x;
 	if (index < PME_Nfft)
@@ -550,7 +550,7 @@ static __global__ void PME_Final(int **PME_atom_near, const float *charge, const
 }
 
 
-static __global__ void PME_Energy_Product(const int element_number, const float* list1, const float* list2, float *sum)
+__global__ void PME_Energy_Product(const int element_number, const float* list1, const float* list2, float *sum)
 {
 	if (threadIdx.x == 0)
 	{
@@ -828,7 +828,7 @@ float *ene)
 }
 
 
-float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
+/*float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
 	const ATOM_GROUP *nl, const VECTOR scaler,
 	const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int is_download)
 {
@@ -885,6 +885,111 @@ float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const
 	else
 	{
 		return 0;
+	}
+}*/
+
+
+float Particle_Mesh_Ewald::Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge,
+	const ATOM_GROUP *nl, const VECTOR scaler,
+	const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers, int which_part, int is_download)
+{
+	if (is_initialized)
+	{
+		if (which_part < 0 || which_part > 4)
+		{
+			printf("Error: PME Energy part %d is not allowed.\n", which_part);
+			getchar();
+			exit(0);
+		}
+		if (which_part == TOTAL || which_part == RECIPROCAL)
+		{
+			PME_Atom_Near << <atom_numbers / 32 + 1, 32 >> >
+			(uint_crd, PME_atom_near, PME_Nin,
+			CONSTANT_UINT_MAX_INVERSED * fftx, CONSTANT_UINT_MAX_INVERSED * ffty, CONSTANT_UINT_MAX_INVERSED * fftz,
+			atom_numbers, fftx, ffty, fftz,
+			PME_kxyz, PME_uxyz, PME_frxyz);
+
+			Reset_List << < PME_Nall / 1024 + 1, 1024 >> >(PME_Nall, PME_Q, 0);
+
+			PME_Q_Spread << < atom_numbers / thread_PME.x + 1, thread_PME >> >
+				(PME_atom_near, charge, PME_frxyz,
+				PME_Q, PME_kxyz, atom_numbers);
+
+			cufftExecR2C(PME_plan_r2c, (float*)PME_Q, (cufftComplex*)PME_FQ);
+
+
+			PME_BCFQ << < PME_Nfft / 1024 + 1, 1024 >> > (PME_FQ, PME_BC, PME_Nfft);
+
+			cufftExecC2R(PME_plan_c2r, (cufftComplex*)PME_FQ, (float*)PME_FBCFQ);
+
+			PME_Energy_Product << < 1, 1024 >> >(PME_Nall, PME_Q, PME_FBCFQ, d_reciprocal_ene);
+			Scale_List << <1, 1 >> >(1, d_reciprocal_ene, 0.5);
+		}
+
+		if (which_part == TOTAL || which_part == SELF)
+		{
+			PME_Energy_Product << < 1, 1024 >> >(atom_numbers, charge, charge, d_self_ene);
+			Scale_List << <1, 1 >> >(1, d_self_ene, -beta / sqrtf(PI));
+
+			Sum_Of_List << <1, 1024 >> >(atom_numbers, charge, charge_sum);
+			device_add << <1, 1 >> >(d_self_ene, neutralizing_factor, charge_sum);
+		}
+
+		if (which_part == TOTAL || which_part == DIRECT)
+		{
+			Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_direct_atom_energy, 0.0f);
+			PME_Direct_Atom_Energy << < atom_numbers / thread_PME.x + 1, thread_PME >> >
+				(atom_numbers, nl,
+				uint_crd, scaler, charge,
+				beta, cutoff*cutoff, d_direct_atom_energy);
+			Sum_Of_List << <1, 1024 >> >(atom_numbers, d_direct_atom_energy, d_direct_ene);
+		}
+
+		if (which_part == TOTAL || which_part == CORRECTION)
+		{
+			Reset_List << <ceilf((float)atom_numbers / 1024.0f), 1024 >> >(atom_numbers, d_correction_atom_energy, 0.0f);
+			PME_Excluded_Energy_Correction << < atom_numbers / 32 + 1, 32 >> >
+				(atom_numbers, uint_crd, scaler,
+				charge, beta, sqrtf(PI), excluded_list_start, excluded_list, excluded_atom_numbers, d_correction_atom_energy);
+			Sum_Of_List << <1, 1024 >> >(atom_numbers, d_correction_atom_energy, d_correction_ene);
+		}
+
+		if (is_download)
+		{
+			if (which_part == TOTAL || which_part == RECIPROCAL)
+				cudaMemcpy(&reciprocal_ene, d_reciprocal_ene, sizeof(float), cudaMemcpyDeviceToHost);
+			
+			if (which_part == TOTAL || which_part == SELF)
+				cudaMemcpy(&self_ene, d_self_ene, sizeof(float), cudaMemcpyDeviceToHost);
+
+			if (which_part == TOTAL || which_part == DIRECT)
+				cudaMemcpy(&direct_ene, d_direct_ene, sizeof(float), cudaMemcpyDeviceToHost);
+			
+			if (which_part == TOTAL || which_part == CORRECTION)
+				cudaMemcpy(&correction_ene, d_correction_ene, sizeof(float), cudaMemcpyDeviceToHost);
+
+			if (which_part == TOTAL)
+			{
+				ee_ene = reciprocal_ene + self_ene + direct_ene + correction_ene;
+				return ee_ene;
+			}
+			else if (which_part == RECIPROCAL)
+				return reciprocal_ene;
+			else if (which_part == SELF)
+				return self_ene;
+			else if (which_part == DIRECT)
+				return direct_ene;
+			else
+				return correction_ene;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return NAN;
 	}
 }
 

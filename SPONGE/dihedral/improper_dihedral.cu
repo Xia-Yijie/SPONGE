@@ -136,7 +136,7 @@ static __global__ void Dihedral_Force_With_Atom_Energy_CUDA(const int dihedral_n
 	}
 }
 
-void IMPROPER_DIHEDRAL::Initial(CONTROLLER *controller, char *module_name)
+void IMPROPER_DIHEDRAL::Initial(CONTROLLER *controller, const char *module_name)
 {
 	if (module_name == NULL)
 	{

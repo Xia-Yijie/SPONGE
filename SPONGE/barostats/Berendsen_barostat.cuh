@@ -47,7 +47,7 @@ struct BERENDSEN_BAROSTAT_INFORMATION
 	std::normal_distribution<float> n;
 
 	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name = NULL);
 
 
 	void Ask_For_Calculate_Pressure(int steps, int *need_pressure);

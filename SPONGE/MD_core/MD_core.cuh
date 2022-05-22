@@ -207,6 +207,7 @@ struct MD_INFORMATION
 		MD_INFORMATION *md_info = NULL; //指向自己主结构体的指针，以方便调用主结构体的信息
 		FILE *traj_file = NULL;
 		FILE *box_file = NULL;
+                VECTOR box_length_change_factor;
 		void Initial(CONTROLLER *controller, MD_INFORMATION *md_info);
 		void Iteration();
 	} rerun;

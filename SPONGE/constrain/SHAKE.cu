@@ -1,4 +1,4 @@
-#include "SHAKE.cuh"
+ï»¿#include "SHAKE.cuh"
 
 static __global__ void Constrain_Force_Cycle
 (const int constrain_pair_numbers, const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler,
@@ -41,7 +41,7 @@ static __global__ void Refresh_Uint_Crd(const int atom_numbers, const VECTOR *cr
 		VECTOR frc_lin = test_frc[atom_i];
 		float mass_lin = mass_inverse[atom_i];
 
-		crd_lin.x = crd_lin.x + half_exp_gamma_plus_half*frc_lin.x*mass_lin;//massÊµ¼ÊÎªmassµÄµ¹Êı£¬frc_linÒÑ¾­³ËÒÔdt^2
+		crd_lin.x = crd_lin.x + half_exp_gamma_plus_half*frc_lin.x*mass_lin;//masså®é™…ä¸ºmassçš„å€’æ•°ï¼Œfrc_linå·²ç»ä¹˜ä»¥dt^2
 		crd_lin.y = crd_lin.y + half_exp_gamma_plus_half*frc_lin.y*mass_lin;
 		crd_lin.z = crd_lin.z + half_exp_gamma_plus_half*frc_lin.z*mass_lin;
 
@@ -106,7 +106,7 @@ static __global__ void Refresh_Crd_Vel(const int atom_numbers, const float dt_in
 
 		frc_lin.x = frc_lin.x*mass_lin;
 		frc_lin.y = frc_lin.y*mass_lin;
-		frc_lin.z = frc_lin.z*mass_lin;//massÊµ¼ÊÎªmassµÄµ¹Êı£¬frc_linÒÑ¾­³ËÒÔdt^2
+		frc_lin.z = frc_lin.z*mass_lin;//masså®é™…ä¸ºmassçš„å€’æ•°ï¼Œfrc_linå·²ç»ä¹˜ä»¥dt^2
 
 		crd_lin.x = crd_lin.x + half_exp_gamma_plus_half*frc_lin.x;
 		crd_lin.y = crd_lin.y + half_exp_gamma_plus_half*frc_lin.y;
@@ -122,10 +122,10 @@ static __global__ void Refresh_Crd_Vel(const int atom_numbers, const float dt_in
 	}
 }
 
-void SHAKE::Initial_Simple_Constrain(CONTROLLER *controller, CONSTRAIN *constrain, char *module_name)
+void SHAKE::Initial_Simple_Constrain(CONTROLLER *controller, CONSTRAIN *constrain, const char *module_name)
 {
 
-	//´Ó´«ÈëµÄ²ÎÊı¸´ÖÆ»ù±¾ĞÅÏ¢
+	//ä»ä¼ å…¥çš„å‚æ•°å¤åˆ¶åŸºæœ¬ä¿¡æ¯
 	this->constrain = constrain;
 	if (module_name == NULL)
 	{
@@ -177,7 +177,7 @@ void SHAKE::Remember_Last_Coordinates(VECTOR *crd, UNSIGNED_INT_VECTOR *uint_crd
 {
 	if (is_initialized)
 	{
-		//»ñµÃ·Ö×ÓÄ£Äâµü´úÖĞÉÏÒ»²½µÄ¾àÀëĞÅÏ¢
+		//è·å¾—åˆ†å­æ¨¡æ‹Ÿè¿­ä»£ä¸­ä¸Šä¸€æ­¥çš„è·ç¦»ä¿¡æ¯
 		Last_Crd_To_dr << <ceilf((float)constrain->constrain_pair_numbers / 128), 128 >> >
 			(constrain->constrain_pair_numbers, crd,
 			constrain->quarter_crd_to_uint_crd_cof, constrain->uint_dr_to_dr_cof,
@@ -223,7 +223,7 @@ void SHAKE::Constrain
 {
 	if (is_initialized)
 	{
-		//Çå¿ÕÔ¼ÊøÁ¦ºÍÎ¬Àï
+		//æ¸…ç©ºçº¦æŸåŠ›å’Œç»´é‡Œ
 		Reset_List << <ceilf((float)3.*constrain->atom_numbers / 128), 128 >> >
 			(3 * constrain->atom_numbers, (float*)constrain_frc, 0.);
 		if (need_pressure > 0)

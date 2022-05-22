@@ -80,7 +80,7 @@ struct NEIGHBOR_LIST
 	int max_atom_in_grid_numbers = 64; //每个格点可以放的最大原子数
 
 	//初始化
-	void Initial(CONTROLLER *controller, int md_atom_numbers, VECTOR box_length, float cut, float skin, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, int md_atom_numbers, VECTOR box_length, float cut, float skin, const char *module_name = NULL);
 	//分配内存
 	void Initial_Malloc();
 	//清除内存

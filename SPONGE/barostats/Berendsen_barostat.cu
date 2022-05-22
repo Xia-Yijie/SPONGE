@@ -2,7 +2,7 @@
 
 
 
-void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, char *module_name)
+void BERENDSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name)
 {
 	controller->printf("START INITIALIZING BERENDSEN BAROSTAT:\n");
 	if (module_name == NULL)

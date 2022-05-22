@@ -1,4 +1,4 @@
-#include "Urey_Bradley_force.cuh"
+﻿#include "Urey_Bradley_force.cuh"
 
 void UREY_BRADLEY::Initial(CONTROLLER* controller, char* module_name)
 {

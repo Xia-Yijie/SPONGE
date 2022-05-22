@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
 * NOTICE TO LICENSEE:
@@ -30,34 +30,34 @@ struct SIMPLE_CONSTRAIN
 
 	CONSTRAIN *constrain;
 
-	//Ô¼ÊøÄÚÁ¦£¬Ê¹µÃÖ÷Ñ­»·ÖĞ¸üĞÂºóµÄ×ø±ê¼ÓÉÏ¸ÃÁ¦£¨Á¦µÄ·½ÏòÓë¸üĞÂÇ°µÄpair·½ÏòÒ»ÖÂ£©ĞŞÕı£¬µÃµ½Âú×ãÔ¼ÊøµÄ×ø±ê¡£
+	//çº¦æŸå†…åŠ›ï¼Œä½¿å¾—ä¸»å¾ªç¯ä¸­æ›´æ–°åçš„åæ ‡åŠ ä¸Šè¯¥åŠ›ï¼ˆåŠ›çš„æ–¹å‘ä¸æ›´æ–°å‰çš„pairæ–¹å‘ä¸€è‡´ï¼‰ä¿®æ­£ï¼Œå¾—åˆ°æ»¡è¶³çº¦æŸçš„åæ ‡ã€‚
 	VECTOR *constrain_frc = NULL;
-	//Ã¿¶ÔµÄÎ¬Àï
+	//æ¯å¯¹çš„ç»´é‡Œ
 	float *d_pair_virial = NULL;
-	//×ÜÎ¬Àï
+	//æ€»ç»´é‡Œ
 	float *d_virial = NULL;
-	//½øĞĞconstrainµü´ú¹ı³ÌÖĞµÄ²»¶ÏÎ¢µ÷µÄÔ­×Óuint×ø±ê
+	//è¿›è¡Œconstrainè¿­ä»£è¿‡ç¨‹ä¸­çš„ä¸æ–­å¾®è°ƒçš„åŸå­uintåæ ‡
 	UNSIGNED_INT_VECTOR *test_uint_crd = NULL;
-	//Ö÷Ñ­»·ÖĞ¸üĞÂÇ°µÄpairÏòÁ¿ĞÅÏ¢
+	//ä¸»å¾ªç¯ä¸­æ›´æ–°å‰çš„pairå‘é‡ä¿¡æ¯
 	VECTOR *last_pair_dr = NULL;
 
-	float step_length = 1.0f;//µü´úÇóÁ¦Ê±Ñ¡È¡µÄ²½³¤£¬²½³¤Îª1.¿ÉÒÔ¸ÕºÃÑÏ¸ñÇóµÃÁ½ÌåµÄconstrain
-							//µ«¶ÔÓÚÈıÌå¼°ÒÔÉÏµÄÇé¿ö£¬²½³¤Ğ¡Ò»µã»á¸üÎÈ¶¨£¬µ«ËæÖ®¶øÀ´¿ÉÄÜÒªÇóµü´ú´ÎÊıÔö¼Ó
-	int iteration_numbers = 25;//µü´ú²½Êı
+	float step_length = 1.0f;//è¿­ä»£æ±‚åŠ›æ—¶é€‰å–çš„æ­¥é•¿ï¼Œæ­¥é•¿ä¸º1.å¯ä»¥åˆšå¥½ä¸¥æ ¼æ±‚å¾—ä¸¤ä½“çš„constrain
+							//ä½†å¯¹äºä¸‰ä½“åŠä»¥ä¸Šçš„æƒ…å†µï¼Œæ­¥é•¿å°ä¸€ç‚¹ä¼šæ›´ç¨³å®šï¼Œä½†éšä¹‹è€Œæ¥å¯èƒ½è¦æ±‚è¿­ä»£æ¬¡æ•°å¢åŠ 
+	int iteration_numbers = 25;//è¿­ä»£æ­¥æ•°
 	
-	//ÔÚ¼ÓÈë¸÷ÖÖconstrain_pairºó³õÊ¼»¯
-	//×îºóµÄexp_gammaÎªÀÊÖ®ÍòÁõ½£ÈÈÔ¡µÄexp_gamma
+	//åœ¨åŠ å…¥å„ç§constrain_pairååˆå§‹åŒ–
+	//æœ€åçš„exp_gammaä¸ºæœ—ä¹‹ä¸‡åˆ˜å‰‘çƒ­æµ´çš„exp_gamma
 	void Initial_Simple_Constrain
-		(CONTROLLER *controller, CONSTRAIN *constrain, char *module_name = NULL);
+		(CONTROLLER *controller, CONSTRAIN *constrain, const char *module_name = NULL);
 	
-	//Çå³ıÄÚ´æ
+	//æ¸…é™¤å†…å­˜
 	void Clear();
-	//¼ÇÂ¼¸üĞÂÇ°µÄ¾àÀë
+	//è®°å½•æ›´æ–°å‰çš„è·ç¦»
 	void Remember_Last_Coordinates(VECTOR *crd, UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
-	//½øĞĞÔ¼Êøµü´ú
+	//è¿›è¡Œçº¦æŸè¿­ä»£
 	void Constrain
 		(VECTOR *crd, VECTOR *vel, const float *mass_inverse, const float *d_mass, VECTOR box_length, int need_pressure, float *d_pressure);
-	//Ìå»ı±ä»¯Ê±µÄ²ÎÊı¸üĞÂ
+	//ä½“ç§¯å˜åŒ–æ—¶çš„å‚æ•°æ›´æ–°
 	void Update_Volume(VECTOR box_length);
 
 };

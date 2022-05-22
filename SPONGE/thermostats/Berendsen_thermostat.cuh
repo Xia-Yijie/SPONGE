@@ -43,7 +43,7 @@ struct BERENDSEN_THERMOSTAT_INFORMATION
 	std::normal_distribution<float> n;
 
 	//初始化
-	void Initial(CONTROLLER *controller, float target_temperature, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float target_temperature, const char *module_name = NULL);
 	
 	void Scale_Velocity(int atom_numbers, VECTOR *vel);
 

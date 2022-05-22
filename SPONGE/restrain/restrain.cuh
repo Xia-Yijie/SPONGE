@@ -43,7 +43,7 @@ struct RESTRAIN_INFORMATION
 	int threads_per_block = 128;
 
 	//Restrain初始化(总原子数，GPU上所有原子的坐标，控制，模块名)
-	void Initial(CONTROLLER *contrl, const int atom_numbers, const VECTOR *crd, char *module_name = NULL);
+	void Initial(CONTROLLER *contrl, const int atom_numbers, const VECTOR *crd, const char *module_name = NULL);
 	//清空模块
 	void Clear();
 

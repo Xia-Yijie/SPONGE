@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
 * NOTICE TO LICENSEE:
@@ -28,7 +28,7 @@ struct CMAP
 	int is_controller_printf_initialized = 0;
 	int last_modify_date = 20211129;
 
-	//»ù±¾ÎÄ¼şĞÅÏ¢¶ÁÈë
+	//åŸºæœ¬æ–‡ä»¶ä¿¡æ¯è¯»å…¥
 	int tot_cmap_num = 0;
 	int uniq_cmap_num = 0;
 	int tot_gridpoint_num = 0;
@@ -37,20 +37,20 @@ struct CMAP
 	int* cmap_resolution = NULL;
 	float* grid_value = NULL;
 
-	//cuda¼ÆËã·ÖÅäÏà¹Ø²ÎÊı
+	//cudaè®¡ç®—åˆ†é…ç›¸å…³å‚æ•°
 	int threads_per_block = 128;
 
-	//²åÖµÏµÊı¾ØÕóµÄÄæ¾ØÕó£¬Ïàµ±ÓÚ½âÏßĞÔ·½³Ì×éµÃµ½²åÖµ¶àÏîÊ½ÏµÊı
+	//æ’å€¼ç³»æ•°çŸ©é˜µçš„é€†çŸ©é˜µï¼Œç›¸å½“äºè§£çº¿æ€§æ–¹ç¨‹ç»„å¾—åˆ°æ’å€¼å¤šé¡¹å¼ç³»æ•°
 	/*
-	Ã¿16¸ö¸ñµã¿ÉÒÔ×öÒ»´Î²åÖµ£¬¶şÔª¶àÏîÊ½ĞÎÊ½Îª£ºF(x,y) = \sum_{i.j=0,1,2,3}(c_{ij}x^iy^j),¸ñµãµÄÈ¡·¨Îª4*4,²ÉÓÃPBC¡£
-	¶Ô³õÊ¼Êı¾İ¸ñµãÁ¬Ïß³¤¶È¹éÒ»»¯ºó£¬¿ÉÒÔµÃµ½ÏµÊıÏòÁ¿(16*1):
+	æ¯16ä¸ªæ ¼ç‚¹å¯ä»¥åšä¸€æ¬¡æ’å€¼ï¼ŒäºŒå…ƒå¤šé¡¹å¼å½¢å¼ä¸ºï¼šF(x,y) = \sum_{i.j=0,1,2,3}(c_{ij}x^iy^j),æ ¼ç‚¹çš„å–æ³•ä¸º4*4,é‡‡ç”¨PBCã€‚
+	å¯¹åˆå§‹æ•°æ®æ ¼ç‚¹è¿çº¿é•¿åº¦å½’ä¸€åŒ–åï¼Œå¯ä»¥å¾—åˆ°ç³»æ•°å‘é‡(16*1):
 
 	                     c = A^{-1}p
 	
-	ÆäÖĞpÏòÁ¿ÊÇ°üº¬¸ñµãÖµ(4)£¬Ò»½×²î·Ö(8)£¬¶ş½×²î·Ö(4)µÄ£¨16*1£©ÏòÁ¿
+	å…¶ä¸­på‘é‡æ˜¯åŒ…å«æ ¼ç‚¹å€¼(4)ï¼Œä¸€é˜¶å·®åˆ†(8)ï¼ŒäºŒé˜¶å·®åˆ†(4)çš„ï¼ˆ16*1ï¼‰å‘é‡
 	*/
 
-	//·Ö×ÓµÄ×ø±êºÍË«¶şÃæ½ÇÏà¹ØÍØÆËÎÄ¼ş
+	//åˆ†å­çš„åæ ‡å’ŒåŒäºŒé¢è§’ç›¸å…³æ‹“æ‰‘æ–‡ä»¶
 
 	int *h_atom_a = NULL;
 	int *d_atom_a = NULL;
@@ -76,22 +76,22 @@ struct CMAP
 
 
 
-	//³õÊ¼»¯Ä£¿é
-	void Initial(CONTROLLER *controller, char *module_name = NULL);
-	//Çå¿ÕÄ£¿é
+	//åˆå§‹åŒ–æ¨¡å—
+	void Initial(CONTROLLER *controller, const char *module_name = NULL);
+	//æ¸…ç©ºæ¨¡å—
 	void Clear();
-	//ÄÚ´æ·ÖÅä
+	//å†…å­˜åˆ†é…
 	void Memory_Allocate();
-	//´Óparm7ÎÄ¼şÖĞ¶ÁÈ¡¼üĞÅÏ¢ 
+	//ä»parm7æ–‡ä»¶ä¸­è¯»å–é”®ä¿¡æ¯ 
 	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller);
-	//¼ÆËã²åÖµÏµÊı
+	//è®¡ç®—æ’å€¼ç³»æ•°
 	void Interpolation(int* resolution, float *grid_value,CONTROLLER controller);
-	//CUDA¼ÆËã
+	//CUDAè®¡ç®—
 	void Parameter_Host_to_Device();
 
 	
 
-	//ÄÜÁ¿ºÍÁ¦¼ÆËã
+	//èƒ½é‡å’ŒåŠ›è®¡ç®—
 	void CMAP_Force_with_Atom_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *frc, float *atom_energy);
 	float Get_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download = 1);
 

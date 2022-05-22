@@ -1,5 +1,5 @@
-#ifndef MAIN_CUH
-#define MAIN_CUH
+﻿#ifndef MAIN_RUN_CUH
+#define MAIN_RUN_CUH
 
 
 #include "common.cuh"
@@ -30,6 +30,8 @@
 #include "constrain/simple_constrain.cuh"
 #include "virtual_atoms/virtual_atoms.cuh"
 #include "crd_molecular_map/crd_molecular_map.cuh"
+#include "Lennard_Jones_force/LJ_soft_core.cuh"
+#include "bond/bond_soft.cuh"
 
 
 void Main_Initial(int argc, char *argv[]);

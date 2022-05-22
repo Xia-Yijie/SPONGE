@@ -1,4 +1,4 @@
-#include "crd_molecular_map.cuh"
+ï»¿#include "crd_molecular_map.cuh"
 
 __global__ void Calculate_No_Wrap_Crd_CUDA
 (const int atom_numbers, const INT_VECTOR *box_map_times, const VECTOR box, const VECTOR *crd,
@@ -31,17 +31,17 @@ INT_VECTOR *box_map_times, VECTOR *old_crd)
 void Move_Crd_Nearest_From_Exclusions_Host(int atom_numbers, VECTOR *crd, INT_VECTOR *box_map_times, const VECTOR box_length,
 	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list)
 {
-	//·Ö×ÓÍØÆËÊÇÒ»¸öÎŞÏòÍ¼£¬ÁÚ½Ó±í½øĞĞÃèÊö£¬Í¨¹ıÅÅ³ı±íĞÎ³É
+	//åˆ†å­æ‹“æ‰‘æ˜¯ä¸€ä¸ªæ— å‘å›¾ï¼Œé‚»æ¥è¡¨è¿›è¡Œæè¿°ï¼Œé€šè¿‡æ’é™¤è¡¨å½¢æˆ
 	int edge_numbers = 2 * exclude_numbers;
-	int *visited = NULL; //Ã¿¸öÔ­×ÓÊÇ·ñ°İ·Ã¹ı
-	int *first_edge = NULL; //Ã¿¸öÔ­×ÓµÄµÚÒ»¸ö±ß£¨Á´±íµÄÍ·£©
-	int *edges = NULL;  //Ã¿¸ö±ßµÄĞòºÅ
-	int *edge_next = NULL; //Ã¿¸öÔ­×ÓµÄ±ß£¨Á´±í½á¹¹£©
+	int *visited = NULL; //æ¯ä¸ªåŸå­æ˜¯å¦æ‹œè®¿è¿‡
+	int *first_edge = NULL; //æ¯ä¸ªåŸå­çš„ç¬¬ä¸€ä¸ªè¾¹ï¼ˆé“¾è¡¨çš„å¤´ï¼‰
+	int *edges = NULL;  //æ¯ä¸ªè¾¹çš„åºå·
+	int *edge_next = NULL; //æ¯ä¸ªåŸå­çš„è¾¹ï¼ˆé“¾è¡¨ç»“æ„ï¼‰
 	Malloc_Safely((void**)&visited, sizeof(int)*atom_numbers);
 	Malloc_Safely((void**)&first_edge, sizeof(int)*atom_numbers);
 	Malloc_Safely((void**)&edges, sizeof(int)*edge_numbers);
 	Malloc_Safely((void**)&edge_next, sizeof(int)*edge_numbers);
-	//³õÊ¼»¯Á´±í
+	//åˆå§‹åŒ–é“¾è¡¨
 	for (int i = 0; i < atom_numbers; i++)
 	{
 		visited[i] = 0;
@@ -51,7 +51,7 @@ void Move_Crd_Nearest_From_Exclusions_Host(int atom_numbers, VECTOR *crd, INT_VE
 	for (int i = 0; i < atom_numbers; i++)
 	{
 		atom_i = i;
-		for (int j = exclude_start[i] + exclude_length[i] - 1; j >= exclude_start[i]; j--) //ÕâÀïÊ¹ÓÃµ¹ĞòÊÇÒòÎªÁ´±í¹¹½¨ÊÇÓÃµÄÍ·²å·¨
+		for (int j = exclude_start[i] + exclude_length[i] - 1; j >= exclude_start[i]; j--) //è¿™é‡Œä½¿ç”¨å€’åºæ˜¯å› ä¸ºé“¾è¡¨æ„å»ºæ˜¯ç”¨çš„å¤´æ’æ³•
 		{
 			atom_j = exclude_list[j];
 			edge_next[edge_count] = first_edge[atom_i];
@@ -117,7 +117,7 @@ void CoordinateMolecularMap::Record_Box_Map_Times_Host(int atom_numbers, VECTOR 
 }
 
 void CoordinateMolecularMap::Initial(int atom_numbers, VECTOR box_length, VECTOR *crd, 
-	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, char *module_name)
+	const int exclude_numbers, const int *exclude_length, const int *exclude_start, const int *exclude_list, const char *module_name)
 {
 	if (module_name == NULL)
 	{
@@ -155,7 +155,7 @@ void CoordinateMolecularMap::Initial(int atom_numbers, VECTOR box_length, VECTOR
 	Move_Crd_Nearest_From_Exclusions_Host(atom_numbers, h_nowrap_crd, h_box_map_times, box_length,
 		exclude_numbers, exclude_length,exclude_start, exclude_list);
 
-	//Ê¹ÓÃcudaÄÚ²¿º¯Êı£¬¸ø³öÕ¼ÓÃÂÊ×î´óµÄblockºÍthread²ÎÊı
+	//ä½¿ç”¨cudaå†…éƒ¨å‡½æ•°ï¼Œç»™å‡ºå ç”¨ç‡æœ€å¤§çš„blockå’Œthreadå‚æ•°
 	cudaOccupancyMaxPotentialBlockSize(&blocks_per_grid, &threads_per_block, Refresh_BoxMapTimes_CUDA, 0, 0);
 
 	cudaMemcpy(nowrap_crd, h_nowrap_crd, sizeof(VECTOR)*atom_numbers, cudaMemcpyHostToDevice);

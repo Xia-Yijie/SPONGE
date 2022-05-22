@@ -1,4 +1,4 @@
-#include "MD_core.cuh"
+﻿#include "MD_core.cuh"
 
 #define BOX_TRAJ_COMMAND "box"
 #define BOX_TRAJ_DEFAULT_FILENAME "mdbox.txt"
@@ -544,7 +544,7 @@ void MD_INFORMATION::Read_dt(CONTROLLER *controller)
 		if (mode != MINIMIZATION)
 			dt = 0.001;
 		else
-			dt = 1e-8;
+			dt = 1e-10;
 		sys.dt_in_ps = 0.001;
 		controller->printf("    dt set to %f ps\n", dt);
 		dt *= CONSTANT_TIME_CONVERTION;
@@ -1647,6 +1647,7 @@ void MD_INFORMATION::RERUN_information::Initial(CONTROLLER *controller, MD_INFOR
 		{
 			controller->printf("        Open rerun box trajectory\n");
 		}
+                md_info->sys.step_limit = INT_MAX;
 
 		controller->printf("    End initializing rerun\n\n");
 	}
@@ -1657,13 +1658,22 @@ void MD_INFORMATION::RERUN_information::Iteration()
 	int n = fread(this->md_info->coordinate, sizeof(VECTOR), this->md_info->atom_numbers, traj_file);
 	if (n != this->md_info->atom_numbers)
 	{
-		md_info->sys.step_limit = 0;
+                fcloseall();
+                exit(0);
 	}
 	cudaMemcpy(this->md_info->crd, this->md_info->coordinate, sizeof(VECTOR)* this->md_info->atom_numbers, cudaMemcpyHostToDevice);
 	if (box_file != NULL)
 	{
-		int ret = fscanf(box_file, "%f %f %f %*f %*f %*f", &md_info->sys.box_length.x, &md_info->sys.box_length.y, &md_info->sys.box_length.z);
+		int ret = fscanf(box_file, "%f %f %f %*f %*f %*f", &box_length_change_factor.x, &box_length_change_factor.y, &box_length_change_factor.z);
+                box_length_change_factor = box_length_change_factor / md_info->sys.box_length;
+                
 	}
+        else
+        {
+            box_length_change_factor.x = 1.0f;
+            box_length_change_factor.y = 1.0f;
+            box_length_change_factor.z = 1.0f;              
+        }
 }
 
 void MD_INFORMATION::NVE_iteration::Velocity_Verlet_1()

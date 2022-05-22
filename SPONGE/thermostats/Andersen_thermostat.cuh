@@ -44,7 +44,7 @@ struct ANDERSEN_THERMOSTAT_INFORMATION
 	float *h_factor, *d_factor;
 
 	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, int atom_numbers, float *h_mass, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float target_pressure, int atom_numbers, float *h_mass, const char *module_name = NULL);
 	
 
 	void MD_Iteration_Leap_Frog(int atom_numbers, VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, float *inverse_mass, float dt);

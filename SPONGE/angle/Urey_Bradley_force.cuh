@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Copyright 2021 Gao's lab, Peking University, CCME. All rights reserved.
 *
 * NOTICE TO LICENSEE:
@@ -16,8 +16,8 @@
 
 //20210901
 /*
-* ����ʱ���ϵ����ģ��Ŀǰû�����ϸ���ȫ�����֤
-* ֻ�ܳ�ʼ��һ�Σ�δ����clear�Ⱥ�������Ҫ������ʼ��
+* 由于时间关系，该模块目前没经过严格且全面的验证
+* 只能初始化一次，未加入clear等函数，不要反复初始化
 * 
 */
 

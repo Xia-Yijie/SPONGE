@@ -1064,7 +1064,7 @@ static __global__ void Total_C6_Get(int atom_numbers, int *atom_lj_type, float *
 	atomicAdd(d_factor, temp_sum);
 }
 
-void LENNARD_JONES_INFORMATION::Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, char *module_name)
+void LENNARD_JONES_INFORMATION::Initial(CONTROLLER *controller, float cutoff, VECTOR box_length, const char *module_name)
 {
 	if (module_name == NULL)
 	{

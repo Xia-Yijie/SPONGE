@@ -106,7 +106,7 @@ static __global__ void restrain_force_with_atom_energy_and_virial(const int rest
 	}
 }
 
-void RESTRAIN_INFORMATION::Initial(CONTROLLER *controller, const int atom_numbers, const VECTOR *crd, char *module_name)
+void RESTRAIN_INFORMATION::Initial(CONTROLLER *controller, const int atom_numbers, const VECTOR *crd, const char *module_name)
 {
 	if (module_name == NULL)
 	{

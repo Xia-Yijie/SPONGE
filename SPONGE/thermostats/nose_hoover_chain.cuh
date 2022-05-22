@@ -42,7 +42,7 @@ struct NOSE_HOOVER_CHAIN_INFORMATION
 
 
 	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, char *module_name = NULL);
+	void Initial(CONTROLLER *controller, float target_pressure, const char *module_name = NULL);
 	
 
 	void MD_Iteration_Leap_Frog(int atom_numbers, VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, float *inverse_mass, float dt, float Ek, int freedom);

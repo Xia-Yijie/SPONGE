@@ -66,7 +66,7 @@ VECTOR *frc, VECTOR *acc, float chain_vel, float max_vel)
 	}
 }
 
-void NOSE_HOOVER_CHAIN_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, char *module_name)
+void NOSE_HOOVER_CHAIN_INFORMATION::Initial(CONTROLLER *controller, float target_temperature, const char *module_name)
 {
 	controller->printf("START INITIALIZING NOSE HOOVER CHAIN:\n");
 	if (module_name == NULL)
