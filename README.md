@@ -1,0 +1,1 @@
+SPONGE is short for "__S__imulation __P__ackage __O__f __N__ext __GE__neration molecular modelling". It is developed by Gao Group in Peking University. Visit the official [website](spongemm.cn) for more information.
