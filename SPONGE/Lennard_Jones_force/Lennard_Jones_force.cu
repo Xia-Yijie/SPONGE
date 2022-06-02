@@ -1026,7 +1026,7 @@ __global__ void LJ_Energy_CUDA(
 
 void LENNARD_JONES_INFORMATION::LJ_Malloc()
 {
-	Malloc_Safely((void**)&h_LJ_energy_sum, sizeof(float));
+	//Malloc_Safely((void**)&h_LJ_energy_sum, sizeof(float));
 	Malloc_Safely((void**)&h_LJ_energy_atom, sizeof(float)*atom_numbers);
 	Malloc_Safely((void**)&h_atom_LJ_type, sizeof(int)*atom_numbers);
 	Malloc_Safely((void**)&h_LJ_A, sizeof(float)*pair_type_numbers);
