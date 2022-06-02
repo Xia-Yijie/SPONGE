@@ -1,4 +1,4 @@
-﻿    The first line is the name of the md tast
+The first line is the name of the md tast
 #本文本文件通过命令行中加入"-mdin 本文本文件名"读入，如果该文件名为"mdin.txt"且在当前命令行的工作路径中，可不在命令行中显式输入
 #本文本文件内的所有参数指令均可通过加"-"前缀在命令行里输入，例如 -cutoff 8.0 -skin 2.0
 
@@ -38,7 +38,7 @@ neighbor_list
 
 #热浴相关
 target_temperature = 300.0 #模拟的目标平衡温度，单位为开
-thermostat = andersen_thermostat #可选热浴见下
+thermostat = nose_hoover_chain #可选热浴见下
 ##middle_langevin #居中图示的langevin算法
 {
     seed = 1  #随机数种子，不填随机生成
@@ -50,7 +50,7 @@ thermostat = andersen_thermostat #可选热浴见下
 ##nose_hoover_chain
 {
     length = 10  #NH链的长度（为了增加遍历性，拓展的维度可以不止一维）
-    tauT = 1.0   #弛豫时间常数
+    tau = 1.0   #弛豫时间常数
     #velocity_max = 20 #没测试过加最大速度
     #restart_input = xxx.txt  #如果需要满足时间反演对称性，restart的时候需要坐标和速度连续，不给默认均为0
     #restart_output = xxx.txt #如果需要满足时间反演对称性，restart的时候需要坐标和速度连续，不给不会打印
@@ -68,7 +68,7 @@ thermostat = andersen_thermostat #可选热浴见下
 
 ##berendsen_thermostat
 {
-    tauT = 1.0 #弛豫时间常数
+    tau = 1.0 #弛豫时间常数
     stochastic_term = 1 #选1加入随机修正（又叫bussi控温），使得最后的分布能满足正确的温度分布，选0就是原本的berendsen控温，只能保证温度控到平衡温度
     #berendsen控温使用的是NVE迭代器，最大速度使用NVE_velocity_max控制
     #seed = 0 #随机数种子
@@ -93,6 +93,13 @@ target_pressure = 1.0 #模拟的目标平衡温度，单位为巴
     accept_rate_low = 30 #改变体积的接受概率百分比最低值
     accept_rate_high = 40 #改变体积的接受概率百分比最高值
     couple_dimension = NO
+}
+
+##andersen_barostat 
+{
+    tau = 1.0 #弛豫时间，单位为ps
+    compressibility = 4.5e-5 #压缩系数，单位为bar^-1
+    dV/dt = 0 #初始体积变化速度，单位为A^3/(1/20.455 fs)
 }
 
 #限制参数

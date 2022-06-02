@@ -91,9 +91,9 @@ void NOSE_HOOVER_CHAIN_INFORMATION::Initial(CONTROLLER *controller, float target
 
 
 	float tauT = 1.0f;
-	if (controller[0].Command_Exist(this->module_name, "tauT"))
+	if (controller[0].Command_Exist(this->module_name, "tau"))
 	{
-		tauT = atoi(controller->Command(this->module_name, "tauT"));
+		tauT = atoi(controller->Command(this->module_name, "tau"));
 	}
 	tauT *= CONSTANT_TIME_CONVERTION;
 	h_mass = tauT * tauT * target_temperature / 4.0f / CONSTANT_Pi / CONSTANT_Pi;

@@ -41,7 +41,7 @@ void ANDERSEN_BAROSTAT_INFORMATION::Initial(CONTROLLER *controller, float target
 	dV_dt = 0;
 	if (controller[0].Command_Exist(this->module_name, "dV/dt"))
 		dV_dt = atof(controller[0].Command(this->module_name, "dV/dt"));
-	controller->printf("    The initial dV/dt is %f A^3/(20.455 fs)\n", dV_dt);
+	controller->printf("    The initial dV/dt is %f A^3/(1/20.455 fs)\n", dV_dt);
 
 	is_initialized = 1;
 	if (is_initialized && !is_controller_printf_initialized)
