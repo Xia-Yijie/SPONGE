@@ -1,4 +1,4 @@
-#include "LJ_soft_core.cuh"
+﻿#include "LJ_soft_core.cuh"
 
 #define TWO_DIVIDED_BY_SQRT_PI 1.1283791670218446
 #define ONE_DIVIDED_BY_3_SQRT_PI 0.18806319451591877
@@ -282,8 +282,8 @@ static __global__ void LJ_Soft_Core_Force_With_Direct_CF_CUDA(
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
 
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 
@@ -447,8 +447,8 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_CUDA(
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
 					
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 
@@ -620,8 +620,8 @@ void __global__ LJ_Soft_Core_Direct_CF_Force_With_LJ_Virial_Direct_CF_Energy_CUD
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
 					
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 
@@ -796,8 +796,8 @@ static __global__ void LJ_Soft_Core_Direct_CF_Force_With_Atom_Energy_And_LJ_Viri
 						+lambda * ( - BAij * dr_sc_B6 + BBij) * dr_sc_B12
 					);
 					
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 
@@ -949,8 +949,8 @@ static __global__ void LJ_Soft_Core_Energy_CUDA(
 					dr_sc_A6 = 1.0 / (dr6 + alpha_lambda_p * sigma_Aij);
 					dr_sc_B6 = 1.0 / (dr6 + alpha_lambda_p_ * sigma_Bij);
 					
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 
@@ -1081,8 +1081,8 @@ static __global__ void LJ_Soft_Core_Energy_With_Coulumb_Direct_CUDA(
 					dr_scA6 = (dr6 + alpha_lambda_p * sigma_Aij);
 					dr_scB6 = (dr6 + alpha_lambda_p_ * sigma_Bij);
 
-					dr_scA = pow(dr_scA6, 1.0/6.0);
-					dr_scB = pow(dr_scB6, 1.0/6.0);
+					dr_scA = powf(dr_scA6, 1.0/6.0);
+					dr_scB = powf(dr_scB6, 1.0/6.0);
 
 					if (dr_scA < cutoff)
 					{
@@ -1241,13 +1241,13 @@ static __global__ void LJ_Soft_Core_With_Drect_Columb_dH_dlambda_CUDA(
 
 					dH_dlambda_lj_sum += dH_dlambda_lj;
 
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 					
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 					
@@ -1386,8 +1386,8 @@ static __global__ void LJ_Soft_Core_With_Drect_Columb_dH_dlambda_Charge_Unpertub
 
 					dH_dlambda_lj_sum += dH_dlambda_lj;
 
-					dr_sc_A = pow(dr_sc_A6, 1.0/6.0);
-					dr_sc_B = pow(dr_sc_B6, 1.0/6.0);
+					dr_sc_A = powf(dr_sc_A6, 1.0/6.0);
+					dr_sc_B = powf(dr_sc_B6, 1.0/6.0);
 					beta_dr_sc_A = pme_beta / dr_sc_A;
 					beta_dr_sc_B = pme_beta / dr_sc_B;
 					
@@ -1454,14 +1454,14 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 				this->alpha = 0.5;
 			}
 
-			if (controller[0].Command_Exist("soft_core_power"))
+			if (controller[0].Command_Exist("soft_core_powfer"))
 			{
-				this->p = atof(controller[0].Command("soft_core_power"));
-				controller->printf("    FEP soft core power: %f\n", this->p);
+				this->p = atof(controller[0].Command("soft_core_powfer"));
+				controller->printf("    FEP soft core powfer: %f\n", this->p);
 			}
 			else
 			{
-				controller->printf("    FEP soft core power is set to default value 1.0.\n");
+				controller->printf("    FEP soft core powfer is set to default value 1.0.\n");
 				this->p = 1.0;
 			}
 			
@@ -1560,12 +1560,12 @@ void LJ_SOFT_CORE::Initial(CONTROLLER *controller, float cutoff, VECTOR box_leng
 
 			Parameter_Host_To_Device();
 			is_initialized = 1;
-			alpha_lambda_p = alpha * pow(lambda, p);
-			alpha_lambda_p_ = alpha * pow(1 - lambda, p);
-			sigma_6 = pow(sigma, 6);
-			sigma_6_min = pow(sigma_min, 6);
-			alpha_lambda_p_1 = alpha * pow(lambda, p-1);
-			alpha_lambda_p_1_ = alpha * pow(1.0 - lambda, p-1);
+			alpha_lambda_p = alpha * powf(lambda, p);
+			alpha_lambda_p_ = alpha * powf(1 - lambda, p);
+			sigma_6 = powf(sigma, 6);
+			sigma_6_min = powf(sigma_min, 6);
+			alpha_lambda_p_1 = alpha * powf(lambda, p-1);
+			alpha_lambda_p_1_ = alpha * powf(1.0 - lambda, p-1);
 
 			pme_tolerance = 0.00001;
 			if (controller[0].Command_Exist("PME_Direct_Tolerance"))
