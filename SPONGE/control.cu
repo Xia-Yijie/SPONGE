@@ -169,7 +169,7 @@ static int judge_if_flag(const char *str)
 		return 0;
 	if (str[0] != '-')
 		return 0;
-	if (str[1] > '0' && str[1] <='9')
+	if (str[1] >= '0' && str[1] <='9')
 		return 0;
 	return 1;
 }
