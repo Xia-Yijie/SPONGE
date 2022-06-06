@@ -169,7 +169,7 @@ static int judge_if_flag(const char *str)
 		return 0;
 	if (str[0] != '-')
 		return 0;
-	if (str[1] > '0' && str[1] <='9')
+	if (str[1] >= '0' && str[1] <='9')
 		return 0;
 	return 1;
 }
@@ -228,6 +228,55 @@ void CONTROLLER::Get_Command(char *line, char *prefix)
 
 }
 
+static int read_one_line(FILE *In_File, char *line, char *ender)
+{
+	int line_count = 0;
+	int ender_count = 0;
+	char c;
+	while ((c = getc(In_File)) != EOF)
+	{
+		if (line_count == 0 && (c == '\t' || c == ' '))
+		{
+			continue;
+		}
+		else if (c != '\n' && c != ',' && c != '{' && c != '}')
+		{
+			line[line_count] = c;
+			line_count += 1;
+		}
+		else
+		{
+			ender[ender_count] = c;
+			ender_count += 1;
+			break;
+		}
+	}
+	while ((c = getc(In_File)) != EOF)
+	{
+		if (c == ' ' || c == '\t')
+		{
+			continue;
+		}
+		else if (c != '\n' && c != ',' && c != '{' && c != '}')
+		{
+			fseek(In_File, -1, SEEK_CUR);
+			break;
+		}
+		else
+		{
+			ender[ender_count] = c;
+			ender_count += 1;
+		}
+	}
+	line[line_count] = 0;
+	ender[ender_count] = 0;
+	if (line_count == 0 && ender_count == 0)
+	{
+		return EOF;
+	}
+	return 1;
+}
+
 void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 {
 
@@ -251,20 +300,20 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 		char *get_ret = fgets(line, CHAR_LENGTH_MAX, In_File);
 		line[strlen(line) - 1] = 0;
 		commands["md_name"] = line;
-		int scanf_ret = fscanf(In_File, "%*[ \t,\n}{]");
 		while (true)
 		{
-			if (fscanf(In_File, "%[^,\n}{]%[ \t,\n}{]", line, ender) == EOF)
+			if (read_one_line(In_File, line, ender) == EOF)
 			{
 				break;
 			}
+			//printf("%s\n%s\n", line, ender);
 			if (line[0] == '#')
 			{
 				if (line[1] == '#')
 				{
 					if (strchr(ender, '{') != NULL)
 					{
-						sscanf(line, "%s", prefix);
+						int scanf_ret = sscanf(line, "%s", prefix);
 					}
 					if (strchr(ender, '}') != NULL )
 					{
@@ -273,13 +322,13 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 				}
 				if (strchr(ender, '\n') == NULL)				
 				{
-					scanf_ret = fscanf(In_File, "%*[^\n]%*[\n]");
+					int scanf_ret = fscanf(In_File, "%*[^\n]%*[\n]");
 					fseek(In_File, -1, SEEK_CUR);
 				}
 			}
 			else if (strchr(ender, '{') != NULL)
 			{
-				sscanf(line, "%s", prefix);
+				int scanf_ret = sscanf(line, "%s", prefix);
 			}
 			else
 			{
@@ -310,7 +359,7 @@ void CONTROLLER::Commands_From_In_File(int argc, char **argv)
 		Open_File_Safely(&mdout, MDOUT_DEFAULT_FILENAME, "w");
 	}
 	printf("SPONGE Version:\n    %s\n\n", SPONGE_VERSION);
-	fprintf(mdinfo, "Citation:\n    %s\n", "Huang, Y. - P., Xia, Y., Yang, L., Wei, J., Yang, Y.I.and Gao, Y.Q. (2022), SPONGE: A GPU - Accelerated Molecular Dynamics Package with Enhanced Sampling and AI - Driven Algorithms.Chin.J.Chem., 40 : 160 - 168. https ://doi.org/10.1002/cjoc.202100456\n\n");
+	printf("Citation:\n    %s\n", "Huang, Y. - P., Xia, Y., Yang, L., Wei, J., Yang, Y.I.and Gao, Y.Q. (2022), SPONGE: A GPU - Accelerated Molecular Dynamics Package with Enhanced Sampling and AI - Driven Algorithms.Chin.J.Chem., 40 : 160 - 168. https ://doi.org/10.1002/cjoc.202100456\n\n");
 	printf("MD TASK NAME:\n    %s\n\n", commands["md_name"].c_str());
 	int scanf_ret = fprintf(mdinfo, "Terminal Commands:\n    ");
 	for (int i = 0; i < argc; i++)
