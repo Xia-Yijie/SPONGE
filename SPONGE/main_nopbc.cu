@@ -1,4 +1,4 @@
-﻿#include "main.cuh"
+﻿#include "main_nopbc.cuh"
 
 CONTROLLER controller;
 MD_INFORMATION md_info;
@@ -79,7 +79,9 @@ void Main_Initial(int argc, char *argv[])
 	{
 		gb.Initial(&controller, md_info.nb.cutoff);
 	}
-	
+	else if(controller.Command_Choice("implicit_solvent", "no"))
+        {
+        }
 
 	nb14.Initial(&controller, LJ_NOPBC.h_LJ_A, LJ_NOPBC.h_LJ_B, LJ_NOPBC.h_atom_LJ_type);
 	bond.Initial(&controller);

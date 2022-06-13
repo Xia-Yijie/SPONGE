@@ -29,9 +29,9 @@
 
 #include "restrain/restrain.cuh"
 
-#include "No_PBC\Lennard_Jones_force_No_PBC.cuh"
-#include "No_PBC\Coulomb_Force_No_PBC.cuh"
-#include "No_PBC\generalized_Born.cuh"
+#include "No_PBC/Lennard_Jones_force_No_PBC.cuh"
+#include "No_PBC/Coulomb_Force_No_PBC.cuh"
+#include "No_PBC/generalized_Born.cuh"
 
 void Main_Initial(int argc, char *argv[]);
 void Main_Clear();

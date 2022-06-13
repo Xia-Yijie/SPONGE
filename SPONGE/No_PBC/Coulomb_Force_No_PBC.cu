@@ -1,4 +1,4 @@
-﻿#include "Coulomb_force_No_PBC.cuh"
+﻿#include "Coulomb_Force_No_PBC.cuh"
 
 static __global__ void Coulomb_Energy_CUDA(const int atom_numbers, const VECTOR *crd,
 	const float *charge, const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
