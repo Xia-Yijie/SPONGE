@@ -226,11 +226,11 @@ void GENERALIZED_BORN_INFORMATION::Initial(CONTROLLER *controller, float cutoff,
 	{
 		FILE *fp;
 		Open_File_Safely(&fp, controller->Command("gb_in_file"), "r");
-		fscanf(fp, "%d", &atom_numbers);
+		int scanf_ret = fscanf(fp, "%d", &atom_numbers);
 		Malloc();
 		for (int i = 0; i < atom_numbers; i++)
 		{
-			fscanf(fp, "%f %f", h_GB_self_radius + i, h_GB_other_radius + i);
+			scanf_ret = fscanf(fp, "%f %f", h_GB_self_radius + i, h_GB_other_radius + i);
 			h_GB_self_radius[i] -= radii_offset;
 			h_GB_other_radius[i] *= h_GB_self_radius[i];
 		}
@@ -293,11 +293,14 @@ void GENERALIZED_BORN_INFORMATION::Clear()
 
 void GENERALIZED_BORN_INFORMATION::Get_Effective_Born_Radius(const VECTOR *crd)
 {
-	cudaMemset(d_GB_effective_radius, 0, sizeof(float)*atom_numbers);
-	Effective_Born_Radii_Factor_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
+	if (is_initialized)
+	{
+		cudaMemset(d_GB_effective_radius, 0, sizeof(float)*atom_numbers);
+		Effective_Born_Radii_Factor_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
 		(atom_numbers, crd, radii_cutoff * radii_cutoff, d_GB_self_radius, d_GB_other_radius, d_GB_effective_radius);
-	Effective_Born_Radii_CUDA << < (unsigned int)ceilf((float)atom_numbers / thread_GB.x / thread_GB.y), thread_GB.x * thread_GB.y >> >
+		Effective_Born_Radii_CUDA << < (unsigned int)ceilf((float)atom_numbers / thread_GB.x / thread_GB.y), thread_GB.x * thread_GB.y >> >
 		(atom_numbers, d_GB_self_radius, d_GB_effective_radius);
+	}
 }
 
 float GENERALIZED_BORN_INFORMATION::Get_Energy(const VECTOR *crd, const float *charge, int is_download)
@@ -323,11 +326,14 @@ float GENERALIZED_BORN_INFORMATION::Get_Energy(const VECTOR *crd, const float *c
 
 void GENERALIZED_BORN_INFORMATION::GB_Force_With_Atom_Energy(const int atom_numbers, const VECTOR *crd, const float *charge, VECTOR *frc, float *atom_energy)
 {
-	cudaMemset(d_dE_da, 0, sizeof(float)*atom_numbers);
-	GB_inej_Force_Energy_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
+	if (is_initialized)
+	{
+		cudaMemset(d_dE_da, 0, sizeof(float)*atom_numbers);
+		GB_inej_Force_Energy_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
 		(atom_numbers, crd, charge, d_GB_effective_radius, 1.0 / relative_dielectric_constant - 1.0, cutoff * cutoff, frc, atom_energy, d_dE_da);
-	GB_ieqj_Force_Energy_CUDA << < (unsigned int)ceilf((float)atom_numbers / thread_GB.x / thread_GB.y), thread_GB.x * thread_GB.y >> >
+		GB_ieqj_Force_Energy_CUDA << < (unsigned int)ceilf((float)atom_numbers / thread_GB.x / thread_GB.y), thread_GB.x * thread_GB.y >> >
 		(atom_numbers, crd, charge, d_GB_effective_radius, 0.5 / relative_dielectric_constant - 0.5, cutoff * cutoff, frc, atom_energy, d_dE_da);
-	GB_accumulate_Force_Energy_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
+		GB_accumulate_Force_Energy_CUDA << <{(unsigned int)ceilf((float)atom_numbers / thread_GB.x), (unsigned int)ceilf((float)atom_numbers / thread_GB.y)}, { thread_GB.x, thread_GB.y } >> >
 		(atom_numbers, crd, radii_cutoff * radii_cutoff, d_GB_self_radius, d_GB_other_radius, d_GB_effective_radius, d_dE_da, frc);
+	}
 }
