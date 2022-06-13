@@ -1,4 +1,4 @@
-#include "Coulomb_force_No_PBC.cuh"
+﻿#include "Coulomb_force_No_PBC.cuh"
 
 static __global__ void Coulomb_Energy_CUDA(const int atom_numbers, const VECTOR *crd,
 	const float *charge, const int *excluded_list_start, const int *excluded_list, const int *excluded_atom_numbers,
@@ -55,7 +55,7 @@ static __global__ void Coulomb_Force_CUDA(const int atom_numbers, const VECTOR *
 				float dr_1 = sqrtf(dr_2);
 				float dr_3 = dr_1 * dr_2;
 				float chargeij = charge[atom_i] * charge[atom_j];
-				float frc_abs = chargeij * dr_3;
+				float frc_abs = -chargeij * dr_3;
 				VECTOR temp_frc = frc_abs * dr;
 
 				atomicAdd(&frc[atom_j].x, -temp_frc.x);
@@ -95,7 +95,7 @@ static __global__ void Coulomb_Force_Energy_CUDA(const int atom_numbers, const V
 				float dr_3 = dr_1 * dr_2;
 				float chargeij = charge[atom_i] * charge[atom_j];
 				float temp_ene = chargeij * dr_1;
-				float frc_abs = chargeij * dr_3;
+				float frc_abs = -chargeij * dr_3;
 				VECTOR temp_frc = frc_abs * dr;
 
 				atomicAdd(&frc[atom_j].x, -temp_frc.x);

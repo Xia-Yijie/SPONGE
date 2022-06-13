@@ -1,4 +1,4 @@
-#include "Lennard_Jones_force_No_PBC.cuh"
+﻿#include "Lennard_Jones_force_No_PBC.cuh"
 
 static __global__ void LJ_Energy_CUDA(const int atom_numbers, const VECTOR *crd, 
 	const int *LJ_types, const float *LJ_A, const float *LJ_B, 
@@ -33,7 +33,7 @@ static __global__ void LJ_Energy_CUDA(const int atom_numbers, const VECTOR *crd,
 					type_i = type_j;
 					type_j = type_ij;
 				}
-				type_ij = ( type_i * (type_i + 1) >> 1) + type_j;
+				type_ij = ( type_i * (type_i + 1) / 2) + type_j;
 				float temp_ene = (0.083333333*LJ_A[type_ij] * dr_6
 					- 0.166666666*LJ_B[type_ij]) * dr_6;
 				atomicAdd(&atom_ene[atom_i], temp_ene);
@@ -77,7 +77,7 @@ static __global__ void LJ_Force_CUDA(const int atom_numbers, const VECTOR *crd,
 					type_i = type_j;
 					type_j = type_ij;
 				}
-				type_ij = (type_i * (type_i + 1) >> 1) + type_j;
+				type_ij = (type_i * (type_i + 1) / 2) + type_j;
 				float temp_ene = (0.083333333*LJ_A[type_ij] * dr_6
 					- 0.166666666*LJ_B[type_ij]) * dr_6;
 				float frc_abs = (-LJ_A[type_ij] * dr_6
@@ -113,6 +113,7 @@ static __global__ void LJ_Force_Energy_CUDA(const int atom_numbers, const VECTOR
 		}
 		if (tocal == 1)
 		{
+			
 			VECTOR dr = crd[atom_j] - crd[atom_i];
 			float dr2 = dr * dr;
 			if (dr2 < cutoff_square)
@@ -130,13 +131,12 @@ static __global__ void LJ_Force_Energy_CUDA(const int atom_numbers, const VECTOR
 					type_i = type_j;
 					type_j = type_ij;
 				}
-				type_ij = (type_i * (type_i + 1) >> 1) + type_j;
+				type_ij = (type_i * (type_i + 1) / 2) + type_j;
 				float temp_ene = (0.083333333*LJ_A[type_ij] * dr_6
 					- 0.166666666*LJ_B[type_ij]) * dr_6;
 				float frc_abs = (-LJ_A[type_ij] * dr_6
 					+ LJ_B[type_ij]) * dr_8;
 				VECTOR temp_frc = frc_abs * dr;
-
 				atomicAdd(&frc[atom_j].x, -temp_frc.x);
 				atomicAdd(&frc[atom_j].y, -temp_frc.y);
 				atomicAdd(&frc[atom_j].z, -temp_frc.z);
