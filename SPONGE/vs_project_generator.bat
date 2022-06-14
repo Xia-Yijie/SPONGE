@@ -83,12 +83,9 @@ for %%o in (%objects%) do (
         echo EndProject>> !exe!.sln
         echo Global>> !exe!.sln
         echo 	GlobalSection^(SolutionConfigurationPlatforms^) = preSolution>> !exe!.sln
-        echo 		Debug^|x64 = Debug^|x64>> !exe!.sln
         echo 		Release^|x64 = Release^|x64>> !exe!.sln
         echo 	EndGlobalSection>> !exe!.sln
         echo 	GlobalSection^(ProjectConfigurationPlatforms^) = postSolution>> !exe!.sln
-        echo 		{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}.Debug^|x64.ActiveCfg = Debug^|x64>> !exe!.sln
-        echo 		{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}.Debug^|x64.Build.0 = Debug^|x64>> !exe!.sln
         echo 		{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}.Release^|x64.ActiveCfg = Release^|x64>> !exe!.sln
         echo 		{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}.Release^|x64.Build.0 = Release^|x64>> !exe!.sln
         echo 	EndGlobalSection>> !exe!.sln
