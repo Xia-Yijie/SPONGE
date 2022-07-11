@@ -257,7 +257,7 @@ void Main_Print()
 	{
 		controller.Step_Print("step", md_info.sys.steps);
 		controller.Step_Print("time", md_info.sys.Get_Current_Time());
-		controller.Step_Print("temperature", md_info.res.Get_Residue_Temperature());
+		controller.Step_Print("temperature", md_info.sys.Get_Atom_Temperature());
 		controller.Step_Print("potential", md_info.sys.h_potential);
 		controller.Step_Print("Coulomb", CF_NOPBC.Get_Energy(md_info.crd, md_info.d_charge, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers));
 		controller.Step_Print("gb", gb.Get_Energy(md_info.crd, md_info.d_charge));
