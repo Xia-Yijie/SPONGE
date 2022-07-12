@@ -75,13 +75,10 @@ void Main_Initial(int argc, char *argv[])
 
 	LJ_NOPBC.Initial(&controller, md_info.nb.cutoff);
 	CF_NOPBC.Initial(&controller, md_info.atom_numbers, md_info.nb.cutoff);
-	if (controller.Command_Choice("implicit_solvent", "gb"))
+	if (controller.Command_Exist("gb", "in_file"))
 	{
 		gb.Initial(&controller, md_info.nb.cutoff);
 	}
-	else if(controller.Command_Choice("implicit_solvent", "no"))
-        {
-        }
 
 	nb14.Initial(&controller, LJ_NOPBC.h_LJ_A, LJ_NOPBC.h_LJ_B, LJ_NOPBC.h_atom_LJ_type);
 	bond.Initial(&controller);

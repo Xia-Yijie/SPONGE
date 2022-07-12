@@ -213,6 +213,7 @@ void Main_Iteration()
 {
 	if (md_info.mode == md_info.RERUN)
 	{
+		neighbor_list.Neighbor_List_Update(md_info.crd, md_info.nb.d_excluded_list_start, md_info.nb.d_excluded_list, md_info.nb.d_excluded_numbers);
 		return;
 	}
 	//\B8\C3\C0\A8\BA\C5\CA\F4\D3\DAmc\BF\D8ѹ\B2\BF\B7\D6
