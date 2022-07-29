@@ -153,7 +153,6 @@ for %%o in (%objects%) do (
             echo     ^<CudaCompile Include="!temp:.o=.cu!" /^>>> !exe!.vcxproj
             echo     ^<ClInclude Include="!temp:.o=.cuh!" /^>>> !exe!.vcxproj
         )
-        echo     ^<ClInclude Include="simple_auto_diff.cuh" /^>>> !exe!.vcxproj
         echo   ^</ItemGroup^>>> !exe!.vcxproj
         echo   ^<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /^>>> !exe!.vcxproj
         echo   ^<ImportGroup Label="ExtensionTargets"^>>> !exe!.vcxproj
@@ -190,7 +189,6 @@ for %%o in (%objects%) do (
                 echo     ^</ClInclude^>>> !exe!.vcxproj.filters
             )
         )
-        echo     ^<ClInclude Include="simple_auto_diff.cuh" /^>>> !exe!.vcxproj.filters
         echo   ^</ItemGroup^>>> !exe!.vcxproj.filters
         echo ^</Project^>>> !exe!.vcxproj.filters
         

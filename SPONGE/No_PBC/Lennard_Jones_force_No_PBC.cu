@@ -78,8 +78,6 @@ static __global__ void LJ_Force_CUDA(const int atom_numbers, const VECTOR *crd,
 					type_j = type_ij;
 				}
 				type_ij = (type_i * (type_i + 1) / 2) + type_j;
-				float temp_ene = (0.083333333*LJ_A[type_ij] * dr_6
-					- 0.166666666*LJ_B[type_ij]) * dr_6;
 				float frc_abs = (-LJ_A[type_ij] * dr_6
 					+ LJ_B[type_ij]) * dr_8;
 				VECTOR temp_frc = frc_abs * dr;

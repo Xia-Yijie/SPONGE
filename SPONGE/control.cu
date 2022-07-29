@@ -1,6 +1,6 @@
 ﻿#include "control.cuh"
 
-#define SPONGE_VERSION "v1.2.5.0 2022-04-01"
+#define SPONGE_VERSION "v1.2.6.0 2022-08-01"
 
 #define MDIN_DEFAULT_FILENAME "mdin.txt"
 #define MDOUT_DEFAULT_FILENAME "mdout.txt"

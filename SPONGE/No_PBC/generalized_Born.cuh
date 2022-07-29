@@ -19,7 +19,6 @@
 #define GENERALIZED_BORN_CUH
 #include "../common.cuh"
 #include "../control.cuh"
-#include "../simple_auto_diff.cuh"
 
 //用于记录与计算GB相关的信息
 //Reference:
