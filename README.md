@@ -1,6 +1,6 @@
 # SPONGE
 
-SPONGE is short for "**S**imulation **P**ackage **O**f **N**ext **GE**neration molecular modelling". It is developed by Gao Group in Peking University. Visit the official [website](https://spongemm.cn) for more information.
+SPONGE is short for "**S**imulation **P**ackage t**O**ward **N**ext **GE**neration molecular modelling". It is developed by Gao Group in Peking University. Visit the official [website](https://spongemm.cn) for more information.
 
 # Referemce
 
