@@ -1,0 +1,6 @@
+add_library(dihedral OBJECT dihedral.cu dihedral.cuh)
+set_target_properties(dihedral PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+message("Dihedral found.")
+add_library(improper_dihedral OBJECT improper_dihedral.cu improper_dihedral.cuh)
+set_target_properties(improper_dihedral PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+message("Improper dihedral found.")

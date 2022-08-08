@@ -5,6 +5,8 @@
 *.vcxproj.*
 *.o
 *.d
+*.a
+.*/
 SPONGE/SPONGE
 SPONGE/SPONGE_*
 SPONGE/mdbox.txt
@@ -16,3 +18,4 @@ SPONGE/restart_velocity.txt
 SPONGE/vc120.pdb
 SPONGE/x64/*
 SPONGE/SPONGE.opensdf
+build/

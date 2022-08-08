@@ -1,0 +1,6 @@
+add_library(Lennard_Jones_force OBJECT Lennard_Jones_force.cu Lennard_Jones_force.cuh)
+set_target_properties(Lennard_Jones_force PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+message("LJ found.")
+add_library(LJ_soft OBJECT LJ_soft_core.cu LJ_soft_core.cuh)
+set_target_properties(LJ_soft PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+message("LJ soft found.")
