@@ -1,24 +1,41 @@
 # Flags
-#set(CUDA_SEPARABLE_COMPILATION ON)
-add_compile_options(
-    -arch=sm_50
-    -std=c++11
-    -rdc=true
-    -lcudadevrt
-    -lcufft
-    -O4 
-    --use_fast_math
-    -DNDEBUG
-)
+## Check CUDA Version and set compiler flags
+message("The version of CUDA compiler is ${CMAKE_CUDA_COMPILER_VERSION}.")
+if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
+    message("Compiler version is less than 11.0, using flags:")
+    message("\t -O4 -std=c++11 -arch=sm_50 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
+    add_compile_options(
+        -arch=sm_50
+        -std=c++11
+        -rdc=true
+        -lcudadevrt
+        -lcufft
+        -O4 
+        --use_fast_math
+        -DNDEBUG
+    )
+else()
+    message("Compiler version is greater or equal to 11.0, using flags:")
+    message("\t -O4 -std=c++14 -arch=sm_75 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
+    add_compile_options(
+        -arch=sm_75
+        -std=c++14
+        -rdc=true
+        -lcudadevrt
+        -lcufft
+        -O4 
+        --use_fast_math
+        -DNDEBUG
+    )
+endif()
 
-# Libraries
-set(MODULES "angle;barostats;bond;cmap;constrain;crd_molecular_map;dihedral;Lennard_Jones_force;nb14;neighbor_list;PME_force;restrain;thermostats;virtual_atoms;FEP_core;MD_core;No_PBC;TI_core")
-mark_as_advanced(MODULES)
-message("Finding modules.")
-foreach(_mod ${MODULES})
-    message(${_mod})
-    add_subdirectory(${_mod})
-endforeach()
+# Library
+file(GLOB_RECURSE CURRENT_HEADERS CMAKE_CONFIGURE_DEPENDS *.cuh)
+file(GLOB_RECURSE CURRENT_SOURCES CMAKE_CONFIGURE_DEPENDS *.cu)
+list(FILTER CURRENT_HEADERS INCLUDE REGEX "${PROJECT_SOURCE_DIR}/.*/.*/.*.cuh")
+list(FILTER CURRENT_SOURCES INCLUDE REGEX "${PROJECT_SOURCE_DIR}/.*/.*/.*.cu")
+add_library(libsponge STATIC ${CURRENT_HEADERS} ${CURRENT_SOURCES}) # use STATIC library for better performance
+set_target_properties(libsponge PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # Executables
 add_executable(SPONGE main.cuh main.cu common.cu common.cuh control.cu control.cuh)
@@ -32,69 +49,7 @@ set_target_properties(SPONGE_TI PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 
 # Link
-target_link_libraries(SPONGE PUBLIC
-    MD_core 
-    bond 
-    bond_soft
-    angle
-    Urey_Bradley_force
-    dihedral
-    improper_dihedral
-    cmap
-    nb14
-    neighbor_list
-    Lennard_Jones_force
-    LJ_soft
-    PME_force
-    thermostats
-    barostats
-    restrain
-    constrain
-    virtual_atoms
-    crd_molecular_map
-    -lcufft
-    )
-
-target_link_libraries(SPONGE_NOPBC PUBLIC
-    MD_core
-    bond
-    angle
-    Urey_Bradley_force
-    improper_dihedral
-    dihedral
-    cmap
-    nb14
-    thermostats
-    restrain
-    constrain
-    virtual_atoms
-    crd_molecular_map
-    No_PBC
-    -lcufft
-)
-
-target_link_libraries(SPONGE_FEP PUBLIC
-    FEP_core
-    bond
-    bond_soft
-    angle
-    dihedral
-    nb14
-    neighbor_list
-    LJ_soft
-    PME_force
-    -lcufft
-)
-
-target_link_libraries(SPONGE_TI PUBLIC
-    TI_core
-    bond
-    bond_soft
-    angle
-    dihedral
-    nb14
-    neighbor_list
-    LJ_soft
-    PME_force
-    -lcufft
-)
+target_link_libraries(SPONGE PUBLIC libsponge -lcufft)
+target_link_libraries(SPONGE_NOPBC PUBLIC libsponge -lcufft)
+target_link_libraries(SPONGE_FEP PUBLIC libsponge -lcufft)
+target_link_libraries(SPONGE_TI PUBLIC libsponge -lcufft)

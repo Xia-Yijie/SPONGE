@@ -1,6 +1,0 @@
-add_library(angle OBJECT angle.cu angle.cuh)
-set_target_properties(angle PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-message("Angle found.")
-add_library(Urey_Bradley_force OBJECT Urey_Bradley_force.cu Urey_Bradley_force.cuh)
-set_target_properties(Urey_Bradley_force PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-message("Urey_Bradley_force found")

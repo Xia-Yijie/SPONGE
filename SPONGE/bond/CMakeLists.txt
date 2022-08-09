@@ -1,6 +1,0 @@
-add_library(bond OBJECT bond.cu bond.cuh)
-set_target_properties(bond PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-message("Bond found.")
-add_library(bond_soft OBJECT  bond_soft.cu bond_soft.cuh)
-set_target_properties(bond_soft PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-message("Bond soft found.")
