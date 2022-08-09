@@ -11,9 +11,8 @@ message("Using architecture ${CUDA_ARCH_LATEST}")
 message("The version of CUDA compiler is ${CMAKE_CUDA_COMPILER_VERSION}.")
 if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
     message("Compiler version is less than 11.0, using flags:")
-    message("\t -O4 -std=c++11 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
+    message("\t -O4 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
     add_compile_options(
-        -std=c++11
         -rdc=true
         -lcudadevrt
         -lcufft
@@ -23,9 +22,8 @@ if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0)
     )
 else()
     message("Compiler version is greater or equal to 11.0, using flags:")
-    message("\t -O4 -std=c++14 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
+    message("\t -O4 -rdc=true -lcudadevrt -lcufft -DNDEBUG --use_fast_math")
     add_compile_options(
-        -std=c++14
         -rdc=true
         -lcudadevrt
         -lcufft
