@@ -42,7 +42,7 @@ struct VIRTUAL_TYPE_0_INFROMATION
 {
     int virtual_numbers = 0;                                                                                                                                                                                
     VIRTUAL_TYPE_0 *h_virtual_type_0 = NULL;
-	VIRTUAL_TYPE_0 *d_virtual_type_0 = NULL;
+    VIRTUAL_TYPE_0 *d_virtual_type_0 = NULL;
 };
 
 //virtual atom type 1
@@ -59,8 +59,8 @@ struct VIRTUAL_TYPE_1
 struct VIRTUAL_TYPE_1_INFROMATION
 {
     int virtual_numbers = 0;                                                                                                                                                                                
-	VIRTUAL_TYPE_1 *h_virtual_type_1 = NULL;
-	VIRTUAL_TYPE_1 *d_virtual_type_1 = NULL;
+    VIRTUAL_TYPE_1 *h_virtual_type_1 = NULL;
+    VIRTUAL_TYPE_1 *d_virtual_type_1 = NULL;
 };
 
 //virtual atom type 2
@@ -78,8 +78,8 @@ struct VIRTUAL_TYPE_2
 struct VIRTUAL_TYPE_2_INFROMATION
 {
     int virtual_numbers = 0;                                                                                                                                                                                
-	VIRTUAL_TYPE_2 *h_virtual_type_2 = NULL;
-	VIRTUAL_TYPE_2 *d_virtual_type_2 = NULL;
+    VIRTUAL_TYPE_2 *h_virtual_type_2 = NULL;
+    VIRTUAL_TYPE_2 *d_virtual_type_2 = NULL;
 };
 
 //virtual atom type 3
@@ -102,8 +102,8 @@ struct VIRTUAL_TYPE_3
 struct VIRTUAL_TYPE_3_INFROMATION
 {
     int virtual_numbers = 0;                                                                                                                                                                                
-	VIRTUAL_TYPE_3 *h_virtual_type_3 = NULL;
-	VIRTUAL_TYPE_3 *d_virtual_type_3 = NULL;
+    VIRTUAL_TYPE_3 *h_virtual_type_3 = NULL;
+    VIRTUAL_TYPE_3 *d_virtual_type_3 = NULL;
 };
 
 
@@ -117,26 +117,26 @@ struct VIRTUAL_LAYER_INFORMATION
 
 struct VIRTUAL_INFORMATION
 {
-	//模块信息
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210830;
+    //模块信息
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20210830;
 
-	//cuda信息
-	int threads_per_block = 128;
+    //cuda信息
+    int threads_per_block = 128;
 
-	//内容信息
+    //内容信息
     int max_level = 0; //最大的虚拟层级
     
     int *virtual_level = NULL; //每个原子的虚拟位点层级：0->实原子，1->只依赖于实原子，2->依赖的原子的虚拟等级最高为1，以此类推...
     
     std::vector<VIRTUAL_LAYER_INFORMATION> virtual_layer_info; //记录每个层级的信息
     
-	void Initial(CONTROLLER *controller, int atom_numbers, int *system_freedom, const char *module_name = NULL);  //初始化
-	void Clear();  //清除内存
+    void Initial(CONTROLLER *controller, int atom_numbers, int *system_freedom, const char *module_name = NULL);  //初始化
+    void Clear();  //清除内存
     void Force_Redistribute(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *force);  //进行力重分配
     
-	void Coordinate_Refresh(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *crd);    //更新虚拟位点的坐标
+    void Coordinate_Refresh(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, VECTOR *crd);    //更新虚拟位点的坐标
 };
 #endif

@@ -23,43 +23,43 @@
 
 struct CONSTRAIN_TRIANGLE
 {
-	int atom_A;
-	int atom_B;
-	int atom_C;
-	float ra;
-	float rb;
-	float rc;
-	float rd;
-	float re;
+    int atom_A;
+    int atom_B;
+    int atom_C;
+    float ra;
+    float rb;
+    float rc;
+    float rd;
+    float re;
 };
 
 
 struct SETTLE
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20211222;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20211222;
 
-	CONSTRAIN *constrain;
+    CONSTRAIN *constrain;
 
-	void Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, const char* module_name = NULL);
+    void Initial(CONTROLLER* controller, CONSTRAIN* constrain, float *h_mass, const char* module_name = NULL);
 
-	int triangle_numbers = 0;
-	CONSTRAIN_TRIANGLE* d_triangles = NULL, *h_triangles = NULL;
+    int triangle_numbers = 0;
+    CONSTRAIN_TRIANGLE* d_triangles = NULL, *h_triangles = NULL;
 
-	int pair_numbers = 0;
-	CONSTRAIN_PAIR *d_pairs = NULL, *h_pairs = NULL;
+    int pair_numbers = 0;
+    CONSTRAIN_PAIR *d_pairs = NULL, *h_pairs = NULL;
 
-	VECTOR* last_pair_AB = NULL;
-	VECTOR* last_triangle_BA = NULL;
-	VECTOR* last_triangle_CA = NULL;
-	void Remember_Last_Coordinates(UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
+    VECTOR* last_pair_AB = NULL;
+    VECTOR* last_triangle_BA = NULL;
+    VECTOR* last_triangle_CA = NULL;
+    void Remember_Last_Coordinates(UNSIGNED_INT_VECTOR* uint_crd, VECTOR scaler);
 
-	float* virial = NULL;
-	VECTOR* virial_vector = NULL;
-	void Do_SETTLE(const float* d_mass, VECTOR* crd, VECTOR box_length, VECTOR* vel,
-		int need_pressure, float* d_pressure);
+    float* virial = NULL;
+    VECTOR* virial_vector = NULL;
+    void Do_SETTLE(const float* d_mass, VECTOR* crd, VECTOR box_length, VECTOR* vel,
+        int need_pressure, float* d_pressure);
 };
 
 

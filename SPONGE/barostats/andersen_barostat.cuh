@@ -24,18 +24,18 @@
 //用于记录与计算Andersen控压相关的信息
 struct ANDERSEN_BAROSTAT_INFORMATION
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20211029;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20211029;
 
-	double dV_dt = 0; //拓展自由度的速度 
-	double V0, new_V; //初始体积和新体积
-	double crd_scale_factor = 1;
-	float h_mass_inverse; //拓展自由度的质量的倒数
+    double dV_dt = 0; //拓展自由度的速度 
+    double V0, new_V; //初始体积和新体积
+    double crd_scale_factor = 1;
+    float h_mass_inverse; //拓展自由度的质量的倒数
 
-	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name = NULL);
+    //初始化
+    void Initial(CONTROLLER *controller, float target_pressure, VECTOR box_length, const char *module_name = NULL);
 };
 
 #endif //ANDERSEN_THERMOSTAT_CUH(Anderson.cuh)

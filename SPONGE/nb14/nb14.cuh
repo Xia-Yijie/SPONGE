@@ -26,11 +26,11 @@
 #define UINT_VECTOR_LJ_TYPE_DEFINE
 struct UINT_VECTOR_LJ_TYPE
 {
-	unsigned int uint_x;
-	unsigned int uint_y;
-	unsigned int uint_z;
-	int LJ_type;
-	float charge;
+    unsigned int uint_x;
+    unsigned int uint_y;
+    unsigned int uint_z;
+    int LJ_type;
+    float charge;
 };
 __device__ __host__ VECTOR Get_Periodic_Displacement(const UINT_VECTOR_LJ_TYPE uvec_a, const UINT_VECTOR_LJ_TYPE uvec_b, const VECTOR scaler);
 __global__ void Copy_LJ_Type_To_New_Crd(const int atom_numbers, UINT_VECTOR_LJ_TYPE *new_crd, const int *LJ_type);
@@ -41,49 +41,49 @@ __global__ void Copy_Crd_To_New_Crd(const int atom_numbers, const UNSIGNED_INT_V
 
 struct NON_BOND_14
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20211222;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20211222;
 
-	//r = ab原子的距离
-	//E_lj_energy = (A/12 * r^-12 - B/6 * r^-6) 
-	//E_cf_energy = cf_scale_factor * charge_a * charge_b / r
-	//lj_A、lj_B、charge从外部传入，lj_A、lj_B参考LJ，charge参考md_core
-	int nb14_numbers = 0;
-	int *h_atom_a = NULL;
-	int *h_atom_b = NULL;
-	int *d_atom_a = NULL;
-	int *d_atom_b = NULL;
-	float *h_A = NULL;
-	float *d_A = NULL;
-	float *h_B = NULL;
-	float *d_B = NULL;
-	float *h_cf_scale_factor = NULL;
-	float *d_cf_scale_factor = NULL;
+    //r = ab原子的距离
+    //E_lj_energy = (A/12 * r^-12 - B/6 * r^-6) 
+    //E_cf_energy = cf_scale_factor * charge_a * charge_b / r
+    //lj_A、lj_B、charge从外部传入，lj_A、lj_B参考LJ，charge参考md_core
+    int nb14_numbers = 0;
+    int *h_atom_a = NULL;
+    int *h_atom_b = NULL;
+    int *d_atom_a = NULL;
+    int *d_atom_b = NULL;
+    float *h_A = NULL;
+    float *d_A = NULL;
+    float *h_B = NULL;
+    float *d_B = NULL;
+    float *h_cf_scale_factor = NULL;
+    float *d_cf_scale_factor = NULL;
 
-	float *d_nb14_energy = NULL;
-	float *d_nb14_cf_energy_sum = NULL;
-	float *d_nb14_lj_energy_sum = NULL;
-	float h_nb14_cf_energy_sum = 0;
-	float h_nb14_lj_energy_sum = 0;
+    float *d_nb14_energy = NULL;
+    float *d_nb14_cf_energy_sum = NULL;
+    float *d_nb14_lj_energy_sum = NULL;
+    float h_nb14_cf_energy_sum = 0;
+    float h_nb14_lj_energy_sum = 0;
 
-	int threads_per_block = 128;
+    int threads_per_block = 128;
 
-	void Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const char *module_name = NULL);
-	void Clear();
-	void Memory_Allocate();
-	void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type);
-	void Parameter_Host_To_Device();
+    void Initial(CONTROLLER *controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type, const char *module_name = NULL);
+    void Clear();
+    void Memory_Allocate();
+    void Read_Information_From_AMBERFILE(const char *file_name, CONTROLLER controller, const float *LJ_type_A, const float *LJ_type_B, const int *lj_atom_type);
+    void Parameter_Host_To_Device();
 
-	//同时计算原子的力、能量和维里
-	void Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, VECTOR *frc, float *atom_energy, float *atom_virial);
+    //同时计算原子的力、能量和维里
+    void Non_Bond_14_LJ_CF_Force_With_Atom_Energy_And_Virial(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, VECTOR *frc, float *atom_energy, float *atom_virial);
 
-	//获得能量
-	float Get_14_LJ_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download = 1);
-	float Get_14_CF_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, int is_download = 1);
+    //获得能量
+    float Get_14_LJ_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const VECTOR scaler, int is_download = 1);
+    float Get_14_CF_Energy(const UNSIGNED_INT_VECTOR *uint_crd, const float *charge, const VECTOR scaler, int is_download = 1);
 
-	
+    
 };
 
 #endif //NB14_CUH(nb14.cuh)

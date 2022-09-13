@@ -24,32 +24,32 @@
 //用于记录与计算Andersen控温相关的信息
 struct ANDERSEN_THERMOSTAT_INFORMATION
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20211101;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20211101;
 
-	//更新间隔
-	int update_interval = 0;
-	float max_velocity = 0;
+    //更新间隔
+    int update_interval = 0;
+    float max_velocity = 0;
 
-	//高斯随机数相关
-	int float4_numbers;//存储随机数的长度
-	curandStatePhilox4_32_10_t *rand_state = NULL;//用于记录随机数发生器状态
-	VECTOR *random_vel = NULL;//存储随机速度矢量，要求该数组的长度要能整除4且大于等于atom_numbers
+    //高斯随机数相关
+    int float4_numbers;//存储随机数的长度
+    curandStatePhilox4_32_10_t *rand_state = NULL;//用于记录随机数发生器状态
+    VECTOR *random_vel = NULL;//存储随机速度矢量，要求该数组的长度要能整除4且大于等于atom_numbers
 
 
 
-	//温度相关的系数
-	float *h_factor, *d_factor;
+    //温度相关的系数
+    float *h_factor, *d_factor;
 
-	//初始化
-	void Initial(CONTROLLER *controller, float target_pressure, int atom_numbers, float *h_mass, const char *module_name = NULL);
-	
+    //初始化
+    void Initial(CONTROLLER *controller, float target_pressure, int atom_numbers, float *h_mass, const char *module_name = NULL);
+    
 
-	void MD_Iteration_Leap_Frog(int atom_numbers, VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, float *inverse_mass, float dt);
+    void MD_Iteration_Leap_Frog(int atom_numbers, VECTOR *vel, VECTOR *crd, VECTOR *frc, VECTOR *acc, float *inverse_mass, float dt);
 
-	
+    
 };
 
 #endif //ANDERSEN_THERMOSTAT_CUH(Anderson.cuh)

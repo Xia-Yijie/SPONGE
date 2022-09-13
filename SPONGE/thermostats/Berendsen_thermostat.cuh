@@ -25,29 +25,29 @@
 //用于记录与计算Berendsen控温相关的信息
 struct BERENDSEN_THERMOSTAT_INFORMATION
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20211101;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20211101;
 
-	//原始版本berendsen控温
-	float tauT; //弛豫时间（ps）
-	float dt;  //步长（ps）
-	float target_temperature; //目标温度
-	float lambda; //规度系数
+    //原始版本berendsen控温
+    float tauT; //弛豫时间（ps）
+    float dt;  //步长（ps）
+    float target_temperature; //目标温度
+    float lambda; //规度系数
 
-	//Bussi的修正
-	//文献：Canonical sampling through velocity-rescaling
-	int stochastic_term = 0;
-	std::default_random_engine e;
-	std::normal_distribution<float> n;
+    //Bussi的修正
+    //文献：Canonical sampling through velocity-rescaling
+    int stochastic_term = 0;
+    std::default_random_engine e;
+    std::normal_distribution<float> n;
 
-	//初始化
-	void Initial(CONTROLLER *controller, float target_temperature, const char *module_name = NULL);
-	
-	void Scale_Velocity(int atom_numbers, VECTOR *vel);
+    //初始化
+    void Initial(CONTROLLER *controller, float target_temperature, const char *module_name = NULL);
+    
+    void Scale_Velocity(int atom_numbers, VECTOR *vel);
 
-	void Record_Temperature(float temperature, int freedom);
+    void Record_Temperature(float temperature, int freedom);
 };
 
 #endif //BERENDSEN_THERMOSTAT_CUH(Berndsen.cuh)

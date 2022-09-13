@@ -27,20 +27,20 @@
 #include "../angle/angle.cuh"
 struct UREY_BRADLEY
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20210901;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20210901;
 
-	BOND bond;
-	ANGLE angle;
+    BOND bond;
+    ANGLE angle;
 
-	int Urey_Bradley_numbers=0;
+    int Urey_Bradley_numbers=0;
 
-	void Initial(CONTROLLER* controller, char* module_name = NULL);
-	void Urey_Bradley_Force_With_Atom_Energy_And_Virial
-	(const UNSIGNED_INT_VECTOR* uint_crd, const VECTOR scaler, VECTOR* frc, float* atom_energy, float* atom_virial);
-	float Get_Energy(const UNSIGNED_INT_VECTOR* uint_crd, const VECTOR scaler, int is_download = 1);
+    void Initial(CONTROLLER* controller, char* module_name = NULL);
+    void Urey_Bradley_Force_With_Atom_Energy_And_Virial
+    (const UNSIGNED_INT_VECTOR* uint_crd, const VECTOR scaler, VECTOR* frc, float* atom_energy, float* atom_virial);
+    float Get_Energy(const UNSIGNED_INT_VECTOR* uint_crd, const VECTOR scaler, int is_download = 1);
 };
 
 #endif //UREY_BRADLEY_FORCE_CUH(Urey_Bradley_force.cuh)

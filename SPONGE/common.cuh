@@ -35,25 +35,25 @@
 #define CHAR_LENGTH_MAX 256
 struct CONSTANT
 {
-	//数学常数
-	const float pi = 3.1415926535897932f;
-	const float e = 2.7182818284590452f;
-	//物理常量
-	const float kB = 0.00198716f;//玻尔兹曼常量（kcal.mol^-1.K^ -1）
-								//使用kcal为能量单位，因此kB=8.31441(J.mol^-1.K^-1)/4.18407(J/cal)/1000
-	const float time_convertion=20.455f;//程序中使用的单位时间与物理时间的换算1/20.455*dt=1 ps
-	//周期性盒子映射所使用的信息
-	const unsigned int uint_max = UINT_MAX;
-	const float uint_max_float = 4294967296.0f;
-	const float uint_max_inversed = (float)1. / 4294967296.;
+    //数学常数
+    const float pi = 3.1415926535897932f;
+    const float e = 2.7182818284590452f;
+    //物理常量
+    const float kB = 0.00198716f;//玻尔兹曼常量（kcal.mol^-1.K^ -1）
+                                //使用kcal为能量单位，因此kB=8.31441(J.mol^-1.K^-1)/4.18407(J/cal)/1000
+    const float time_convertion=20.455f;//程序中使用的单位时间与物理时间的换算1/20.455*dt=1 ps
+    //周期性盒子映射所使用的信息
+    const unsigned int uint_max = UINT_MAX;
+    const float uint_max_float = 4294967296.0f;
+    const float uint_max_inversed = (float)1. / 4294967296.;
 };
 
 //用于存储各种三维float矢量而定义的结构体
 struct VECTOR
 {
-	float x;
-	float y;
-	float z;
+    float x;
+    float y;
+    float z;
 };
 //与VECTOR结构体相关的重载运算符
 //逐项相加
@@ -77,17 +77,17 @@ __device__ __host__  VECTOR operator^ (const VECTOR &veca, const VECTOR &vecb);
 //用于计算边界循环所定义的结构体
 struct UNSIGNED_INT_VECTOR
 {
-	unsigned int uint_x;
-	unsigned int uint_y;
-	unsigned int uint_z;
+    unsigned int uint_x;
+    unsigned int uint_y;
+    unsigned int uint_z;
 };
 
 //用于计算边界循环或者一些三维数组大小所定义的结构体
 struct INT_VECTOR
 {
-	int int_x;
-	int int_y;
-	int int_z;
+    int int_x;
+    int int_y;
+    int int_z;
 };
 
 
@@ -105,8 +105,8 @@ __device__ VECTOR Make_Vector_Not_Exceed_Value(VECTOR vector, const float value)
 //用于记录原子组
 struct ATOM_GROUP
 {
-	int atom_numbers;
-	int *atom_serial;
+    int atom_numbers;
+    int *atom_serial;
 };
 
 
@@ -184,118 +184,118 @@ int Check_2357_Factor(int number);
 template<int N>
 struct SADfloat
 {
-	float val;
-	float dval[N];
-	__device__ __host__ SADfloat<N>()
-	{
-		this->val = 0;
-		for (int i = 0; i < N; i++)
-		{
-			this->dval[i] = 0;
-		}
-	}
-	__device__ __host__ SADfloat<N>(int f, int id = -1)
-	{
-		this->val = (float)f;
-		for (int i = 0; i < N; i++)
-		{
-			if (i != id)
-				this->dval[i] = 0;
-			else
-				this->dval[i] = 1;
-		}
-	}
-	__device__ __host__ SADfloat<N>(float f, int id = -1)
-	{
-		this->val = f;
-		for (int i = 0; i < N; i++)
-		{
-			if (i != id)
-				this->dval[i] = 0;
-			else
-				this->dval[i] = 1;
-		}
-	}
-	__device__ __host__ SADfloat<N>(const SADfloat<N>& f)
-	{
-		this->val = f.val;
-		for (int i = 0; i < N; i++)
-		{
-			this->dval[i] = f.dval[i];
-		}
-	}
-	friend __device__ __host__ SADfloat<N> operator+ (const SADfloat<N>& f1, const SADfloat<N>& f2)
-	{
-		SADfloat<N> f;
-		f.val = f1.val + f2.val;
-		for (int i = 0; i < N; i++)
-		{
-			f.dval[i] = f1.dval[i] + f2.dval[i];
-		}
-		return f;
-	}
-	friend __device__ __host__ SADfloat<N> operator- (const SADfloat<N>& f1, const SADfloat<N>& f2)
-	{
-		SADfloat<N> f;
-		f.val = f1.val - f2.val;
-		for (int i = 0; i < N; i++)
-		{
-			f.dval[i] = f1.dval[i] - f2.dval[i];
-		}
-		return f;
-	}
-	friend __device__ __host__ SADfloat<N> operator* (const SADfloat<N>& f1, const SADfloat<N>& f2)
-	{
-		SADfloat<N> f;
-		f.val = f1.val * f2.val;
-		for (int i = 0; i < N; i++)
-		{
-			f.dval[i] = f2.val * f1.dval[i] + f1.val * f2.dval[i];
-		}
-		return f;
-	}
-	friend __device__ __host__ SADfloat<N> operator/ (const SADfloat<N>& f1, const SADfloat<N>& f2)
-	{
-		SADfloat<N> f;
-		f.val = f1.val / f2.val;
-		for (int i = 0; i < N; i++)
-		{
-			f.dval[i] = f1.dval[i] * f2.val - f2.dval[i] * f1.val;
-			f.dval[i] /= f2.val * f2.val;
-		}
-		return f;
-	}
-	friend __device__ __host__ SADfloat<N> logf (const SADfloat<N>& f)
-	{
-		SADfloat<N> fa;
-		fa.val = logf(f.val);
-		for (int i = 0; i < N; i++)
-		{
-			fa.dval[i] = f.dval[i] / f.val;
-		}
+    float val;
+    float dval[N];
+    __device__ __host__ SADfloat<N>()
+    {
+        this->val = 0;
+        for (int i = 0; i < N; i++)
+        {
+            this->dval[i] = 0;
+        }
+    }
+    __device__ __host__ SADfloat<N>(int f, int id = -1)
+    {
+        this->val = (float)f;
+        for (int i = 0; i < N; i++)
+        {
+            if (i != id)
+                this->dval[i] = 0;
+            else
+                this->dval[i] = 1;
+        }
+    }
+    __device__ __host__ SADfloat<N>(float f, int id = -1)
+    {
+        this->val = f;
+        for (int i = 0; i < N; i++)
+        {
+            if (i != id)
+                this->dval[i] = 0;
+            else
+                this->dval[i] = 1;
+        }
+    }
+    __device__ __host__ SADfloat<N>(const SADfloat<N>& f)
+    {
+        this->val = f.val;
+        for (int i = 0; i < N; i++)
+        {
+            this->dval[i] = f.dval[i];
+        }
+    }
+    friend __device__ __host__ SADfloat<N> operator+ (const SADfloat<N>& f1, const SADfloat<N>& f2)
+    {
+        SADfloat<N> f;
+        f.val = f1.val + f2.val;
+        for (int i = 0; i < N; i++)
+        {
+            f.dval[i] = f1.dval[i] + f2.dval[i];
+        }
+        return f;
+    }
+    friend __device__ __host__ SADfloat<N> operator- (const SADfloat<N>& f1, const SADfloat<N>& f2)
+    {
+        SADfloat<N> f;
+        f.val = f1.val - f2.val;
+        for (int i = 0; i < N; i++)
+        {
+            f.dval[i] = f1.dval[i] - f2.dval[i];
+        }
+        return f;
+    }
+    friend __device__ __host__ SADfloat<N> operator* (const SADfloat<N>& f1, const SADfloat<N>& f2)
+    {
+        SADfloat<N> f;
+        f.val = f1.val * f2.val;
+        for (int i = 0; i < N; i++)
+        {
+            f.dval[i] = f2.val * f1.dval[i] + f1.val * f2.dval[i];
+        }
+        return f;
+    }
+    friend __device__ __host__ SADfloat<N> operator/ (const SADfloat<N>& f1, const SADfloat<N>& f2)
+    {
+        SADfloat<N> f;
+        f.val = f1.val / f2.val;
+        for (int i = 0; i < N; i++)
+        {
+            f.dval[i] = f1.dval[i] * f2.val - f2.dval[i] * f1.val;
+            f.dval[i] /= f2.val * f2.val;
+        }
+        return f;
+    }
+    friend __device__ __host__ SADfloat<N> logf (const SADfloat<N>& f)
+    {
+        SADfloat<N> fa;
+        fa.val = logf(f.val);
+        for (int i = 0; i < N; i++)
+        {
+            fa.dval[i] = f.dval[i] / f.val;
+        }
 
-		return fa;
-	}
-	friend __device__ __host__ SADfloat<N> sqrtf(const SADfloat<N>& f)
-	{
-		SADfloat<N> fa;
-		fa.val = sqrtf(f.val);
-		for (int i = 0; i < N; i++)
-		{
-			fa.dval[i] = 0.5 / fa.val * f.dval[i];
-		}
-		return fa;
-	}
-	friend __device__ __host__ SADfloat<N> expf(const SADfloat<N>& f)
-	{
-		SADfloat<N> fa;
-		fa.val = expf(f.val);
-		for (int i = 0; i < N; i++)
-		{
-			fa.dval[i] = fa.val * f.dval[i];
-		}
-		return fa;
-	}
+        return fa;
+    }
+    friend __device__ __host__ SADfloat<N> sqrtf(const SADfloat<N>& f)
+    {
+        SADfloat<N> fa;
+        fa.val = sqrtf(f.val);
+        for (int i = 0; i < N; i++)
+        {
+            fa.dval[i] = 0.5 / fa.val * f.dval[i];
+        }
+        return fa;
+    }
+    friend __device__ __host__ SADfloat<N> expf(const SADfloat<N>& f)
+    {
+        SADfloat<N> fa;
+        fa.val = expf(f.val);
+        for (int i = 0; i < N; i++)
+        {
+            fa.dval[i] = fa.val * f.dval[i];
+        }
+        return fa;
+    }
 };
 
 #endif //COMMON_CUH(common.cuh)

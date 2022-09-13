@@ -29,46 +29,46 @@
 //equation 9-11
 struct GENERALIZED_BORN_INFORMATION
 {
-	char module_name[CHAR_LENGTH_MAX];
-	int is_initialized = 0;
-	int is_controller_printf_initialized = 0;
-	int last_modify_date = 20220607;
+    char module_name[CHAR_LENGTH_MAX];
+    int is_initialized = 0;
+    int is_controller_printf_initialized = 0;
+    int last_modify_date = 20220607;
 
-	int atom_numbers = 0;           //原子数
+    int atom_numbers = 0;           //原子数
 
-	float *h_GB_energy_atom = NULL;    //每个原子的GB的能量
-	float h_GB_energy_sum = 0;     //所有原子的GB能量和
-	float *d_GB_energy_atom = NULL;    //每个原子的GB的能量
-	float *d_GB_energy_sum = NULL;     //所有原子的GB能量和
-	
-	float *h_GB_self_radius = NULL; //自身半径(radii - offset)
-	float *d_GB_self_radius = NULL; //自身半径(radii - offset)
-	float *h_GB_other_radius = NULL; //屏蔽半径scaler * (radii - offset)
-	float *d_GB_other_radius = NULL; //屏蔽半径scaler * (radii - offset)
+    float *h_GB_energy_atom = NULL;    //每个原子的GB的能量
+    float h_GB_energy_sum = 0;     //所有原子的GB能量和
+    float *d_GB_energy_atom = NULL;    //每个原子的GB的能量
+    float *d_GB_energy_sum = NULL;     //所有原子的GB能量和
+    
+    float *h_GB_self_radius = NULL; //自身半径(radii - offset)
+    float *d_GB_self_radius = NULL; //自身半径(radii - offset)
+    float *h_GB_other_radius = NULL; //屏蔽半径scaler * (radii - offset)
+    float *d_GB_other_radius = NULL; //屏蔽半径scaler * (radii - offset)
 
-	float *d_GB_effective_radius = NULL;//有效半径
-	float *d_dE_da = NULL; //能量对effective_radius的导数
+    float *d_GB_effective_radius = NULL;//有效半径
+    float *d_dE_da = NULL; //能量对effective_radius的导数
 
-	float relative_dielectric_constant = 78.5;
-	float radii_offset = 0.09;
-	float cutoff = 10.0;
-	float radii_cutoff = 25.0;
+    float relative_dielectric_constant = 78.5;
+    float radii_offset = 0.09;
+    float cutoff = 10.0;
+    float radii_cutoff = 25.0;
 
-	dim3 thread_GB = { 32, 32 };
+    dim3 thread_GB = { 32, 32 };
 
-	//初始化
-	void Initial(CONTROLLER *controller, float cutoff, const char *module_name = NULL);
-	//清除内存
-	void Clear();
-	//分配内存
-	void Malloc();
+    //初始化
+    void Initial(CONTROLLER *controller, float cutoff, const char *module_name = NULL);
+    //清除内存
+    void Clear();
+    //分配内存
+    void Malloc();
 
-	void Get_Effective_Born_Radius(const VECTOR *crd);
+    void Get_Effective_Born_Radius(const VECTOR *crd);
 
-	//可以根据外界传入的need_atom_energ选择性计算能量
-	void GB_Force_With_Atom_Energy(const int atom_numbers, const VECTOR *crd, const float *charge, VECTOR *frc, float *atom_energy);
+    //可以根据外界传入的need_atom_energ选择性计算能量
+    void GB_Force_With_Atom_Energy(const int atom_numbers, const VECTOR *crd, const float *charge, VECTOR *frc, float *atom_energy);
 
-	//获得能量
-	float Get_Energy(const VECTOR *crd, const float *charge, int is_download = 1);
+    //获得能量
+    float Get_Energy(const VECTOR *crd, const float *charge, int is_download = 1);
 };
 #endif //LENNARD_JONES_FORCE_CUH(Lennard_Jones_force.cuh)
