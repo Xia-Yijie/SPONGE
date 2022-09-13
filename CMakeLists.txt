@@ -8,6 +8,7 @@ project(SPONGE-Project
     LANGUAGES C CXX CUDA)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 # Check CUDA
+set(CMAKE_CUDA_STANDARD 11)
 if (CMAKE_CUDA_COMPILER)
     add_subdirectory(SPONGE)
 else()
