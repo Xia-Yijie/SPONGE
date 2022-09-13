@@ -27,4 +27,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: SPONGE
-          path: x64\Release\*.exe
+          path: x64\Release\**.exe
