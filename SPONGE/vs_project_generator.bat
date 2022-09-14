@@ -19,7 +19,8 @@ if "%visual_studio_version%"=="" (
 )
 
 if "%vcuda%"=="" (
-    call :help
+    set vcuda=10.2
+    call :main
 ) else if "%vcuda%"=="-h" (
     call :help
 ) else call :main
