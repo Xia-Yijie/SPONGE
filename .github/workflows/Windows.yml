@@ -1,0 +1,42 @@
+name: build SPONGE on Windows 
+on:
+  create
+
+jobs:
+  build:
+    name: build-${{ matrix.vcuda }}
+    runs-on: windows-latest
+    strategy: 
+      fail-fast: true
+      matrix:
+        include:
+          - vcuda_full: 11.7.0
+            vcuda: 11.7
+            toolset: V143
+          - vcuda_full: 11.6.0
+            vcuda: 11.6
+            toolset: V143
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Cuda
+        uses: Jimver/cuda-toolkit@v0.2.8
+        with:
+          cuda: ${{ matrix.vcuda_full }}
+      - name: Install Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+      - name: show all projects
+        run: ls "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\\BuildCustomizations"
+      - name: Build
+        run:  |
+          cd SPONGE
+          ./vs_project_generator.bat ${{ matrix.vcuda }} ${{ matrix.toolset }}
+          devenv SPONGE.sln /BUILD
+          devenv SPONGE_NOPBC.sln /BUILD
+          devenv SPONGE_FEP.sln /BUILD
+          devenv SPONGE_TI.sln /BUILD
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: SPONGE_cuda11p7
+          path: SPONGE\x64\Release\**.exe

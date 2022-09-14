@@ -1,11 +1,26 @@
 @echo off
 setlocal enabledelayedexpansion
-set mfile=%1
+
+set vcuda=%1
+set PlatformToolset=%2
+set mfile=%3
+set visual_studio_version=%4
+
+if "%PlatformToolset%"=="" (
+    set PlatformToolset=v120
+)
 
 if "%mfile%"=="" (
     set mfile=Makefile
-    call :main
-) else if "%mfile%"=="-h" (
+) 
+
+if "%visual_studio_version%"=="" (
+    set visual_studio_version=12.0.21005.1
+)
+
+if "%vcuda%"=="" (
+    call :help
+) else if "%vcuda%"=="-h" (
     call :help
 ) else call :main
 
@@ -77,7 +92,7 @@ for %%o in (%objects%) do (
         echo.> !exe!.sln
         echo Microsoft Visual Studio Solution File, Format Version 12.00>> !exe!.sln
         echo # Visual Studio 2013>> !exe!.sln
-        echo VisualStudioVersion = 12.0.21005.1>> !exe!.sln
+        echo VisualStudioVersion = %visual_studio_version%>> !exe!.sln
         echo MinimumVisualStudioVersion = 10.0.40219.1>> !exe!.sln
         echo Project^("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}"^) = "!exe!", "!exe!.vcxproj", "{28E30FB4-9F17-4F20-985C-FF9E3F4E8B72}">> !exe!.sln
         echo EndProject>> !exe!.sln
@@ -113,11 +128,11 @@ for %%o in (%objects%) do (
         echo     ^<UseDebugLibraries^>false^</UseDebugLibraries^>>> !exe!.vcxproj
         echo     ^<WholeProgramOptimization^>true^</WholeProgramOptimization^>>> !exe!.vcxproj
         echo     ^<CharacterSet^>MultiByte^</CharacterSet^>>> !exe!.vcxproj
-        echo     ^<PlatformToolset^>v120^</PlatformToolset^>>> !exe!.vcxproj
+        echo     ^<PlatformToolset^>%PlatformToolset%^</PlatformToolset^>>> !exe!.vcxproj
         echo   ^</PropertyGroup^>>> !exe!.vcxproj
         echo   ^<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /^>>> !exe!.vcxproj
         echo   ^<ImportGroup Label="ExtensionSettings"^>>> !exe!.vcxproj
-        echo     ^<Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" /^>>> !exe!.vcxproj
+        echo     ^<Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA %vcuda%.props" /^>>> !exe!.vcxproj
         echo   ^</ImportGroup^>>> !exe!.vcxproj
         echo   ^<ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'"^>>> !exe!.vcxproj
         echo     ^<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" /^>>> !exe!.vcxproj
@@ -156,7 +171,7 @@ for %%o in (%objects%) do (
         echo   ^</ItemGroup^>>> !exe!.vcxproj
         echo   ^<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /^>>> !exe!.vcxproj
         echo   ^<ImportGroup Label="ExtensionTargets"^>>> !exe!.vcxproj
-        echo     ^<Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" /^>>> !exe!.vcxproj
+        echo     ^<Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA %vcuda%.targets" /^>>> !exe!.vcxproj
         echo   ^</ImportGroup^>>> !exe!.vcxproj
         echo ^</Project^>>> !exe!.vcxproj
         
@@ -214,8 +229,16 @@ pause
 exit
 
 :help
-echo .\vs_project_generator.bat [ARG]
+echo ".\vs_project_generator.bat [-h | vcuda [vtoolset [mfile [vvs]]]]"
 echo    .\vs_project_generator.bat: generate visual studio project files from a Makefile
-echo    ARG: the input parameter, it can be "-h", "--help", or the Makefile name. Default: Makefile
+echo    h: see this help and exit
+echo    vcuda: the version of cuda.
+echo          Default: 10.2
+echo    vtoolset: the platform toolset version. See https://zhuanlan.zhihu.com/p/484954209.
+echo          Default: v120
+echo    mfile: the Makefile name.
+echo          Default: Makefile
+echo    vvs: the build number of the visual studio version. See https://docs.microsoft.com/zh-cn/visualstudio/install/visual-studio-build-numbers-and-release-dates?view=vs-2022 to get the build number. 
+echo          Default: 12.0.21005.1
 pause
 exit
