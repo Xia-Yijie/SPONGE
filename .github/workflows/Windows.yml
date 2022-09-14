@@ -1,6 +1,6 @@
 name: build SPONGE on Windows 
 on:
-  push
+  create
 
 jobs:
   build:
