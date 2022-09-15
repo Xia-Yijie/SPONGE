@@ -25,7 +25,7 @@ jobs:
 #        uses: Jimver/cuda-toolkit@v0.2.8
       - name: Install Visual Studio
         run: |
-            wget -uri ${{ matrix.vs_url }} -outfile setup.exe
+            Invoke-WebRequest -uri ${{ matrix.vs_url }} -outfile setup.exe
             .\setup.exe --layout temp --add Microsoft.VisualStudio.Workload.NativeDesktop
       - name: Activate Visual Studio shell
         uses: egor-tensin/vs-shell@v2
