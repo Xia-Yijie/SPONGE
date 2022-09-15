@@ -22,10 +22,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-#      - name: Install Cuda
-#        uses: Jimver/cuda-toolkit@v0.2.8
-#        with:
-#          cuda: ${{ matrix.vcuda_full }}
+      - name: Install Cuda
+        uses: Jimver/cuda-toolkit@v0.2.8
+        with:
+          cuda: ${{ matrix.vcuda_full }}
       - name: Activate Visual Studio shell
         uses: egor-tensin/vs-shell@v2
       - name: Build
