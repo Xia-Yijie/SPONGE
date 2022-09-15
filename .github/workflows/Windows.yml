@@ -7,17 +7,26 @@ jobs:
     name: build-${{ matrix.vcuda }}
     runs-on: windows-2019
     strategy: 
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
-          - vcuda_full: 11.7.0
-            vcuda: 11.7
+#          - vcuda_full: 11.7.0
+#            vcuda: 11.7
+#            toolset: V142
+#          - vcuda_full: 11.6.0
+#            vcuda: 11.6
+#            toolset: V142
+#          - vcuda_full: 11.5.0
+#            vcuda: 11.5
+#            toolset: V142
+          - vcuda_full: 11.4.0
+            vcuda: 11.4
             toolset: V142
-          - vcuda_full: 11.6.0
-            vcuda: 11.6
+          - vcuda_full: 11.3.0
+            vcuda: 11.3
             toolset: V142
-          - vcuda_full: 11.5.0
-            vcuda: 11.5
+          - vcuda_full: 11.2.0
+            vcuda: 11.2
             toolset: V142
     steps:
       - name: Checkout
