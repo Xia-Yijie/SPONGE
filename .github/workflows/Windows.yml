@@ -26,10 +26,6 @@ jobs:
 #        uses: Jimver/cuda-toolkit@v0.2.8
 #        with:
 #          cuda: ${{ matrix.vcuda_full }}
-      - name: Install Visual Studio
-        run: |
-            Invoke-WebRequest -uri ${{ matrix.vs_url }} -outfile setup.exe
-            .\setup.exe --layout temp --add Microsoft.VisualStudio.Workload.NativeDesktop
       - name: Activate Visual Studio shell
         uses: egor-tensin/vs-shell@v2
       - name: Build
